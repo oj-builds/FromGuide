@@ -305,3 +305,29 @@ body {
     color:#555;
     font-family:system-ui,sans-serif;
 }
+
+.cv-container{
+    max-width:700px;
+    margin:40px auto;
+    padding:25px;
+}
+
+.cv-container input,
+.cv-container textarea{
+    width:100%;
+    padding:14px;
+    margin-bottom:15px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    font-size:16px;
+}
+
+.cv-container button{
+    background:#1B4332;
+    color:white;
+    padding:14px 25px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:16px;
+}
