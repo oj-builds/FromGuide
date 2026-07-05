@@ -334,13 +334,13 @@ body {
 .feature-grid{
     display:grid;
     grid-template-columns:repeat(3,1fr);
-    gap:20px;  
+    gap:12px;  
 }
 .feature-card {
-    width: 240px;
-    height: 110px;
-    padding: 18px;
-    border-radius: 14px;
+    width: 220px;
+    height: 95px;
+    padding: 12px;
+    border-radius: 12px;
     background: #fff;
     border: 1px solid #e5e5e5;
     transition: 0.25s;
@@ -353,8 +353,8 @@ body {
 }
 
 .feature-card .icon{
-    font-size:40px;
-    margin-bottom:12px;
+    font-size:26px;
+    margin-bottom:8px;
 }
 
 .feature-card h3{
@@ -365,5 +365,5 @@ body {
 .feature-card p{
     color:#666;
     margin-top:8px;
-    line-height:1.5;
+    line-height:1.3;
 }
