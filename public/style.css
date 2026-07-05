@@ -285,3 +285,23 @@ body {
     display: inline-block;
   }
 }
+.welcome-card{
+    width:100%;
+    background:#ffffff;
+    border:1px solid #E3DCC8;
+    border-radius:14px;
+    padding:20px;
+    margin-bottom:15px;
+    box-shadow:0 2px 8px rgba(0,0,0,.05);
+}
+
+.welcome-card h2{
+    margin:0 0 10px;
+    color:#1B4332;
+}
+
+.welcome-card p{
+    margin:0;
+    color:#555;
+    font-family:system-ui,sans-serif;
+}
