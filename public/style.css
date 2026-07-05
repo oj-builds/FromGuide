@@ -338,19 +338,20 @@ body {
     padding:20px;
 }
 
-.feature-card{
-    background:white;
-    border:1px solid #E3DCC8;
-    border-radius:16px;
-    padding:20px;
-    cursor:pointer;
-    transition:.25s;
-    box-shadow:0 3px 10px rgba(0,0,0,.05);
+.feature-card {
+    background: white;
+    border: 1px solid #E3DCC8;
+    border-radius: 15px;
+    padding: 20px;
+    min-height: 170px;
+    cursor: pointer;
+    transition: 0.3s;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
 }
 
-.feature-card:hover{
-    transform:translateY(-5px);
-    border-color:#1B4332;
+.feature-card:hover {
+    transform: translateY(-5px);
+    border-color: #1B4332;
 }
 
 .feature-card .icon{
