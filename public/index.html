@@ -7,27 +7,44 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="letterhead">
-    <div class="seal">🖋️</div>
-    <div>
-      <div class="app-name">FormGuide</div>
-      <div class="app-tag">Government form assistance</div>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">FormGuide</span>
+        <button id="closeSidebar" class="icon-btn mobile-only">✕</button>
+      </div>
+      <button id="newChatBtn" class="new-chat-btn">+ New chat</button>
+      <div class="sidebar-section-label">Recent conversations</div>
+      <div id="chatList" class="chat-list"></div>
+    </aside>
+
+    <!-- Main area -->
+    <div class="main-area">
+      <header class="letterhead">
+        <button id="openSidebar" class="icon-btn mobile-only">☰</button>
+        <div class="seal">🖋️</div>
+        <div>
+          <div class="app-name">FormGuide</div>
+          <div class="app-tag">Government form assistance</div>
+        </div>
+      </header>
+
+      <div id="suggestions" class="suggestions">
+        <button class="chip" data-text="NIN enrollment">NIN enrollment</button>
+        <button class="chip" data-text="International passport">International passport</button>
+        <button class="chip" data-text="JAMB registration">JAMB registration</button>
+        <button class="chip" data-text="WAEC result checker">WAEC result checker</button>
+      </div>
+
+      <main id="chat" class="chat"></main>
+
+      <form id="chat-form" class="input-bar">
+        <input id="chat-input" type="text" placeholder="Ask about any form…" autocomplete="off" />
+        <button type="submit">Send</button>
+      </form>
     </div>
-  </header>
-
-  <div id="suggestions" class="suggestions">
-    <button class="chip" data-text="NIN enrollment">NIN enrollment</button>
-    <button class="chip" data-text="International passport">International passport</button>
-    <button class="chip" data-text="JAMB registration">JAMB registration</button>
-    <button class="chip" data-text="WAEC result checker">WAEC result checker</button>
   </div>
-
-  <main id="chat" class="chat"></main>
-
-  <form id="chat-form" class="input-bar">
-    <input id="chat-input" type="text" placeholder="Ask about any form…" autocomplete="off" />
-    <button type="submit">Send</button>
-  </form>
 
   <script src="app.js"></script>
 </body>
