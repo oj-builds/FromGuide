@@ -333,25 +333,23 @@ body {
 }
 .feature-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:18px;
-    padding:20px;
+    grid-template-columns:repeat(3,1fr);
+    gap:20px;  
 }
-
 .feature-card {
-    background: white;
-    border: 1px solid #E3DCC8;
-    border-radius: 15px;
-    padding: 20px;
-    min-height: 180px;
+    width: 240px;
+    height: 110px;
+    padding: 18px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    transition: 0.25s;
     cursor: pointer;
-    transition: 0.3s;
-    box-shadow: 0 2px 8px rgba(0,0,0,.08);
 }
 
 .feature-card:hover {
     transform: translateY(-5px);
-    border-color: #1B4332;
+    box-shadow: 0 10px 25px rgba(0,0,0,.12);
 }
 
 .feature-card .icon{
