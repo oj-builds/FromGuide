@@ -191,6 +191,12 @@ closeSidebarBtn.addEventListener("click", () => {
   sidebarEl.classList.remove("open");
 });
 
+document.querySelectorAll(".feature-card").forEach(card=>{
+    card.addEventListener("click",()=>{
+        sendMessage(card.dataset.text);
+    });
+});
+
 // Init
 if (conversations.length === 0) {
   startNewChat();
