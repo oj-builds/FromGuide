@@ -343,7 +343,7 @@ body {
     border: 1px solid #E3DCC8;
     border-radius: 15px;
     padding: 20px;
-    min-height: 170px;
+    min-height: 180px;
     cursor: pointer;
     transition: 0.3s;
     box-shadow: 0 2px 8px rgba(0,0,0,.08);
