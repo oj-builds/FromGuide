@@ -102,12 +102,13 @@ function renderMessage(role, content) {
   const bubble = document.createElement("div");
   bubble.className = "bubble";
 
-  if (role === "assistant") {
-    const stamp = document.createElement("div");
-    stamp.className = "stamp";
-    stamp.innerHTML = `<span class="stamp-circle">✓</span> Guidance`;
-    bubble.appendChild(stamp);
-  }
+  const stamp = document.createElement("div");
+  stamp.className = "stamp";
+  stamp.innerHTML =
+    role === "assistant"
+      ? `<span class="stamp-circle">🤖</span> FormGuide AI`
+      : `<span class="stamp-circle">👤</span> You`;
+  bubble.appendChild(stamp);
 
   const textNode = document.createElement("div");
   textNode.textContent = content;
@@ -137,7 +138,7 @@ function renderTyping() {
   row.id = "typing-row";
   const bubble = document.createElement("div");
   bubble.className = "bubble typing";
-  bubble.textContent = "Typing…";
+  bubble.innerHTML = `🤖 FormGuide AI is thinking<span class="dots"><span>.</span><span>.</span><span>.</span></span>`;
   row.appendChild(bubble);
   messagesEl.appendChild(row);
   chatEl.scrollTop = chatEl.scrollHeight;
@@ -196,7 +197,13 @@ formEl.addEventListener("submit", (e) => {
 });
 
 document.querySelectorAll(".feature-card").forEach((card) => {
-  card.addEventListener("click", () => sendMessage(card.dataset.text));
+  card.addEventListener("click", () => {
+    if (card.dataset.focusOnly === "true") {
+      inputEl.focus();
+      return;
+    }
+    sendMessage(card.dataset.text);
+  });
 });
 
 newChatBtn.addEventListener("click", () => {
