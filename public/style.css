@@ -337,8 +337,8 @@ body {
     gap:12px;  
 }
 .feature-card {
-    width: 220px;
-    height: 95px;
+    width: 200px;
+    height: 85px;
     padding: 12px;
     border-radius: 12px;
     background: #fff;
@@ -353,7 +353,7 @@ body {
 }
 
 .feature-card .icon{
-    font-size:26px;
+    font-size:20px;
     margin-bottom:8px;
 }
 
