@@ -5,9 +5,98 @@ body {
   font-family: Georgia, 'Iowan Old Style', serif;
   background: #F7F3E9;
   color: #1A1A17;
+}
+
+.app-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: #14261E;
+  color: #F7F3E9;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  padding: 16px 12px;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 16px;
+}
+
+.sidebar-title {
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.new-chat-btn {
+  background: #1B4332;
+  color: #F7F3E9;
+  border: 1px solid #C9A227;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 18px;
+}
+
+.new-chat-btn:hover {
+  background: #234a3c;
+}
+
+.sidebar-section-label {
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.6;
+  padding: 0 4px 8px;
+}
+
+.chat-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-list-item {
+  font-family: system-ui, sans-serif;
+  font-size: 13.5px;
+  padding: 9px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #E4DFCF;
+}
+
+.chat-list-item:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.chat-list-item.active {
+  background: rgba(201,162,39,0.2);
+  color: #F7F3E9;
+}
+
+/* Main area */
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .letterhead {
@@ -18,6 +107,19 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: #F7F3E9;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.mobile-only {
+  display: none;
 }
 
 .seal {
@@ -162,4 +264,24 @@ body {
 .input-bar button:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+/* Mobile */
+@media (max-width: 720px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 20;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.2);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .mobile-only {
+    display: inline-block;
+  }
 }
