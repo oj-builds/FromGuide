@@ -1,7 +1,8 @@
 const chatEl = document.getElementById("chat");
+const welcomeScreenEl = document.getElementById("welcomeScreen");
+const messagesEl = document.getElementById("messages");
 const formEl = document.getElementById("chat-form");
 const inputEl = document.getElementById("chat-input");
-const suggestionsEl = document.getElementById("suggestions");
 const chatListEl = document.getElementById("chatList");
 const newChatBtn = document.getElementById("newChatBtn");
 const sidebarEl = document.getElementById("sidebar");
@@ -37,11 +38,7 @@ function makeTitle(text) {
 
 function startNewChat() {
   currentId = "c" + Date.now();
-  conversations.unshift({
-    id: currentId,
-    title: null,
-    messages: [],
-  });
+  conversations.unshift({ id: currentId, title: null, messages: [] });
   saveConversations();
   renderSidebar();
   renderActiveConversation();
@@ -56,15 +53,46 @@ function renderSidebar() {
   conversations.forEach((conv) => {
     const item = document.createElement("div");
     item.className = "chat-list-item" + (conv.id === currentId ? " active" : "");
-    item.textContent = conv.title || "New chat";
-    item.addEventListener("click", () => {
+
+    const label = document.createElement("span");
+    label.className = "chat-list-label";
+    label.textContent = conv.title || "New chat";
+    label.addEventListener("click", () => {
       currentId = conv.id;
       renderSidebar();
       renderActiveConversation();
       sidebarEl.classList.remove("open");
     });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "chat-delete-btn";
+    deleteBtn.innerHTML = "✕";
+    deleteBtn.title = "Delete conversation";
+    deleteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      deleteConversation(conv.id);
+    });
+
+    item.appendChild(label);
+    item.appendChild(deleteBtn);
     chatListEl.appendChild(item);
   });
+}
+
+function deleteConversation(id) {
+  conversations = conversations.filter((c) => c.id !== id);
+  saveConversations();
+
+  if (id === currentId) {
+    if (conversations.length > 0) {
+      currentId = conversations[0].id;
+    } else {
+      startNewChat();
+      return;
+    }
+  }
+  renderSidebar();
+  renderActiveConversation();
 }
 
 function renderMessage(role, content) {
@@ -86,24 +114,20 @@ function renderMessage(role, content) {
   bubble.appendChild(textNode);
 
   row.appendChild(bubble);
-  chatEl.appendChild(row);
+  messagesEl.appendChild(row);
   chatEl.scrollTop = chatEl.scrollHeight;
 }
 
 function renderActiveConversation() {
-  chatEl.innerHTML = "";
+  messagesEl.innerHTML = "";
   const conv = getCurrentConversation();
 
   if (!conv || conv.messages.length === 0) {
-    suggestionsEl.style.display = "flex";
-    renderMessage(
-      "assistant",
-      "Welcome. Tell me which form you need help with — NIN, WAEC result checker, international passport, JAMB, or anything else — and I'll walk you through it step by step."
-    );
+    welcomeScreenEl.style.display = "block";
     return;
   }
 
-  suggestionsEl.style.display = "none";
+  welcomeScreenEl.style.display = "none";
   conv.messages.forEach((m) => renderMessage(m.role, m.content));
 }
 
@@ -115,7 +139,7 @@ function renderTyping() {
   bubble.className = "bubble typing";
   bubble.textContent = "Typing…";
   row.appendChild(bubble);
-  chatEl.appendChild(row);
+  messagesEl.appendChild(row);
   chatEl.scrollTop = chatEl.scrollHeight;
 }
 
@@ -128,7 +152,6 @@ async function sendMessage(text) {
   if (!text || loading) return;
   loading = true;
   inputEl.value = "";
-  suggestionsEl.style.display = "none";
 
   let conv = getCurrentConversation();
   if (!conv) {
@@ -136,9 +159,9 @@ async function sendMessage(text) {
     conv = getCurrentConversation();
   }
 
-  if (!conv.title) {
-    conv.title = makeTitle(text);
-  }
+  if (!conv.title) conv.title = makeTitle(text);
+
+  welcomeScreenEl.style.display = "none";
 
   conv.messages.push({ role: "user", content: text });
   saveConversations();
@@ -172,10 +195,8 @@ formEl.addEventListener("submit", (e) => {
   sendMessage(inputEl.value.trim());
 });
 
-suggestionsEl.addEventListener("click", (e) => {
-  if (e.target.classList.contains("chip")) {
-    sendMessage(e.target.dataset.text);
-  }
+document.querySelectorAll(".feature-card").forEach((card) => {
+  card.addEventListener("click", () => sendMessage(card.dataset.text));
 });
 
 newChatBtn.addEventListener("click", () => {
@@ -183,19 +204,8 @@ newChatBtn.addEventListener("click", () => {
   sidebarEl.classList.remove("open");
 });
 
-openSidebarBtn.addEventListener("click", () => {
-  sidebarEl.classList.add("open");
-});
-
-closeSidebarBtn.addEventListener("click", () => {
-  sidebarEl.classList.remove("open");
-});
-
-document.querySelectorAll(".feature-card").forEach(card=>{
-    card.addEventListener("click",()=>{
-        sendMessage(card.dataset.text);
-    });
-});
+openSidebarBtn.addEventListener("click", () => sidebarEl.classList.add("open"));
+closeSidebarBtn.addEventListener("click", () => sidebarEl.classList.remove("open"));
 
 // Init
 if (conversations.length === 0) {
