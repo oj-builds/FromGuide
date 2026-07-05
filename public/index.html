@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FormGuide — Government Form Assistant</title>
+  <title>FormGuide AI</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,72 +11,95 @@
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar">
       <div class="sidebar-header">
-        <span class="sidebar-title">FormGuide</span>
+        <span class="sidebar-logo">🏛️</span>
+        <span class="sidebar-title">FormGuide <span class="accent">AI</span></span>
         <button id="closeSidebar" class="icon-btn mobile-only">✕</button>
       </div>
+
       <button id="newChatBtn" class="new-chat-btn">+ New chat</button>
+
       <div class="sidebar-section-label">Recent conversations</div>
       <div id="chatList" class="chat-list"></div>
+
+      <div class="sidebar-footer">
+        <button class="upgrade-btn">👑 Upgrade to Pro</button>
+        <button class="guest-btn">👤 Guest User <span class="chevron">⌄</span></button>
+      </div>
     </aside>
 
     <!-- Main area -->
     <div class="main-area">
-      <header class="letterhead">
+      <header class="topbar">
         <button id="openSidebar" class="icon-btn mobile-only">☰</button>
-        <div class="seal">🖋️</div>
+        <span class="topbar-logo">🏛️</span>
         <div>
-          <div class="app-name">FormGuide</div>
-          <div class="app-tag">Government form assistance</div>
+          <div class="topbar-title">FormGuide <span class="accent">AI</span></div>
+          <div class="topbar-tag">AI for Government • Careers • Education</div>
         </div>
       </header>
 
-      <div id="suggestions" class="suggestions">
+      <main id="chat" class="chat">
+        <div id="welcomeScreen" class="welcome-screen">
+          <div class="welcome-card">
+            <div class="welcome-text">
+              <h2>👋 Welcome to FormGuide AI</h2>
+              <p>Your personal AI assistant for government services, careers and education.</p>
+            </div>
+            <div class="welcome-illustration">🏛️</div>
+          </div>
 
-  <div class="welcome-card">
-    <h2>👋 Welcome to FormGuide AI</h2>
-    <p>Your personal AI assistant for government services, careers and education.</p>
-  </div>
+          <div class="feature-grid">
+            <button class="feature-card" data-text="Help me with a government service like NIN, Passport, BVN, or CAC">
+              <span class="icon">🏛️</span>
+              <h3>Government</h3>
+              <p>NIN, Passport, BVN, CAC, NYSC and more.</p>
+            </button>
+            <button class="feature-card" data-text="Help me create a CV and cover letter, and prepare for interviews">
+              <span class="icon">💼</span>
+              <h3>Career</h3>
+              <p>Create CVs, cover letters and prepare for interviews.</p>
+            </button>
+            <button class="feature-card" data-text="Help me with JAMB, WAEC, scholarships or admissions">
+              <span class="icon">🎓</span>
+              <h3>Education</h3>
+              <p>JAMB, WAEC, scholarships and admissions.</p>
+            </button>
+            <button class="feature-card" data-text="Help me understand an official form and what documents I need">
+              <span class="icon">📄</span>
+              <h3>Documents</h3>
+              <p>Understand official forms and required documents.</p>
+            </button>
+            <button class="feature-card" data-text="Practice interview questions with me and give me feedback">
+              <span class="icon">🎙️</span>
+              <h3>Interview Practice</h3>
+              <p>Practice interview questions and get AI feedback.</p>
+            </button>
+            <button class="feature-card" data-text="Help me create a step-by-step plan to reach my goal and track my progress">
+              <span class="icon">🎯</span>
+              <h3>My Journey</h3>
+              <p>Get step-by-step plans and track your progress.</p>
+            </button>
+            <button class="feature-card" data-text="Help me find and apply for scholarships">
+              <span class="icon">🔖</span>
+              <h3>Scholarships</h3>
+              <p>Find and apply for scholarships easily.</p>
+            </button>
+            <button class="feature-card" data-text="I have a question">
+              <span class="icon">💬</span>
+              <h3>Ask Anything</h3>
+              <p>Ask any question and get instant AI answers.</p>
+            </button>
+          </div>
+        </div>
 
-  <div class="feature-grid">
-
-  <div class="feature-card" data-text="Help me with government services">
-      <div class="icon">🏛</div>
-      <h3>Government</h3>
-      <p>NIN, Passport, BVN, CAC, NYSC and more.</p>
-  </div>
-
-  <div class="feature-card" data-text="Help me build my CV">
-      <div class="icon">💼</div>
-      <h3>Career</h3>
-      <p>Create CVs, cover letters and prepare for interviews.</p>
-  </div>
-
-  <div class="feature-card" data-text="Help me with education">
-      <div class="icon">🎓</div>
-      <h3>Education</h3>
-      <p>JAMB, WAEC, scholarships and admissions.</p>
-  </div>
-
-  <div class="feature-card" data-text="Explain this document">
-      <div class="icon">📄</div>
-      <h3>Documents</h3>
-      <p>Understand official forms and required documents.</p>
-  </div>
-
-</div>
-
-  <button class="chip" data-text="I need help today">
-    💬 Ask Anything
-  </button>
-
-</div>
-
-      <main id="chat" class="chat"></main>
+        <div id="messages" class="messages"></div>
+      </main>
 
       <form id="chat-form" class="input-bar">
         <input id="chat-input" type="text" placeholder="Ask about any form…" autocomplete="off" />
-        <button type="submit">Send</button>
+        <button type="submit">➤ Send</button>
       </form>
+      <div class="disclaimer">FormGuide AI can make mistakes. Please verify important information.</div>
     </div>
   </div>
 
