@@ -331,3 +331,40 @@ body {
     cursor:pointer;
     font-size:16px;
 }
+.feature-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:18px;
+    padding:20px;
+}
+
+.feature-card{
+    background:white;
+    border:1px solid #E3DCC8;
+    border-radius:16px;
+    padding:20px;
+    cursor:pointer;
+    transition:.25s;
+    box-shadow:0 3px 10px rgba(0,0,0,.05);
+}
+
+.feature-card:hover{
+    transform:translateY(-5px);
+    border-color:#1B4332;
+}
+
+.feature-card .icon{
+    font-size:40px;
+    margin-bottom:12px;
+}
+
+.feature-card h3{
+    margin:0;
+    color:#1B4332;
+}
+
+.feature-card p{
+    color:#666;
+    margin-top:8px;
+    line-height:1.5;
+}
