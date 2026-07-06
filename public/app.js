@@ -8,6 +8,7 @@ const newChatBtn = document.getElementById("newChatBtn");
 const sidebarEl = document.getElementById("sidebar");
 const openSidebarBtn = document.getElementById("openSidebar");
 const closeSidebarBtn = document.getElementById("closeSidebar");
+const cvModal = document.getElementById("cvModal");
 
 const STORAGE_KEY = "formguide_conversations";
 let conversations = loadConversations();
@@ -196,8 +197,13 @@ formEl.addEventListener("submit", (e) => {
   sendMessage(inputEl.value.trim());
 });
 
+// Feature cards on the welcome screen
 document.querySelectorAll(".feature-card").forEach((card) => {
   card.addEventListener("click", () => {
+    if (card.dataset.openCv === "true") {
+      openCvModal();
+      return;
+    }
     if (card.dataset.focusOnly === "true") {
       inputEl.focus();
       return;
@@ -206,38 +212,57 @@ document.querySelectorAll(".feature-card").forEach((card) => {
   });
 });
 
-// Dashboard navigation
-
-document.getElementById("cvBuilderBtn")?.addEventListener("click", () => {
-    window.location.href = "cv.html";
+// Sidebar quick-tool shortcuts
+document.getElementById("sidebarCvBtn").addEventListener("click", () => {
+  openCvModal();
+  sidebarEl.classList.remove("open");
+});
+document.getElementById("sidebarInterviewBtn").addEventListener("click", () => {
+  sendMessage("Let's practice an interview.");
+  sidebarEl.classList.remove("open");
+});
+document.getElementById("sidebarGovBtn").addEventListener("click", () => {
+  sendMessage("Help me apply for NIN.");
+  sidebarEl.classList.remove("open");
 });
 
-document.getElementById("careerCard")?.addEventListener("click", () => {
-    window.location.href = "career.html";
+// CV Builder modal
+function openCvModal() {
+  cvModal.style.display = "flex";
+}
+function closeCvModal() {
+  cvModal.style.display = "none";
+}
+
+cvModal.addEventListener("click", (e) => {
+  if (e.target === cvModal) closeCvModal();
 });
 
-document.getElementById("educationCard")?.addEventListener("click", () => {
-    window.location.href = "education.html";
-});
+document.getElementById("generateCV").addEventListener("click", () => {
+  const fullName = document.getElementById("fullName").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const education = document.getElementById("education").value.trim();
+  const experience = document.getElementById("experience").value.trim();
+  const skills = document.getElementById("skills").value.trim();
 
-document.getElementById("governmentCard")?.addEventListener("click", () => {
-    window.location.href = "government.html";
-});
+  if (!fullName) {
+    alert("Please enter at least your full name.");
+    return;
+  }
 
-document.getElementById("documentsCard")?.addEventListener("click", () => {
-    window.location.href = "documents.html";
-});
+  const prompt = `Please create a professional CV using this information:
+Full Name: ${fullName}
+Email: ${email || "Not provided"}
+Phone: ${phone || "Not provided"}
+Education: ${education || "Not provided"}
+Work Experience: ${experience || "Not provided"}
+Skills: ${skills || "Not provided"}
 
-document.getElementById("interviewCard")?.addEventListener("click", () => {
-    window.location.href = "interview.html";
-});
+Format it clearly as a ready-to-use CV.`;
 
-document.getElementById("scholarshipCard")?.addEventListener("click", () => {
-    window.location.href = "scholarships.html";
-});
-
-document.getElementById("journeyCard")?.addEventListener("click", () => {
-    window.location.href = "journey.html";
+  closeCvModal();
+  sendMessage(prompt);
 });
 
 newChatBtn.addEventListener("click", () => {
@@ -256,16 +281,3 @@ if (conversations.length === 0) {
   renderSidebar();
   renderActiveConversation();
 }
-
-const cvBtn = document.getElementById("cvBuilderBtn");
-const modal = document.getElementById("cvModal");
-
-cvBtn.onclick = () => {
-    modal.style.display = "flex";
-};
-
-window.onclick = (e) => {
-    if (e.target == modal) {
-        modal.style.display = "none";
-    }
-};
