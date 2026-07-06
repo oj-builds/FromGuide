@@ -27,8 +27,9 @@
       <div id="chatList" class="chat-list"></div>
 
       <div class="sidebar-footer">
+        <button id="settingsBtn" class="upgrade-btn">⚙️ Settings</button>
         <button class="upgrade-btn">👑 Upgrade to Pro</button>
-        <button class="guest-btn">👤 Guest User <span class="chevron">⌄</span></button>
+        <button id="accountBtn" class="guest-btn">👤 Guest User <span class="chevron">⌄</span></button>
       </div>
     </aside>
 
@@ -120,6 +121,7 @@
       <textarea id="skills" placeholder="Skills"></textarea>
       <button id="generateCV">Generate CV</button>
       <div id="cvPreview" class="cv-preview"></div>
+      <button id="downloadCvBtn" class="secondary-btn" style="display:none;">⬇️ Download as PDF</button>
       <button id="polishCvBtn" class="secondary-btn" style="display:none;">✨ Polish this CV with AI</button>
     </div>
   </div>
@@ -138,6 +140,64 @@
     </div>
   </div>
 
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal">
+    <div class="modal-content">
+      <h2>⚙️ Settings</h2>
+
+      <div class="settings-section">
+        <div class="settings-label">Reply language</div>
+        <label class="radio-row">
+          <input type="radio" name="language" value="auto" checked>
+          Auto-detect (default)
+        </label>
+        <label class="radio-row">
+          <input type="radio" name="language" value="english">
+          Always English
+        </label>
+        <label class="radio-row">
+          <input type="radio" name="language" value="pidgin">
+          Always Pidgin
+        </label>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Chat data</div>
+        <button id="clearHistoryBtn" class="secondary-btn danger">🗑️ Clear all conversations</button>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">About</div>
+        <p class="about-text">FormGuide AI helps Nigerians with government services, careers, and education — NIN, Passport, JAMB, CVs, interview prep and more.</p>
+      </div>
+
+      <button id="closeSettingsBtn" class="secondary-btn">Close</button>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
+  <div id="authModal" class="modal">
+    <div class="modal-content">
+      <h2 id="authTitle">👤 Log In</h2>
+
+      <div id="authError" class="auth-error" style="display:none;"></div>
+
+      <input id="authName" type="text" placeholder="Full Name" style="display:none;">
+      <input id="authEmail" type="email" placeholder="Email">
+      <input id="authPassword" type="password" placeholder="Password">
+
+      <button id="authSubmitBtn">Log In</button>
+
+      <p class="auth-switch">
+        <span id="authSwitchText">Don't have an account?</span>
+        <a href="#" id="authSwitchLink">Sign up</a>
+      </p>
+
+      <button id="closeAuthBtn" class="secondary-btn">Cancel</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
