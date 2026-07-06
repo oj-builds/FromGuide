@@ -411,42 +411,73 @@ body {
   .feature-grid { grid-template-columns: 1fr; }
 }
 
-.modal{
-display:none;
-position:fixed;
-left:0;
-top:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,.4);
-justify-content:center;
-align-items:center;
-z-index:1000;
+/* ---------- CV Builder modal ---------- */
+.modal {
+  display: none;
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
 }
 
-.modal-content{
-background:white;
-width:90%;
-max-width:600px;
-padding:25px;
-border-radius:16px;
+.modal-content {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  border-radius: 16px;
+}
+
+.modal-content h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  color: var(--text);
 }
 
 .modal-content input,
-.modal-content textarea{
-width:100%;
-margin-bottom:12px;
-padding:12px;
-border-radius:8px;
-border:1px solid #ddd;
+.modal-content textarea {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-light);
+  color: var(--text);
+  font-size: 13.5px;
+  font-family: inherit;
 }
 
-.modal-content button{
-width:100%;
-padding:14px;
-background:#1B4332;
-color:white;
-border:none;
-border-radius:8px;
-cursor:pointer;
+.modal-content input::placeholder,
+.modal-content textarea::placeholder {
+  color: var(--text-dim);
+}
+
+.modal-content textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.modal-content button {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent-dim);
+  color: #fff;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.modal-content button:hover {
+  background: #1c9c4c;
 }
