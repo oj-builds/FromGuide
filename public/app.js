@@ -206,6 +206,40 @@ document.querySelectorAll(".feature-card").forEach((card) => {
   });
 });
 
+// Dashboard navigation
+
+document.getElementById("cvBuilderBtn")?.addEventListener("click", () => {
+    window.location.href = "cv.html";
+});
+
+document.getElementById("careerCard")?.addEventListener("click", () => {
+    window.location.href = "career.html";
+});
+
+document.getElementById("educationCard")?.addEventListener("click", () => {
+    window.location.href = "education.html";
+});
+
+document.getElementById("governmentCard")?.addEventListener("click", () => {
+    window.location.href = "government.html";
+});
+
+document.getElementById("documentsCard")?.addEventListener("click", () => {
+    window.location.href = "documents.html";
+});
+
+document.getElementById("interviewCard")?.addEventListener("click", () => {
+    window.location.href = "interview.html";
+});
+
+document.getElementById("scholarshipCard")?.addEventListener("click", () => {
+    window.location.href = "scholarships.html";
+});
+
+document.getElementById("journeyCard")?.addEventListener("click", () => {
+    window.location.href = "journey.html";
+});
+
 newChatBtn.addEventListener("click", () => {
   startNewChat();
   sidebarEl.classList.remove("open");
