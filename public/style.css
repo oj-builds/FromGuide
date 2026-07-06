@@ -1,483 +1,143 @@
-* { box-sizing: border-box; }
-
-:root {
-  --bg: #0E1512;
-  --panel: #141E1A;
-  --panel-light: #1A2622;
-  --border: #223029;
-  --accent: #22C55E;
-  --accent-dim: #16803C;
-  --text: #EDEFEE;
-  --text-dim: #9CA8A2;
-}
-
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-}
-
-.app-shell {
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
-}
-
-/* ---------- Sidebar ---------- */
-.sidebar {
-  width: 270px;
-  flex-shrink: 0;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  padding: 18px 14px;
-}
-
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 18px;
-}
-
-.sidebar-logo { font-size: 20px; }
-
-.sidebar-title {
-  font-weight: 700;
-  font-size: 17px;
-}
-
-.accent { color: var(--accent); }
-
-.new-chat-btn {
-  background: var(--accent-dim);
-  color: #fff;
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  padding: 11px 12px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-bottom: 20px;
-}
-
-.new-chat-btn:hover { background: #1c9c4c; }
-
-.sidebar-section-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-dim);
-  padding: 0 4px 8px;
-}
-
-.chat-list {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.chat-list-item {
-  font-size: 13.5px;
-  padding: 9px 8px 9px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--text-dim);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.chat-list-label {
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.chat-list-item:hover { background: var(--panel-light); }
-
-.chat-list-item.active {
-  background: rgba(34,197,94,0.15);
-  color: var(--text);
-}
-
-.chat-delete-btn {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  opacity: 0;
-  cursor: pointer;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
-.chat-list-item:hover .chat-delete-btn { opacity: 0.7; }
-.chat-delete-btn:hover { opacity: 1 !important; background: rgba(255,255,255,0.1); }
-
-.sidebar-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
-
-.upgrade-btn, .guest-btn {
-  background: var(--panel-light);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.upgrade-btn:hover, .guest-btn:hover { background: #223029; }
-.chevron { opacity: 0.6; }
-
-/* ---------- Main area ---------- */
-.main-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.topbar {
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
-  padding: 16px 24px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.icon-btn {
-  background: none;
-  border: none;
-  color: var(--text);
-  font-size: 18px;
-  cursor: pointer;
-  padding: 4px 8px;
-}
-
-.mobile-only { display: none; }
-
-.topbar-logo { font-size: 22px; }
-
-.topbar-title { font-size: 18px; font-weight: 700; }
-
-.topbar-tag {
-  font-size: 12px;
-  color: var(--text-dim);
-}
-
-.chat {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-}
-
-/* ---------- Welcome screen ---------- */
-.welcome-screen {
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.welcome-card {
-  background: linear-gradient(135deg, #143a2a, #0f2820);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 26px 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.welcome-text h2 {
-  margin: 0 0 8px;
-  font-size: 21px;
-}
-
-.welcome-text p {
-  margin: 0;
-  color: var(--text-dim);
-  font-size: 14px;
-}
-
-.welcome-illustration {
-  font-size: 56px;
-  opacity: 0.5;
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-}
-
-.feature-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 16px;
-  text-align: left;
-  cursor: pointer;
-  transition: 0.2s;
-  color: var(--text);
-  font-family: inherit;
-}
-
-.feature-card:hover {
-  transform: translateY(-3px);
-  border-color: var(--accent);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-}
-
-.feature-card .icon {
-  font-size: 20px;
-  display: block;
-  margin-bottom: 10px;
-}
-
-.feature-card h3 {
-  margin: 0 0 6px;
-  font-size: 14.5px;
-}
-
-.feature-card p {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--text-dim);
-  line-height: 1.4;
-}
-
-/* ---------- Messages ---------- */
-.messages {
-  max-width: 900px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.msg-row { display: flex; }
-.msg-row.user { justify-content: flex-end; }
-.msg-row.assistant { justify-content: flex-start; }
-
-.bubble {
-  max-width: 80%;
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 14.5px;
-  line-height: 1.55;
-  white-space: pre-wrap;
-}
-
-.msg-row.user .bubble {
-  background: var(--accent-dim);
-  color: #fff;
-}
-
-.msg-row.assistant .bubble {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-
-.stamp {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.stamp-circle {
-  border: 1.5px solid var(--accent);
-  border-radius: 50%;
-  width: 16px;
-  height: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-}
-
-.msg-row.user .stamp {
-  color: rgba(255,255,255,0.85);
-}
-.msg-row.user .stamp-circle {
-  border-color: rgba(255,255,255,0.6);
-}
-
-.typing { color: var(--text-dim); }
-
-.dots span {
-  display: inline-block;
-  animation: blink 1.4s infinite both;
-  font-weight: 700;
-}
-.dots span:nth-child(2) { animation-delay: 0.2s; }
-.dots span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes blink {
-  0%, 80%, 100% { opacity: 0.2; }
-  40% { opacity: 1; }
-}
-
-/* ---------- Input ---------- */
-.input-bar {
-  padding: 14px 24px;
-  background: var(--bg);
-  display: flex;
-  gap: 10px;
-  max-width: 900px;
-  width: 100%;
-  margin: 0 auto;
-}
-
-.input-bar input {
-  flex: 1;
-  padding: 13px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--panel);
-  color: var(--text);
-  font-size: 14.5px;
-  outline: none;
-}
-
-.input-bar input::placeholder { color: var(--text-dim); }
-
-.input-bar button {
-  background: var(--accent-dim);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 0 22px;
-  font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.input-bar button:disabled { opacity: 0.6; cursor: default; }
-
-.disclaimer {
-  text-align: center;
-  font-size: 11.5px;
-  color: var(--text-dim);
-  padding-bottom: 14px;
-}
-
-/* ---------- Mobile ---------- */
-@media (max-width: 900px) {
-  .feature-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 720px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 20;
-    transform: translateX(-100%);
-    transition: transform 0.2s ease;
-    box-shadow: 4px 0 20px rgba(0,0,0,0.4);
-  }
-  .sidebar.open { transform: translateX(0); }
-  .mobile-only { display: inline-block; }
-  .chat-delete-btn { opacity: 0.6; }
-  .welcome-card { flex-direction: column; text-align: center; gap: 12px; }
-  .feature-grid { grid-template-columns: 1fr; }
-}
-
-/* ---------- CV Builder modal ---------- */
-.modal {
-  display: none;
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.6);
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.modal-content {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  width: 100%;
-  max-width: 480px;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 24px;
-  border-radius: 16px;
-}
-
-.modal-content h2 {
-  margin: 0 0 16px;
-  font-size: 18px;
-  color: var(--text);
-}
-
-.modal-content input,
-.modal-content textarea {
-  width: 100%;
-  margin-bottom: 12px;
-  padding: 11px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--panel-light);
-  color: var(--text);
-  font-size: 13.5px;
-  font-family: inherit;
-}
-
-.modal-content input::placeholder,
-.modal-content textarea::placeholder {
-  color: var(--text-dim);
-}
-
-.modal-content textarea {
-  min-height: 70px;
-  resize: vertical;
-}
-
-.modal-content button {
-  width: 100%;
-  padding: 12px;
-  background: var(--accent-dim);
-  color: #fff;
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.modal-content button:hover {
-  background: #1c9c4c;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FormGuide AI</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-logo">🏛️</span>
+        <span class="sidebar-title">FormGuide <span class="accent">AI</span></span>
+        <button id="closeSidebar" class="icon-btn mobile-only">✕</button>
+      </div>
+
+      <button id="newChatBtn" class="new-chat-btn">+ New chat</button>
+
+      <div class="sidebar-section-label">Tools</div>
+      <div class="chat-list-item" id="sidebarCvBtn"><span class="chat-list-label">📄 AI CV Builder</span></div>
+      <div class="chat-list-item" id="sidebarInterviewBtn"><span class="chat-list-label">🎤 Interview Coach</span></div>
+      <div class="chat-list-item" id="sidebarGovBtn"><span class="chat-list-label">🏛 Government Hub</span></div>
+
+      <div class="sidebar-section-label">Recent conversations</div>
+      <div id="chatList" class="chat-list"></div>
+
+      <div class="sidebar-footer">
+        <button class="upgrade-btn">👑 Upgrade to Pro</button>
+        <button class="guest-btn">👤 Guest User <span class="chevron">⌄</span></button>
+      </div>
+    </aside>
+
+    <!-- Main area -->
+    <div class="main-area">
+      <header class="topbar">
+        <button id="openSidebar" class="icon-btn mobile-only">☰</button>
+        <span class="topbar-logo">🏛️</span>
+        <div>
+          <div class="topbar-title">FormGuide <span class="accent">AI</span></div>
+          <div class="topbar-tag">AI for Government • Careers • Education</div>
+        </div>
+      </header>
+
+      <main id="chat" class="chat">
+        <div id="welcomeScreen" class="welcome-screen">
+          <div class="welcome-card">
+            <div class="welcome-text">
+              <h2>👋 Welcome to FormGuide AI</h2>
+              <p>Your personal AI assistant for government services, careers and education.</p>
+            </div>
+            <div class="welcome-illustration">🏛️</div>
+          </div>
+
+          <div class="feature-grid">
+            <button class="feature-card" id="governmentCard" data-text="Help me apply for NIN.">
+              <span class="icon">🏛️</span>
+              <h3>Government</h3>
+              <p>NIN, Passport, BVN, CAC, NYSC and more.</p>
+            </button>
+            <button class="feature-card" id="careerCard" data-open-cv="true">
+              <span class="icon">💼</span>
+              <h3>Career</h3>
+              <p>Create CVs, cover letters and prepare for interviews.</p>
+            </button>
+            <button class="feature-card" id="educationCard" data-text="Help me with JAMB admission.">
+              <span class="icon">🎓</span>
+              <h3>Education</h3>
+              <p>JAMB, WAEC, scholarships and admissions.</p>
+            </button>
+            <button class="feature-card" id="documentsCard" data-text="Help me understand official documents.">
+              <span class="icon">📄</span>
+              <h3>Documents</h3>
+              <p>Understand official forms and required documents.</p>
+            </button>
+            <button class="feature-card" id="interviewCard" data-open-interview="true">
+              <span class="icon">🎙️</span>
+              <h3>Interview Practice</h3>
+              <p>Practice interview questions and get AI feedback.</p>
+            </button>
+            <button class="feature-card" id="journeyCard" data-text="Create a learning roadmap for me.">
+              <span class="icon">🎯</span>
+              <h3>My Journey</h3>
+              <p>Get step-by-step plans and track your progress.</p>
+            </button>
+            <button class="feature-card" id="scholarshipCard" data-text="Find scholarships I can apply for.">
+              <span class="icon">🔖</span>
+              <h3>Scholarships</h3>
+              <p>Find and apply for scholarships easily.</p>
+            </button>
+            <button class="feature-card" id="askAnythingCard" data-focus-only="true">
+              <span class="icon">💬</span>
+              <h3>Ask Anything</h3>
+              <p>Ask any question and get instant AI answers.</p>
+            </button>
+          </div>
+        </div>
+
+        <div id="messages" class="messages"></div>
+      </main>
+
+      <form id="chat-form" class="input-bar">
+        <input id="chat-input" type="text" placeholder="Ask about any form…" autocomplete="off" />
+        <button type="submit">➤ Send</button>
+      </form>
+      <div class="disclaimer">FormGuide AI can make mistakes. Please verify important information.</div>
+    </div>
+  </div>
+
+  <!-- CV Builder Modal -->
+  <div id="cvModal" class="modal">
+    <div class="modal-content">
+      <h2>📄 AI CV Builder</h2>
+      <input id="fullName" type="text" placeholder="Full Name">
+      <input id="email" type="email" placeholder="Email">
+      <input id="phone" type="text" placeholder="Phone Number">
+      <input id="education" type="text" placeholder="Education">
+      <textarea id="experience" placeholder="Work Experience"></textarea>
+      <textarea id="skills" placeholder="Skills"></textarea>
+      <button id="generateCV">Generate CV</button>
+      <div id="cvPreview" class="cv-preview"></div>
+      <button id="polishCvBtn" class="secondary-btn" style="display:none;">✨ Polish this CV with AI</button>
+    </div>
+  </div>
+
+  <!-- Interview Coach Modal -->
+  <div id="interviewModal" class="modal">
+    <div class="modal-content">
+      <h2>🎤 Interview Coach</h2>
+      <input id="jobRole" type="text" placeholder="Job Role (e.g. Accountant)">
+      <select id="experienceLevel">
+        <option value="Beginner">Beginner</option>
+        <option value="Intermediate">Intermediate</option>
+        <option value="Expert">Expert</option>
+      </select>
+      <button id="startInterviewBtn">Start Interview</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
