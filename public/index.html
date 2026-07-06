@@ -18,6 +18,20 @@
 
       <button id="newChatBtn" class="new-chat-btn">+ New chat</button>
 
+      <div class="sidebar-section-label">Tools</div>
+
+<div class="chat-list-item" id="cvBuilderBtn">
+    📄 AI CV Builder
+</div>
+
+<div class="chat-list-item" id="interviewBtn">
+    🎤 Interview Coach
+</div>
+
+<div class="chat-list-item" id="govBtn">
+    🏛 Government Hub
+</div>
+
       <div class="sidebar-section-label">Recent conversations</div>
       <div id="chatList" class="chat-list"></div>
 
@@ -102,6 +116,32 @@
       <div class="disclaimer">FormGuide AI can make mistakes. Please verify important information.</div>
     </div>
   </div>
+  
+  <div id="cvModal" class="modal">
+
+<div class="modal-content">
+
+<h2>📄 AI CV Builder</h2>
+
+<input id="fullName" type="text" placeholder="Full Name">
+
+<input id="email" type="email" placeholder="Email">
+
+<input id="phone" type="text" placeholder="Phone Number">
+
+<input id="education" type="text" placeholder="Education">
+
+<textarea id="experience" placeholder="Work Experience"></textarea>
+
+<textarea id="skills" placeholder="Skills"></textarea>
+
+<button id="generateCV">
+Generate CV
+</button>
+
+</div>
+
+</div>
 
   <script src="app.js"></script>
 </body>
