@@ -222,3 +222,16 @@ if (conversations.length === 0) {
   renderSidebar();
   renderActiveConversation();
 }
+
+const cvBtn = document.getElementById("cvBuilderBtn");
+const modal = document.getElementById("cvModal");
+
+cvBtn.onclick = () => {
+    modal.style.display = "flex";
+};
+
+window.onclick = (e) => {
+    if (e.target == modal) {
+        modal.style.display = "none";
+    }
+};
