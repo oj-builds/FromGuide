@@ -74,7 +74,7 @@
               <h3>Documents</h3>
               <p>Understand official forms and required documents.</p>
             </button>
-            <button class="feature-card" id="interviewCard" data-text="Let's practice an interview.">
+            <button class="feature-card" id="interviewCard" data-open-interview="true">
               <span class="icon">🎙️</span>
               <h3>Interview Practice</h3>
               <p>Practice interview questions and get AI feedback.</p>
@@ -119,6 +119,22 @@
       <textarea id="experience" placeholder="Work Experience"></textarea>
       <textarea id="skills" placeholder="Skills"></textarea>
       <button id="generateCV">Generate CV</button>
+      <div id="cvPreview" class="cv-preview"></div>
+      <button id="polishCvBtn" class="secondary-btn" style="display:none;">✨ Polish this CV with AI</button>
+    </div>
+  </div>
+
+  <!-- Interview Coach Modal -->
+  <div id="interviewModal" class="modal">
+    <div class="modal-content">
+      <h2>🎤 Interview Coach</h2>
+      <input id="jobRole" type="text" placeholder="Job Role (e.g. Accountant)">
+      <select id="experienceLevel">
+        <option value="Beginner">Beginner</option>
+        <option value="Intermediate">Intermediate</option>
+        <option value="Expert">Expert</option>
+      </select>
+      <button id="startInterviewBtn">Start Interview</button>
     </div>
   </div>
 
