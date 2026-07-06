@@ -204,6 +204,10 @@ document.querySelectorAll(".feature-card").forEach((card) => {
       openCvModal();
       return;
     }
+    if (card.dataset.openInterview === "true") {
+      openInterviewModal();
+      return;
+    }
     if (card.dataset.focusOnly === "true") {
       inputEl.focus();
       return;
@@ -218,7 +222,7 @@ document.getElementById("sidebarCvBtn").addEventListener("click", () => {
   sidebarEl.classList.remove("open");
 });
 document.getElementById("sidebarInterviewBtn").addEventListener("click", () => {
-  sendMessage("Let's practice an interview.");
+  openInterviewModal();
   sidebarEl.classList.remove("open");
 });
 document.getElementById("sidebarGovBtn").addEventListener("click", () => {
@@ -238,6 +242,10 @@ cvModal.addEventListener("click", (e) => {
   if (e.target === cvModal) closeCvModal();
 });
 
+const cvPreviewEl = document.getElementById("cvPreview");
+const polishCvBtn = document.getElementById("polishCvBtn");
+let lastCvText = "";
+
 document.getElementById("generateCV").addEventListener("click", () => {
   const fullName = document.getElementById("fullName").value.trim();
   const email = document.getElementById("email").value.trim();
@@ -251,18 +259,54 @@ document.getElementById("generateCV").addEventListener("click", () => {
     return;
   }
 
-  const prompt = `Please create a professional CV using this information:
-Full Name: ${fullName}
-Email: ${email || "Not provided"}
-Phone: ${phone || "Not provided"}
-Education: ${education || "Not provided"}
-Work Experience: ${experience || "Not provided"}
-Skills: ${skills || "Not provided"}
+  const cv = `${fullName}
+${email ? "Email: " + email : ""}${phone ? "  |  Phone: " + phone : ""}
 
-Format it clearly as a ready-to-use CV.`;
+EDUCATION
+${education || "Not provided"}
 
+WORK EXPERIENCE
+${experience || "Not provided"}
+
+SKILLS
+${skills || "Not provided"}`;
+
+  lastCvText = cv;
+  cvPreviewEl.innerText = cv;
+  cvPreviewEl.style.display = "block";
+  polishCvBtn.style.display = "block";
+});
+
+polishCvBtn.addEventListener("click", () => {
+  if (!lastCvText) return;
   closeCvModal();
-  sendMessage(prompt);
+  sendMessage(
+    `Please improve and professionally format this CV, keeping all the real information the same:\n\n${lastCvText}`
+  );
+});
+
+// Interview Coach modal
+const interviewModal = document.getElementById("interviewModal");
+
+function openInterviewModal() {
+  interviewModal.style.display = "flex";
+}
+function closeInterviewModal() {
+  interviewModal.style.display = "none";
+}
+
+interviewModal.addEventListener("click", (e) => {
+  if (e.target === interviewModal) closeInterviewModal();
+});
+
+document.getElementById("startInterviewBtn").addEventListener("click", () => {
+  const jobRole = document.getElementById("jobRole").value.trim() || "this role";
+  const level = document.getElementById("experienceLevel").value;
+
+  closeInterviewModal();
+  sendMessage(
+    `Let's do a mock interview. I'm applying for a ${jobRole} position at ${level} experience level. Please act as the interviewer: ask me one interview question at a time, wait for my answer, then give brief constructive feedback before asking the next question. Start now with your first question.`
+  );
 });
 
 newChatBtn.addEventListener("click", () => {
