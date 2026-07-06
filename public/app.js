@@ -11,9 +11,11 @@ const closeSidebarBtn = document.getElementById("closeSidebar");
 const cvModal = document.getElementById("cvModal");
 
 const STORAGE_KEY = "formguide_conversations";
+const LANG_KEY = "formguide_language";
 let conversations = loadConversations();
 let currentId = null;
 let loading = false;
+let languagePref = localStorage.getItem(LANG_KEY) || "auto";
 
 function loadConversations() {
   try {
@@ -175,7 +177,7 @@ async function sendMessage(text) {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: conv.messages }),
+      body: JSON.stringify({ messages: conv.messages, language: languagePref }),
     });
     const data = await res.json();
     removeTyping();
@@ -274,7 +276,42 @@ ${skills || "Not provided"}`;
   lastCvText = cv;
   cvPreviewEl.innerText = cv;
   cvPreviewEl.style.display = "block";
+  downloadCvBtn.style.display = "block";
   polishCvBtn.style.display = "block";
+});
+
+const downloadCvBtn = document.getElementById("downloadCvBtn");
+
+downloadCvBtn.addEventListener("click", () => {
+  if (!lastCvText) return;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+
+  const marginLeft = 50;
+  const marginTop = 60;
+  const maxWidth = 495;
+  const lineHeight = 16;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+
+  const lines = doc.splitTextToSize(lastCvText, maxWidth);
+
+  let y = marginTop;
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  lines.forEach((line) => {
+    if (y > pageHeight - 50) {
+      doc.addPage();
+      y = marginTop;
+    }
+    doc.text(line, marginLeft, y);
+    y += lineHeight;
+  });
+
+  const fileName = document.getElementById("fullName").value.trim() || "CV";
+  doc.save(`${fileName.replace(/\s+/g, "_")}_CV.pdf`);
 });
 
 polishCvBtn.addEventListener("click", () => {
@@ -316,6 +353,196 @@ newChatBtn.addEventListener("click", () => {
 
 openSidebarBtn.addEventListener("click", () => sidebarEl.classList.add("open"));
 closeSidebarBtn.addEventListener("click", () => sidebarEl.classList.remove("open"));
+
+// Settings modal
+const settingsModal = document.getElementById("settingsModal");
+const settingsBtn = document.getElementById("settingsBtn");
+const closeSettingsBtn = document.getElementById("closeSettingsBtn");
+const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+
+function openSettingsModal() {
+  document.querySelectorAll('input[name="language"]').forEach((radio) => {
+    radio.checked = radio.value === languagePref;
+  });
+  settingsModal.style.display = "flex";
+}
+function closeSettingsModal() {
+  settingsModal.style.display = "none";
+}
+
+settingsBtn.addEventListener("click", () => {
+  openSettingsModal();
+  sidebarEl.classList.remove("open");
+});
+closeSettingsBtn.addEventListener("click", closeSettingsModal);
+settingsModal.addEventListener("click", (e) => {
+  if (e.target === settingsModal) closeSettingsModal();
+});
+
+document.querySelectorAll('input[name="language"]').forEach((radio) => {
+  radio.addEventListener("change", (e) => {
+    languagePref = e.target.value;
+    localStorage.setItem(LANG_KEY, languagePref);
+  });
+});
+
+clearHistoryBtn.addEventListener("click", () => {
+  const confirmed = confirm(
+    "This will delete all your saved conversations. This cannot be undone. Continue?"
+  );
+  if (!confirmed) return;
+  conversations = [];
+  saveConversations();
+  closeSettingsModal();
+  startNewChat();
+});
+
+// ---------- Auth ----------
+const TOKEN_KEY = "formguide_token";
+const USER_KEY = "formguide_user";
+
+const authModal = document.getElementById("authModal");
+const accountBtn = document.getElementById("accountBtn");
+const authTitle = document.getElementById("authTitle");
+const authError = document.getElementById("authError");
+const authName = document.getElementById("authName");
+const authEmail = document.getElementById("authEmail");
+const authPassword = document.getElementById("authPassword");
+const authSubmitBtn = document.getElementById("authSubmitBtn");
+const authSwitchText = document.getElementById("authSwitchText");
+const authSwitchLink = document.getElementById("authSwitchLink");
+const closeAuthBtn = document.getElementById("closeAuthBtn");
+
+let authMode = "login"; // "login" or "signup"
+
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function getStoredUser() {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setSession(token, user) {
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  updateAccountButton();
+}
+
+function clearSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  updateAccountButton();
+}
+
+function updateAccountButton() {
+  const user = getStoredUser();
+  if (user) {
+    accountBtn.innerHTML = `👤 ${user.name} <span class="chevron">⌄</span>`;
+  } else {
+    accountBtn.innerHTML = `👤 Guest User <span class="chevron">⌄</span>`;
+  }
+}
+
+function openAuthModal(mode) {
+  authMode = mode;
+  authError.style.display = "none";
+  authName.value = "";
+  authEmail.value = "";
+  authPassword.value = "";
+
+  if (mode === "signup") {
+    authTitle.textContent = "👤 Create Account";
+    authName.style.display = "block";
+    authSubmitBtn.textContent = "Sign Up";
+    authSwitchText.textContent = "Already have an account?";
+    authSwitchLink.textContent = "Log in";
+  } else {
+    authTitle.textContent = "👤 Log In";
+    authName.style.display = "none";
+    authSubmitBtn.textContent = "Log In";
+    authSwitchText.textContent = "Don't have an account?";
+    authSwitchLink.textContent = "Sign up";
+  }
+
+  authModal.style.display = "flex";
+}
+
+function closeAuthModal() {
+  authModal.style.display = "none";
+}
+
+accountBtn.addEventListener("click", () => {
+  const user = getStoredUser();
+  if (user) {
+    const confirmed = confirm(`Logged in as ${user.name} (${user.email}). Log out?`);
+    if (confirmed) clearSession();
+  } else {
+    openAuthModal("login");
+  }
+  sidebarEl.classList.remove("open");
+});
+
+authSwitchLink.addEventListener("click", (e) => {
+  e.preventDefault();
+  openAuthModal(authMode === "login" ? "signup" : "login");
+});
+
+closeAuthBtn.addEventListener("click", closeAuthModal);
+authModal.addEventListener("click", (e) => {
+  if (e.target === authModal) closeAuthModal();
+});
+
+authSubmitBtn.addEventListener("click", async () => {
+  const email = authEmail.value.trim();
+  const password = authPassword.value;
+  const name = authName.value.trim();
+
+  authError.style.display = "none";
+
+  if (!email || !password || (authMode === "signup" && !name)) {
+    authError.textContent = "Please fill in all fields.";
+    authError.style.display = "block";
+    return;
+  }
+
+  const endpoint = authMode === "signup" ? "/api/signup" : "/api/login";
+  const body = authMode === "signup" ? { name, email, password } : { email, password };
+
+  authSubmitBtn.disabled = true;
+  authSubmitBtn.textContent = "Please wait…";
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      authError.textContent = data.error || "Something went wrong.";
+      authError.style.display = "block";
+      return;
+    }
+
+    setSession(data.token, data.user);
+    closeAuthModal();
+  } catch (err) {
+    authError.textContent = "Could not reach the server. Please try again.";
+    authError.style.display = "block";
+  } finally {
+    authSubmitBtn.disabled = false;
+    authSubmitBtn.textContent = authMode === "signup" ? "Sign Up" : "Log In";
+  }
+});
+
+updateAccountButton();
 
 // Init
 if (conversations.length === 0) {
