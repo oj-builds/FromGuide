@@ -1,19 +1,100 @@
 // server.js
-// This is the backend. It keeps your API key secret and talks to Claude on behalf of your frontend.
+// This is the backend. It keeps your API key secret, talks to Claude,
+// and now handles user accounts (Phase 1: signup and login).
 
 require("dotenv").config();
 const express = require("express");
 const path = require("path");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+
+const connectDB = require("./db");
+const User = require("./models/User");
+const authenticate = require("./middleware/auth");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.ANTHROPIC_API_KEY;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// This is the "brain" instructions for your app.
-// Edit this text any time to change how your assistant behaves.
+// Connect to the database when the server starts
+connectDB();
+
+// ---------- AUTH ROUTES ----------
+
+// Create a new account
+app.post("/api/signup", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: "Please fill in all fields." });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters." });
+    }
+
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing) {
+      return res.status(400).json({ error: "An account with this email already exists." });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = await User.create({ name, email, passwordHash });
+
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "30d" });
+
+    res.json({ token, user: { name: user.name, email: user.email } });
+  } catch (err) {
+    console.error("Signup error:", err);
+    res.status(500).json({ error: "Something went wrong creating your account." });
+  }
+});
+
+// Log in to an existing account
+app.post("/api/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Please enter your email and password." });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(400).json({ error: "No account found with this email." });
+    }
+
+    const match = await bcrypt.compare(password, user.passwordHash);
+    if (!match) {
+      return res.status(400).json({ error: "Incorrect password." });
+    }
+
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "30d" });
+
+    res.json({ token, user: { name: user.name, email: user.email } });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Something went wrong logging you in." });
+  }
+});
+
+// Get the currently logged-in user's info (used to check if a saved token is still valid)
+app.get("/api/me", authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select("name email");
+    if (!user) return res.status(404).json({ error: "User not found." });
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+// ---------- CHAT ROUTE ----------
+
 const SYSTEM_PROMPT = `You are FormGuide AI, Nigeria's trusted AI assistant for government services, careers, education and official documents.
 
 Your mission is to save users time and reduce confusion.
@@ -62,13 +143,20 @@ Rules you must follow:
 
 app.post("/api/chat", async (req, res) => {
   try {
-    const { messages } = req.body;
+    const { messages, language } = req.body;
 
     if (!API_KEY) {
       return res.status(500).json({
         error:
           "No API key configured on the server. Add ANTHROPIC_API_KEY to your .env file.",
       });
+    }
+
+    let systemPrompt = SYSTEM_PROMPT;
+    if (language === "pidgin") {
+      systemPrompt += "\n\nThe user has set their preference to always reply in Nigerian Pidgin, regardless of what language they type in.";
+    } else if (language === "english") {
+      systemPrompt += "\n\nThe user has set their preference to always reply in English, even if they write in Pidgin.";
     }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -81,7 +169,7 @@ app.post("/api/chat", async (req, res) => {
       body: JSON.stringify({
         model: "claude-sonnet-5",
         max_tokens: 1000,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: messages,
       }),
     });
