@@ -57,7 +57,8 @@ Rules you must follow:
 - If the user writes in Nigerian Pidgin, reply in Pidgin.
 - Use bullet points instead of long paragraphs.
 - Be friendly and encouraging.
-- Keep answers concise — avoid long essays.`;
+- Keep answers concise — avoid long essays.
+- EXCEPTION: If the user is doing a mock interview practice session, do NOT use the structured format above. Instead, act as a real interviewer: ask one question at a time, wait for their answer, then give brief constructive feedback (2-3 sentences) before asking the next question. Keep it conversational, not a form.`;
 
 app.post("/api/chat", async (req, res) => {
   try {
