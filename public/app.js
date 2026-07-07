@@ -404,39 +404,48 @@ const USER_KEY = "formguide_user";
 const authModal = document.getElementById("authModal");
 const accountBtn = document.getElementById("accountBtn");
 const authTitle = document.getElementById("authTitle");
+const authSubtitle = document.getElementById("authSubtitle");
 const authError = document.getElementById("authError");
+const authNameLabel = document.getElementById("authNameLabel");
 const authName = document.getElementById("authName");
 const authEmail = document.getElementById("authEmail");
 const authPassword = document.getElementById("authPassword");
 const authSubmitBtn = document.getElementById("authSubmitBtn");
 const authSwitchText = document.getElementById("authSwitchText");
 const authSwitchLink = document.getElementById("authSwitchLink");
-const closeAuthBtn = document.getElementById("closeAuthBtn");
+const continueGuestBtn = document.getElementById("continueGuestBtn");
+const togglePasswordBtn = document.getElementById("togglePasswordBtn");
+const rememberMeCheckbox = document.getElementById("rememberMeCheckbox");
+const googleAuthBtn = document.getElementById("googleAuthBtn");
+const forgotPasswordLink = document.getElementById("forgotPasswordLink");
 
 let authMode = "login"; // "login" or "signup"
 
 function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
+  return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
 }
 
 function getStoredUser() {
   try {
-    const raw = localStorage.getItem(USER_KEY);
+    const raw = localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
     return null;
   }
 }
 
-function setSession(token, user) {
-  localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+function setSession(token, user, remember) {
+  const store = remember ? localStorage : sessionStorage;
+  store.setItem(TOKEN_KEY, token);
+  store.setItem(USER_KEY, JSON.stringify(user));
   updateAccountButton();
 }
 
 function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(USER_KEY);
   updateAccountButton();
 }
 
@@ -455,19 +464,25 @@ function openAuthModal(mode) {
   authName.value = "";
   authEmail.value = "";
   authPassword.value = "";
+  authPassword.type = "password";
+  togglePasswordBtn.textContent = "👁️";
 
   if (mode === "signup") {
-    authTitle.textContent = "👤 Create Account";
+    authTitle.textContent = "Create your account 🚀";
+    authSubtitle.textContent = "Join FormGuide AI in seconds";
     authName.style.display = "block";
-    authSubmitBtn.textContent = "Sign Up";
+    authNameLabel.style.display = "block";
+    authSubmitBtn.textContent = "🚀 Sign Up";
     authSwitchText.textContent = "Already have an account?";
     authSwitchLink.textContent = "Log in";
   } else {
-    authTitle.textContent = "👤 Log In";
+    authTitle.textContent = "Welcome back! 👋";
+    authSubtitle.textContent = "Log in to your FormGuide AI account";
     authName.style.display = "none";
-    authSubmitBtn.textContent = "Log In";
+    authNameLabel.style.display = "none";
+    authSubmitBtn.textContent = "🔒 Log In";
     authSwitchText.textContent = "Don't have an account?";
-    authSwitchLink.textContent = "Sign up";
+    authSwitchLink.textContent = "Create Account";
   }
 
   authModal.style.display = "flex";
@@ -493,15 +508,32 @@ authSwitchLink.addEventListener("click", (e) => {
   openAuthModal(authMode === "login" ? "signup" : "login");
 });
 
-closeAuthBtn.addEventListener("click", closeAuthModal);
-authModal.addEventListener("click", (e) => {
-  if (e.target === authModal) closeAuthModal();
+continueGuestBtn.addEventListener("click", closeAuthModal);
+
+togglePasswordBtn.addEventListener("click", () => {
+  const isHidden = authPassword.type === "password";
+  authPassword.type = isHidden ? "text" : "password";
+  togglePasswordBtn.textContent = isHidden ? "🙈" : "👁️";
+});
+
+googleAuthBtn.addEventListener("click", () => {
+  alert(
+    "Google sign-in isn't set up yet — it needs a separate Google Cloud project with OAuth credentials. This button is a placeholder for now."
+  );
+});
+
+forgotPasswordLink.addEventListener("click", (e) => {
+  e.preventDefault();
+  alert(
+    "Password reset emails aren't set up yet — this needs an email-sending service (like SendGrid) connected to the app first."
+  );
 });
 
 authSubmitBtn.addEventListener("click", async () => {
   const email = authEmail.value.trim();
   const password = authPassword.value;
   const name = authName.value.trim();
+  const remember = rememberMeCheckbox.checked;
 
   authError.style.display = "none";
 
@@ -515,6 +547,7 @@ authSubmitBtn.addEventListener("click", async () => {
   const body = authMode === "signup" ? { name, email, password } : { email, password };
 
   authSubmitBtn.disabled = true;
+  const originalText = authSubmitBtn.textContent;
   authSubmitBtn.textContent = "Please wait…";
 
   try {
@@ -531,14 +564,14 @@ authSubmitBtn.addEventListener("click", async () => {
       return;
     }
 
-    setSession(data.token, data.user);
+    setSession(data.token, data.user, remember);
     closeAuthModal();
   } catch (err) {
     authError.textContent = "Could not reach the server. Please try again.";
     authError.style.display = "block";
   } finally {
     authSubmitBtn.disabled = false;
-    authSubmitBtn.textContent = authMode === "signup" ? "Sign Up" : "Log In";
+    authSubmitBtn.textContent = originalText;
   }
 });
 
