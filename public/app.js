@@ -516,17 +516,74 @@ togglePasswordBtn.addEventListener("click", () => {
   togglePasswordBtn.textContent = isHidden ? "🙈" : "👁️";
 });
 
+let googleClientId = null;
+
+fetch("/api/config")
+  .then((res) => res.json())
+  .then((data) => {
+    googleClientId = data.googleClientId;
+    if (googleClientId && window.google) {
+      initGoogleButton();
+    }
+  })
+  .catch(() => {});
+
+function initGoogleButton() {
+  google.accounts.id.initialize({
+    client_id: googleClientId,
+    callback: handleGoogleCredential,
+  });
+}
+
+async function handleGoogleCredential(response) {
+  try {
+    const res = await fetch("/api/auth/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken: response.credential }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      authError.textContent = data.error || "Google sign-in failed.";
+      authError.style.display = "block";
+      return;
+    }
+
+    setSession(data.token, data.user, rememberMeCheckbox.checked);
+    closeAuthModal();
+  } catch (err) {
+    authError.textContent = "Could not reach the server. Please try again.";
+    authError.style.display = "block";
+  }
+}
+
 googleAuthBtn.addEventListener("click", () => {
-  alert(
-    "Google sign-in isn't set up yet — it needs a separate Google Cloud project with OAuth credentials. This button is a placeholder for now."
-  );
+  if (!googleClientId) {
+    alert(
+      "Google sign-in isn't configured yet. Add GOOGLE_CLIENT_ID to your .env file to enable it."
+    );
+    return;
+  }
+  google.accounts.id.prompt();
 });
 
-forgotPasswordLink.addEventListener("click", (e) => {
+forgotPasswordLink.addEventListener("click", async (e) => {
   e.preventDefault();
-  alert(
-    "Password reset emails aren't set up yet — this needs an email-sending service (like SendGrid) connected to the app first."
-  );
+  const email = prompt("Enter the email address for your account:");
+  if (!email) return;
+
+  try {
+    const res = await fetch("/api/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    alert(data.message || "If an account exists with this email, a reset link has been sent.");
+  } catch (err) {
+    alert("Could not reach the server. Please try again.");
+  }
 });
 
 authSubmitBtn.addEventListener("click", async () => {
