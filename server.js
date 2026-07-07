@@ -7,6 +7,8 @@ const express = require("express");
 const path = require("path");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const { OAuth2Client } = require("google-auth-library");
 
 const connectDB = require("./db");
 const User = require("./models/User");
@@ -16,6 +18,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.ANTHROPIC_API_KEY;
 const JWT_SECRET = process.env.JWT_SECRET;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const APP_URL = process.env.APP_URL || "http://localhost:3000";
+
+const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -68,6 +75,12 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ error: "No account found with this email." });
     }
 
+    if (!user.passwordHash) {
+      return res.status(400).json({
+        error: "This account uses Google Sign-In. Please continue with Google instead.",
+      });
+    }
+
     const match = await bcrypt.compare(password, user.passwordHash);
     if (!match) {
       return res.status(400).json({ error: "Incorrect password." });
@@ -82,6 +95,137 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+// Request a password reset email
+app.post("/api/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Please enter your email." });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    // Always respond the same way, whether or not the account exists —
+    // this avoids revealing which emails have accounts.
+    if (!user) {
+      return res.json({
+        message: "If an account exists with this email, a reset link has been sent.",
+      });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    user.resetTokenHash = tokenHash;
+    user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    const resetLink = `${APP_URL}/reset.html?token=${rawToken}&email=${encodeURIComponent(user.email)}`;
+
+    if (!RESEND_API_KEY) {
+      console.log("⚠️ RESEND_API_KEY not set. Reset link (for testing):", resetLink);
+      return res.json({
+        message: "If an account exists with this email, a reset link has been sent.",
+      });
+    }
+
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "FormGuide AI <onboarding@resend.dev>",
+        to: user.email,
+        subject: "Reset your FormGuide AI password",
+        html: `<p>Hi ${user.name},</p><p>Click the link below to reset your password. This link expires in 1 hour.</p><p><a href="${resetLink}">${resetLink}</a></p><p>If you didn't request this, you can ignore this email.</p>`,
+      }),
+    });
+
+    res.json({ message: "If an account exists with this email, a reset link has been sent." });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
+  }
+});
+
+// Actually reset the password using the emailed token
+app.post("/api/reset-password", async (req, res) => {
+  try {
+    const { email, token, newPassword } = req.body;
+
+    if (!email || !token || !newPassword) {
+      return res.status(400).json({ error: "Missing information." });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters." });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user || !user.resetTokenHash || !user.resetTokenExpiry) {
+      return res.status(400).json({ error: "Invalid or expired reset link." });
+    }
+    if (user.resetTokenExpiry < new Date()) {
+      return res.status(400).json({ error: "This reset link has expired. Please request a new one." });
+    }
+
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    if (tokenHash !== user.resetTokenHash) {
+      return res.status(400).json({ error: "Invalid or expired reset link." });
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    user.resetTokenHash = undefined;
+    user.resetTokenExpiry = undefined;
+    await user.save();
+
+    res.json({ message: "Password updated. You can now log in with your new password." });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
+  }
+});
+
+// Log in or sign up with Google
+app.post("/api/auth/google", async (req, res) => {
+  try {
+    if (!googleClient) {
+      return res.status(500).json({ error: "Google Sign-In isn't configured on the server yet." });
+    }
+
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ error: "Missing Google credential." });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    let user = await User.findOne({ email: payload.email.toLowerCase() });
+
+    if (!user) {
+      user = await User.create({
+        name: payload.name || payload.email.split("@")[0],
+        email: payload.email,
+        googleId: payload.sub,
+      });
+    } else if (!user.googleId) {
+      user.googleId = payload.sub;
+      await user.save();
+    }
+
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "30d" });
+    res.json({ token, user: { name: user.name, email: user.email } });
+  } catch (err) {
+    console.error("Google auth error:", err);
+    res.status(500).json({ error: "Google sign-in failed. Please try again." });
+  }
+});
+
 // Get the currently logged-in user's info (used to check if a saved token is still valid)
 app.get("/api/me", authenticate, async (req, res) => {
   try {
@@ -91,6 +235,11 @@ app.get("/api/me", authenticate, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: "Something went wrong." });
   }
+});
+
+// Public, non-secret config the frontend needs (e.g. Google Client ID is not a secret)
+app.get("/api/config", (req, res) => {
+  res.json({ googleClientId: GOOGLE_CLIENT_ID || null });
 });
 
 // ---------- CHAT ROUTE ----------
