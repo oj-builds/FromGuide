@@ -175,25 +175,79 @@
     </div>
   </div>
 
-  <!-- Auth Modal -->
-  <div id="authModal" class="modal">
-    <div class="modal-content">
-      <h2 id="authTitle">👤 Log In</h2>
+  <!-- Auth Screen (full page) -->
+  <div id="authModal" class="auth-screen">
+    <div class="auth-panel-left">
+      <div class="auth-logo">🏛️ FormGuide <span class="accent">AI</span></div>
+      <h1 class="auth-hero-title">Smart Forms.<br><span class="accent">Powered by AI.</span></h1>
+      <p class="auth-hero-text">FormGuide AI helps you find, fill, and understand any government form, CV, or interview prep in minutes with the power of AI.</p>
 
-      <div id="authError" class="auth-error" style="display:none;"></div>
+      <div class="auth-feature-row">
+        <span class="auth-feature-icon">📄</span>
+        <div>
+          <div class="auth-feature-title">Find Any Form</div>
+          <div class="auth-feature-sub">NIN, Passport, JAMB and more.</div>
+        </div>
+      </div>
+      <div class="auth-feature-row">
+        <span class="auth-feature-icon">🤖</span>
+        <div>
+          <div class="auth-feature-title">AI Form Assistant</div>
+          <div class="auth-feature-sub">Get help filling forms accurately.</div>
+        </div>
+      </div>
+      <div class="auth-feature-row">
+        <span class="auth-feature-icon">🔒</span>
+        <div>
+          <div class="auth-feature-title">Secure &amp; Private</div>
+          <div class="auth-feature-sub">Your data stays protected.</div>
+        </div>
+      </div>
+    </div>
 
-      <input id="authName" type="text" placeholder="Full Name" style="display:none;">
-      <input id="authEmail" type="email" placeholder="Email">
-      <input id="authPassword" type="password" placeholder="Password">
+    <div class="auth-panel-right">
+      <div class="auth-card">
+        <div class="auth-card-logo">🏛️</div>
+        <h2 id="authTitle">Welcome back! 👋</h2>
+        <p class="auth-subtitle" id="authSubtitle">Log in to your FormGuide AI account</p>
 
-      <button id="authSubmitBtn">Log In</button>
+        <div id="authError" class="auth-error" style="display:none;"></div>
 
-      <p class="auth-switch">
-        <span id="authSwitchText">Don't have an account?</span>
-        <a href="#" id="authSwitchLink">Sign up</a>
-      </p>
+        <label class="field-label" id="authNameLabel" style="display:none;">Full Name</label>
+        <input id="authName" type="text" placeholder="Your full name" style="display:none;">
 
-      <button id="closeAuthBtn" class="secondary-btn">Cancel</button>
+        <label class="field-label">Email address</label>
+        <input id="authEmail" type="email" placeholder="example@email.com">
+
+        <label class="field-label">Password</label>
+        <div class="password-wrap">
+          <input id="authPassword" type="password" placeholder="Enter your password">
+          <button type="button" id="togglePasswordBtn" class="toggle-password-btn">👁️</button>
+        </div>
+
+        <div class="auth-options">
+          <label class="checkbox-row">
+            <input type="checkbox" id="rememberMeCheckbox" checked>
+            Remember me
+          </label>
+          <a href="#" id="forgotPasswordLink">Forgot Password?</a>
+        </div>
+
+        <button id="authSubmitBtn" class="auth-primary-btn">🔒 Log In</button>
+
+        <div class="auth-divider"><span>OR</span></div>
+
+        <button id="googleAuthBtn" class="auth-google-btn">
+          <span class="google-g">G</span> Continue with Google
+        </button>
+
+        <p class="auth-switch">
+          <span id="authSwitchText">Don't have an account?</span>
+          <a href="#" id="authSwitchLink">Create Account</a>
+        </p>
+
+        <button id="continueGuestBtn" class="secondary-btn">Continue as Guest</button>
+      </div>
     </div>
   </div>
 
