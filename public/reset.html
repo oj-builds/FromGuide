@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset Password — FormGuide AI</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;">
+    <div class="auth-card">
+      <div class="auth-card-logo">🔒</div>
+      <h2>Reset your password</h2>
+      <p class="auth-subtitle">Enter a new password for your account</p>
+
+      <div id="resetError" class="auth-error" style="display:none;"></div>
+      <div id="resetSuccess" class="auth-error" style="display:none; background:rgba(34,197,94,0.12); border-color:var(--accent); color:var(--accent);"></div>
+
+      <label class="field-label">New Password</label>
+      <div class="password-wrap">
+        <input id="newPassword" type="password" placeholder="Enter new password">
+        <button type="button" id="toggleNewPasswordBtn" class="toggle-password-btn">👁️</button>
+      </div>
+
+      <button id="resetSubmitBtn" class="auth-primary-btn" style="margin-top:18px;">Reset Password</button>
+
+      <p class="auth-switch"><a href="/">Back to FormGuide AI</a></p>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    const email = params.get("email");
+
+    const resetError = document.getElementById("resetError");
+    const resetSuccess = document.getElementById("resetSuccess");
+    const newPassword = document.getElementById("newPassword");
+    const resetSubmitBtn = document.getElementById("resetSubmitBtn");
+    const toggleBtn = document.getElementById("toggleNewPasswordBtn");
+
+    toggleBtn.addEventListener("click", () => {
+      const hidden = newPassword.type === "password";
+      newPassword.type = hidden ? "text" : "password";
+      toggleBtn.textContent = hidden ? "🙈" : "👁️";
+    });
+
+    if (!token || !email) {
+      resetError.textContent = "This reset link is invalid or incomplete.";
+      resetError.style.display = "block";
+      resetSubmitBtn.disabled = true;
+    }
+
+    resetSubmitBtn.addEventListener("click", async () => {
+      resetError.style.display = "none";
+      resetSuccess.style.display = "none";
+
+      if (!newPassword.value || newPassword.value.length < 6) {
+        resetError.textContent = "Password must be at least 6 characters.";
+        resetError.style.display = "block";
+        return;
+      }
+
+      resetSubmitBtn.disabled = true;
+      resetSubmitBtn.textContent = "Please wait…";
+
+      try {
+        const res = await fetch("/api/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, token, newPassword: newPassword.value }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          resetError.textContent = data.error || "Something went wrong.";
+          resetError.style.display = "block";
+          return;
+        }
+
+        resetSuccess.textContent = data.message + " Redirecting you now…";
+        resetSuccess.style.display = "block";
+        setTimeout(() => (window.location.href = "/"), 2500);
+      } catch (err) {
+        resetError.textContent = "Could not reach the server. Please try again.";
+        resetError.style.display = "block";
+      } finally {
+        resetSubmitBtn.disabled = false;
+        resetSubmitBtn.textContent = "Reset Password";
+      }
+    });
+  </script>
+</body>
+</html>
