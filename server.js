@@ -12,6 +12,7 @@ const { OAuth2Client } = require("google-auth-library");
 
 const connectDB = require("./db");
 const User = require("./models/User");
+const Notification = require("./models/Notification");
 const authenticate = require("./middleware/auth");
 
 const app = express();
@@ -49,6 +50,12 @@ app.post("/api/signup", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, passwordHash });
+    await Notification.create({
+  user: user._id,
+  title: "Welcome to FormGuide AI 🎉",
+  message: "Your account has been created. Explore CV building, interview coaching, and more.",
+  type: "system",
+});
 
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "30d" });
 
@@ -404,6 +411,26 @@ app.post("/api/chat", async (req, res) => {
     console.error("Server error:", err);
     res.status(500).json({ error: "Something went wrong on the server." });
   }
+});
+
+app.get("/api/notifications", authenticate, async (req, res) => {
+  const notifications = await Notification.find({ user: req.userId }).sort({ createdAt: -1 });
+  res.json({ notifications });
+});
+
+app.patch("/api/notifications/:id/read", authenticate, async (req, res) => {
+  const notification = await Notification.findOneAndUpdate(
+    { _id: req.params.id, user: req.userId },
+    { read: true },
+    { new: true }
+  );
+  if (!notification) return res.status(404).json({ error: "Notification not found" });
+  res.json({ notification });
+});
+
+app.patch("/api/notifications/read-all", authenticate, async (req, res) => {
+  await Notification.updateMany({ user: req.userId, read: false }, { read: true });
+  res.json({ success: true });
 });
 
 app.listen(PORT, () => {
