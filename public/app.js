@@ -354,16 +354,26 @@ newChatBtn.addEventListener("click", () => {
 openSidebarBtn.addEventListener("click", () => sidebarEl.classList.add("open"));
 closeSidebarBtn.addEventListener("click", () => sidebarEl.classList.remove("open"));
 
-// Settings modal
+// Settings modal v2
 const settingsModal = document.getElementById("settingsModal");
 const settingsBtn = document.getElementById("settingsBtn");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+const THEME_KEY = "formguide_theme";
+const ACCENT_KEY = "formguide_accent";
 
 function openSettingsModal() {
   document.querySelectorAll('input[name="language"]').forEach((radio) => {
     radio.checked = radio.value === languagePref;
   });
+
+  const user = getStoredUser();
+  document.getElementById("settingsProfileName").textContent = user ? user.name : "Guest User";
+  document.getElementById("settingsProfileEmail").textContent = user ? user.email : "Not signed in";
+  document.getElementById("settingsAccountEmail").textContent = user ? user.email : "—";
+
+  applyThemeUI();
+  applyAccentUI();
   settingsModal.style.display = "flex";
 }
 function closeSettingsModal() {
@@ -379,6 +389,16 @@ settingsModal.addEventListener("click", (e) => {
   if (e.target === settingsModal) closeSettingsModal();
 });
 
+// Tab switching
+document.querySelectorAll(".settings-tab[data-tab]").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".settings-tab[data-tab]").forEach((t) => t.classList.remove("active"));
+    document.querySelectorAll(".settings-panel").forEach((p) => p.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelector(`.settings-panel[data-panel="${tab.dataset.tab}"]`).classList.add("active");
+  });
+});
+
 document.querySelectorAll('input[name="language"]').forEach((radio) => {
   radio.addEventListener("change", (e) => {
     languagePref = e.target.value;
@@ -386,6 +406,66 @@ document.querySelectorAll('input[name="language"]').forEach((radio) => {
   });
 });
 
+clearHistoryBtn.addEventListener("click", () => {
+  const confirmed = confirm(
+    "This will delete all your saved conversations. This cannot be undone. Continue?"
+  );
+  if (!confirmed) return;
+  conversations = [];
+  saveConversations();
+  closeSettingsModal();
+  startNewChat();
+});
+
+// Theme
+function applyThemeUI() {
+  const saved = localStorage.getItem(THEME_KEY) || "light";
+  document.querySelectorAll(".theme-option").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.theme === saved);
+  });
+}
+function setTheme(theme) {
+  localStorage.setItem(THEME_KEY, theme);
+  document.body.classList.remove("theme-dark", "theme-light");
+  if (theme === "dark") {
+    document.body.classList.add("theme-dark");
+  } else if (theme === "system") {
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.body.classList.add(prefersDark ? "theme-dark" : "theme-light");
+  }
+  applyThemeUI();
+}
+document.querySelectorAll(".theme-option").forEach((btn) => {
+  btn.addEventListener("click", () => setTheme(btn.dataset.theme));
+});
+setTheme(localStorage.getItem(THEME_KEY) || "light");
+
+// Accent color
+function applyAccentUI() {
+  const saved = localStorage.getItem(ACCENT_KEY) || "default";
+  document.querySelectorAll(".accent-dot").forEach((dot) => {
+    dot.classList.toggle("selected", dot.dataset.accent === saved);
+  });
+}
+function setAccent(accent) {
+  localStorage.setItem(ACCENT_KEY, accent);
+  document.body.classList.remove("accent-blue", "accent-green", "accent-red", "accent-orange");
+  if (accent !== "default") document.body.classList.add(`accent-${accent}`);
+  applyAccentUI();
+}
+document.querySelectorAll(".accent-dot").forEach((dot) => {
+  dot.addEventListener("click", () => setAccent(dot.dataset.accent));
+});
+setAccent(localStorage.getItem(ACCENT_KEY) || "default");
+
+// Placeholders for features without backend support yet
+document.getElementById("changePasswordBtn").addEventListener("click", () => {
+  alert("Password change isn't wired up yet — this needs a backend endpoint first.");
+});
+document.getElementById("deleteAccountBtn").addEventListener("click", () => {
+  alert("Account deletion isn't wired up yet — this needs a backend endpoint first.");
+});
+  
 clearHistoryBtn.addEventListener("click", () => {
   const confirmed = confirm(
     "This will delete all your saved conversations. This cannot be undone. Continue?"
