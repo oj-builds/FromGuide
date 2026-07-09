@@ -35,14 +35,18 @@
 
     <!-- Main area -->
     <div class="main-area">
-      <header class="topbar">
-        <button id="openSidebar" class="icon-btn mobile-only">☰</button>
-        <span class="topbar-logo">🏛️</span>
-        <div>
-          <div class="topbar-title">FormGuide <span class="accent">AI</span></div>
-          <div class="topbar-tag">AI for Government • Careers • Education</div>
-        </div>
-      </header>
+     <header class="topbar">
+  <button id="openSidebar" class="icon-btn mobile-only">☰</button>
+  <span class="topbar-logo">🏛️</span>
+  <div>
+    <div class="topbar-title">FormGuide <span class="accent">AI</span></div>
+    <div class="topbar-tag">AI for Government • Careers • Education</div>
+  </div>
+  <button id="notificationsBtn" class="icon-btn notif-btn" style="margin-left:auto;">
+    🔔
+    <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
+  </button>
+</header> 
 
       <main id="chat" class="chat">
         <div id="welcomeScreen" class="welcome-screen">
@@ -275,6 +279,22 @@
 
     </div>
   </div>
+
+  <!-- Notifications Full Screen -->
+<div id="notificationsModal" class="settings-fullscreen">
+  <div class="settings-fs-header">
+    <button id="closeNotificationsBtn" class="settings-back-btn">←</button>
+    <h2>Notifications</h2>
+    <button id="markAllReadBtn" class="settings-tab-inline">Mark all read</button>
+  </div>
+
+  <div class="settings-fs-panels">
+    <div id="notificationsList"></div>
+    <div id="notificationsEmpty" style="display:none; text-align:center; color:#999; padding:40px 0;">
+      No notifications yet.
+    </div>
+  </div>
+</div>
 
   <!-- Auth Screen (full page) -->
   <div id="authModal" class="auth-screen">
