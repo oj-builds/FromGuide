@@ -1,6 +1,6 @@
 // server.js
 // This is the backend. It keeps your API key secret, talks to Claude,
-// and now handles user accounts (Phase 1: signup and login).
+// and handles user accounts (signup, login, Google, settings).
 
 require("dotenv").config();
 const express = require("express");
@@ -24,15 +24,13 @@ const APP_URL = process.env.APP_URL || "http://localhost:3000";
 
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
-app.use(express.json());
+app.use(express.json({ limit: "5mb" })); // raised so avatar base64 uploads don't get rejected
 app.use(express.static(path.join(__dirname, "public")));
 
-// Connect to the database when the server starts
 connectDB();
 
 // ---------- AUTH ROUTES ----------
 
-// Create a new account
 app.post("/api/signup", async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -54,14 +52,16 @@ app.post("/api/signup", async (req, res) => {
 
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "30d" });
 
-    res.json({ token, user: { name: user.name, email: user.email } });
+    res.json({
+      token,
+      user: { name: user.name, email: user.email, phone: user.phone, avatar: user.avatar },
+    });
   } catch (err) {
     console.error("Signup error:", err);
     res.status(500).json({ error: "Something went wrong creating your account." });
   }
 });
 
-// Log in to an existing account
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -88,14 +88,16 @@ app.post("/api/login", async (req, res) => {
 
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "30d" });
 
-    res.json({ token, user: { name: user.name, email: user.email } });
+    res.json({
+      token,
+      user: { name: user.name, email: user.email, phone: user.phone, avatar: user.avatar },
+    });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ error: "Something went wrong logging you in." });
   }
 });
 
-// Request a password reset email
 app.post("/api/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
@@ -105,8 +107,6 @@ app.post("/api/forgot-password", async (req, res) => {
 
     const user = await User.findOne({ email: email.toLowerCase() });
 
-    // Always respond the same way, whether or not the account exists —
-    // this avoids revealing which emails have accounts.
     if (!user) {
       return res.json({
         message: "If an account exists with this email, a reset link has been sent.",
@@ -117,7 +117,7 @@ app.post("/api/forgot-password", async (req, res) => {
     const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
 
     user.resetTokenHash = tokenHash;
-    user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
     await user.save();
 
     const resetLink = `${APP_URL}/reset.html?token=${rawToken}&email=${encodeURIComponent(user.email)}`;
@@ -150,7 +150,6 @@ app.post("/api/forgot-password", async (req, res) => {
   }
 });
 
-// Actually reset the password using the emailed token
 app.post("/api/reset-password", async (req, res) => {
   try {
     const { email, token, newPassword } = req.body;
@@ -187,7 +186,6 @@ app.post("/api/reset-password", async (req, res) => {
   }
 });
 
-// Log in or sign up with Google
 app.post("/api/auth/google", async (req, res) => {
   try {
     if (!googleClient) {
@@ -219,17 +217,19 @@ app.post("/api/auth/google", async (req, res) => {
     }
 
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "30d" });
-    res.json({ token, user: { name: user.name, email: user.email } });
+    res.json({
+      token,
+      user: { name: user.name, email: user.email, phone: user.phone, avatar: user.avatar },
+    });
   } catch (err) {
     console.error("Google auth error:", err);
     res.status(500).json({ error: "Google sign-in failed. Please try again." });
   }
 });
 
-// Get the currently logged-in user's info (used to check if a saved token is still valid)
 app.get("/api/me", authenticate, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select("name email");
+    const user = await User.findById(req.userId).select("name email phone avatar");
     if (!user) return res.status(404).json({ error: "User not found." });
     res.json({ user });
   } catch (err) {
@@ -237,7 +237,76 @@ app.get("/api/me", authenticate, async (req, res) => {
   }
 });
 
-// Public, non-secret config the frontend needs (e.g. Google Client ID is not a secret)
+app.patch("/api/user/phone", authenticate, async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ error: "Phone number is required." });
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { phone },
+      { new: true }
+    ).select("name email phone avatar");
+
+    res.json({ user });
+  } catch (err) {
+    console.error("Phone update error:", err);
+    res.status(500).json({ error: "Could not update phone number." });
+  }
+});
+
+app.patch("/api/user/password", authenticate, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: "Both current and new password are required." });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "New password must be at least 6 characters." });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    if (!user.passwordHash) {
+      return res.status(400).json({
+        error: "This account uses Google Sign-In and has no password to change.",
+      });
+    }
+
+    const match = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!match) {
+      return res.status(401).json({ error: "Current password is incorrect." });
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ success: true, message: "Password updated successfully." });
+  } catch (err) {
+    console.error("Password change error:", err);
+    res.status(500).json({ error: "Could not update password." });
+  }
+});
+
+app.patch("/api/user/profile", authenticate, async (req, res) => {
+  try {
+    const { avatar, name } = req.body;
+    const update = {};
+    if (avatar) update.avatar = avatar;
+    if (name) update.name = name;
+
+    const user = await User.findByIdAndUpdate(req.userId, update, { new: true }).select(
+      "name email phone avatar"
+    );
+    res.json({ user });
+  } catch (err) {
+    console.error("Profile update error:", err);
+    res.status(500).json({ error: "Could not update profile." });
+  }
+});
+
 app.get("/api/config", (req, res) => {
   res.json({ googleClientId: GOOGLE_CLIENT_ID || null });
 });
@@ -296,8 +365,7 @@ app.post("/api/chat", async (req, res) => {
 
     if (!API_KEY) {
       return res.status(500).json({
-        error:
-          "No API key configured on the server. Add ANTHROPIC_API_KEY to your .env file.",
+        error: "No API key configured on the server. Add ANTHROPIC_API_KEY to your .env file.",
       });
     }
 
