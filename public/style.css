@@ -591,7 +591,7 @@ body {
 .settings-modal-v2 .modal-content {
   max-width: 720px;
   width: 92%;
-  padding: 0;
+  padding: 0 !important;
   background: #ffffff;
   color: #1f2430;
   border-radius: 16px;
@@ -611,16 +611,17 @@ body {
 }
 .settings-v2-header h2 { margin: 0; font-size: 18px; color: #1f2430; }
 .settings-v2-close {
-  background: none;
-  border: none;
-  font-size: 16px;
+  width: auto !important;
+  background: none !important;
+  border: none !important;
+  color: #666 !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
   cursor: pointer;
-  color: #666;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
 }
-.settings-v2-close:hover { background: #f2f2f2; }
+.settings-v2-close:hover { background: #f2f2f2 !important; }
 
 .settings-v2-body {
   display: flex;
@@ -637,24 +638,24 @@ body {
   flex-shrink: 0;
 }
 .settings-tab {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 9px 12px;
-  border: none;
-  background: none;
-  border-radius: 8px;
+  display: block !important;
+  width: 100% !important;
+  text-align: left !important;
+  padding: 9px 12px !important;
+  border: none !important;
+  background: none !important;
+  border-radius: 8px !important;
   cursor: pointer;
-  font-size: 13px;
-  color: #444;
+  font-size: 13px !important;
+  color: #444 !important;
   margin-bottom: 2px;
-  font-weight: 400;
+  font-weight: 400 !important;
 }
-.settings-tab:hover { background: #f5f4ff; }
+.settings-tab:hover { background: #f5f4ff !important; }
 .settings-tab.active {
-  background: #ece9fe;
-  color: #5b3df5;
-  font-weight: 600;
+  background: #ece9fe !important;
+  color: #5b3df5 !important;
+  font-weight: 600 !important;
 }
 
 .settings-v2-panels {
@@ -699,48 +700,69 @@ body {
 .badge-soon { color: #aaa; font-size: 11px; }
 
 .settings-tab-inline {
-  border: 1px solid #ddd;
-  background: #fff;
-  color: #444;
-  padding: 5px 12px;
-  border-radius: 7px;
-  font-size: 12px;
+  width: auto !important;
+  border: 1px solid #ddd !important;
+  background: #fff !important;
+  color: #444 !important;
+  padding: 5px 12px !important;
+  border-radius: 7px !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
   cursor: pointer;
 }
-.settings-tab-inline:hover { border-color: #5b3df5; color: #5b3df5; }
+.settings-tab-inline:hover { border-color: #5b3df5 !important; color: #5b3df5 !important; background: #fff !important; }
 
 .radio-row { display: block; font-size: 13px; color: #333; margin-bottom: 8px; }
 
 .theme-options { display: flex; gap: 8px; }
 .theme-option {
-  padding: 5px 14px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;
-  background: #fff; font-size: 12px; color: #444;
+  width: auto !important;
+  padding: 5px 14px !important;
+  border: 1px solid #ddd !important;
+  border-radius: 8px !important;
+  cursor: pointer;
+  background: #fff !important;
+  color: #444 !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
 }
-.theme-option.active { border-color: #5b3df5; color: #5b3df5; font-weight: 600; background: #f5f4ff; }
+.theme-option.active {
+  border-color: #5b3df5 !important;
+  color: #5b3df5 !important;
+  font-weight: 600 !important;
+  background: #f5f4ff !important;
+}
 
 .accent-dot {
-  width: 20px; height: 20px; border-radius: 50%; cursor: pointer;
-  border: 2px solid transparent; display: inline-block; margin-right: 6px;
+  width: 20px !important; height: 20px !important; border-radius: 50% !important; cursor: pointer;
+  border: 2px solid transparent !important; display: inline-block !important; margin-right: 6px;
+  padding: 0 !important;
 }
-.accent-dot.selected { border-color: #333; }
+.accent-dot.selected { border-color: #333 !important; }
 
 .danger-zone { border-color: #f5cfcf; }
 .danger-zone h3 { color: #c0392b; }
 .danger-btn {
-  background: #fff; color: #c0392b; border: 1px solid #e2a5a5;
-  padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: 12px;
+  width: auto !important;
+  background: #fff !important;
+  color: #c0392b !important;
+  border: 1px solid #e2a5a5 !important;
+  padding: 5px 12px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  cursor: pointer;
 }
-.danger-btn:hover { background: #fdf0f0; }
+.danger-btn:hover { background: #fdf0f0 !important; }
 
 .about-text { font-size: 13px; color: #555; line-height: 1.5; }
 
-/* Accent + dark mode kept minimal to not break your existing color scheme */
 body.accent-blue .accent { color: #2f7bf5 !important; }
 body.accent-green .accent { color: #1a9c53 !important; }
 body.accent-red .accent { color: #e0453f !important; }
 body.accent-orange .accent { color: #e0862f !important; }
 
-/* Mobile: stack tabs above content instead of side-by-side */
+/* Mobile: tabs become a horizontal scroll strip above the content */
 @media (max-width: 640px) {
   .settings-modal-v2 .modal-content {
     width: 96%;
@@ -750,17 +772,17 @@ body.accent-orange .accent { color: #e0862f !important; }
     flex-direction: column;
   }
   .settings-v2-tabs {
-    width: 100%;
+    width: 100% !important;
     border-right: none;
     border-bottom: 1px solid #eee;
-    display: flex;
+    display: flex !important;
     gap: 6px;
     padding: 10px;
     overflow-x: auto;
     white-space: nowrap;
   }
   .settings-tab {
-    width: auto;
+    width: auto !important;
     flex-shrink: 0;
     margin-bottom: 0;
   }
