@@ -176,7 +176,10 @@ async function sendMessage(text) {
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
       body: JSON.stringify({ messages: conv.messages, language: languagePref }),
     });
     const data = await res.json();
@@ -239,7 +242,6 @@ function openCvModal() {
 function closeCvModal() {
   cvModal.style.display = "none";
 }
-
 cvModal.addEventListener("click", (e) => {
   if (e.target === cvModal) closeCvModal();
 });
@@ -331,7 +333,6 @@ function openInterviewModal() {
 function closeInterviewModal() {
   interviewModal.style.display = "none";
 }
-
 interviewModal.addEventListener("click", (e) => {
   if (e.target === interviewModal) closeInterviewModal();
 });
@@ -354,7 +355,7 @@ newChatBtn.addEventListener("click", () => {
 openSidebarBtn.addEventListener("click", () => sidebarEl.classList.add("open"));
 closeSidebarBtn.addEventListener("click", () => sidebarEl.classList.remove("open"));
 
-// Settings modal v2
+// ---------- Settings — full screen ----------
 const settingsModal = document.getElementById("settingsModal");
 const settingsBtn = document.getElementById("settingsBtn");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
@@ -371,13 +372,25 @@ function openSettingsModal() {
   document.getElementById("settingsProfileName").textContent = user ? user.name : "Guest User";
   document.getElementById("settingsProfileEmail").textContent = user ? user.email : "Not signed in";
   document.getElementById("settingsAccountEmail").textContent = user ? user.email : "—";
+  document.getElementById("settingsPhoneDisplay").textContent = user && user.phone ? user.phone : "Not set";
+
+  const avatarImg = document.getElementById("settingsAvatarImg");
+  const avatarPlaceholder = document.getElementById("settingsAvatarPlaceholder");
+  if (user && user.avatar) {
+    avatarImg.src = user.avatar;
+    avatarImg.style.display = "block";
+    avatarPlaceholder.style.display = "none";
+  } else {
+    avatarImg.style.display = "none";
+    avatarPlaceholder.style.display = "flex";
+  }
 
   applyThemeUI();
   applyAccentUI();
-  settingsModal.style.display = "flex";
+  settingsModal.classList.add("open");
 }
 function closeSettingsModal() {
-  settingsModal.style.display = "none";
+  settingsModal.classList.remove("open");
 }
 
 settingsBtn.addEventListener("click", () => {
@@ -385,11 +398,7 @@ settingsBtn.addEventListener("click", () => {
   sidebarEl.classList.remove("open");
 });
 closeSettingsBtn.addEventListener("click", closeSettingsModal);
-settingsModal.addEventListener("click", (e) => {
-  if (e.target === settingsModal) closeSettingsModal();
-});
 
-// Tab switching
 document.querySelectorAll(".settings-tab[data-tab]").forEach((tab) => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".settings-tab[data-tab]").forEach((t) => t.classList.remove("active"));
@@ -417,7 +426,6 @@ clearHistoryBtn.addEventListener("click", () => {
   startNewChat();
 });
 
-// Theme
 function applyThemeUI() {
   const saved = localStorage.getItem(THEME_KEY) || "light";
   document.querySelectorAll(".theme-option").forEach((btn) => {
@@ -440,7 +448,6 @@ document.querySelectorAll(".theme-option").forEach((btn) => {
 });
 setTheme(localStorage.getItem(THEME_KEY) || "light");
 
-// Accent color
 function applyAccentUI() {
   const saved = localStorage.getItem(ACCENT_KEY) || "default";
   document.querySelectorAll(".accent-dot").forEach((dot) => {
@@ -458,23 +465,111 @@ document.querySelectorAll(".accent-dot").forEach((dot) => {
 });
 setAccent(localStorage.getItem(ACCENT_KEY) || "default");
 
-// Placeholders for features without backend support yet
-document.getElementById("changePasswordBtn").addEventListener("click", () => {
-  alert("Password change isn't wired up yet — this needs a backend endpoint first.");
+document.getElementById("changePhoneBtn").addEventListener("click", async () => {
+  const phone = prompt("Enter your phone number:");
+  if (!phone) return;
+
+  try {
+    const res = await fetch("/api/user/phone", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ phone }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Could not update phone number.");
+      return;
+    }
+    document.getElementById("settingsPhoneDisplay").textContent = data.user.phone;
+    const remember = !!localStorage.getItem(TOKEN_KEY);
+    setSession(getToken(), data.user, remember);
+  } catch (err) {
+    alert("Could not reach the server. Please try again.");
+  }
 });
+
+document.getElementById("changePasswordBtn").addEventListener("click", async () => {
+  const currentPassword = prompt("Enter your current password:");
+  if (!currentPassword) return;
+  const newPassword = prompt("Enter your new password (min 6 characters):");
+  if (!newPassword) return;
+
+  try {
+    const res = await fetch("/api/user/password", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Could not update password.");
+      return;
+    }
+    alert("Password updated successfully.");
+  } catch (err) {
+    alert("Could not reach the server. Please try again.");
+  }
+});
+
+const avatarUploadBtn = document.getElementById("avatarUploadBtn");
+const avatarFileInput = document.getElementById("avatarFileInput");
+
+avatarUploadBtn.addEventListener("click", () => {
+  if (!getStoredUser()) {
+    alert("Please log in first to set a profile picture.");
+    return;
+  }
+  avatarFileInput.click();
+});
+
+avatarFileInput.addEventListener("change", async () => {
+  const file = avatarFileInput.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    alert("Please choose an image smaller than 2MB.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const base64 = reader.result;
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ avatar: base64 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Could not update profile picture.");
+        return;
+      }
+
+      const remember = !!localStorage.getItem(TOKEN_KEY);
+      setSession(getToken(), data.user, remember);
+
+      document.getElementById("settingsAvatarImg").src = data.user.avatar;
+      document.getElementById("settingsAvatarImg").style.display = "block";
+      document.getElementById("settingsAvatarPlaceholder").style.display = "none";
+    } catch (err) {
+      alert("Could not reach the server. Please try again.");
+    }
+  };
+  reader.readAsDataURL(file);
+});
+
 document.getElementById("deleteAccountBtn").addEventListener("click", () => {
   alert("Account deletion isn't wired up yet — this needs a backend endpoint first.");
-});
-  
-clearHistoryBtn.addEventListener("click", () => {
-  const confirmed = confirm(
-    "This will delete all your saved conversations. This cannot be undone. Continue?"
-  );
-  if (!confirmed) return;
-  conversations = [];
-  saveConversations();
-  closeSettingsModal();
-  startNewChat();
 });
 
 // ---------- Auth ----------
@@ -499,7 +594,7 @@ const rememberMeCheckbox = document.getElementById("rememberMeCheckbox");
 const googleAuthBtn = document.getElementById("googleAuthBtn");
 const forgotPasswordLink = document.getElementById("forgotPasswordLink");
 
-let authMode = "login"; // "login" or "signup"
+let authMode = "login";
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
