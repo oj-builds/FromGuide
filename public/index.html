@@ -140,134 +140,142 @@
     </div>
   </div>
 
-  <!-- Settings Modal v2 -->
-<div id="settingsModal" class="modal settings-modal-v2">
-  <div class="modal-content">
-    <div class="settings-v2-header">
-      <h2>⚙️ Settings</h2>
-      <button id="closeSettingsBtn" class="settings-v2-close">✕</button>
+  <!-- Settings Full Screen -->
+  <div id="settingsModal" class="settings-fullscreen">
+    <div class="settings-fs-header">
+      <button id="closeSettingsBtn" class="settings-back-btn">←</button>
+      <h2>Settings</h2>
+      <span style="width:28px;"></span>
     </div>
 
-    <div class="settings-v2-body">
-      <div class="settings-v2-tabs">
-        <button class="settings-tab active" data-tab="account">Account</button>
-        <button class="settings-tab" data-tab="preferences">Preferences</button>
-        <button class="settings-tab" data-tab="appearance">Appearance</button>
-        <button class="settings-tab" data-tab="about">About</button>
-      </div>
+    <div class="settings-fs-tabs">
+      <button class="settings-tab active" data-tab="account">Account</button>
+      <button class="settings-tab" data-tab="preferences">Preferences</button>
+      <button class="settings-tab" data-tab="appearance">Appearance</button>
+      <button class="settings-tab" data-tab="about">About</button>
+    </div>
 
-      <div class="settings-v2-panels">
+    <div class="settings-fs-panels">
 
-        <!-- Account -->
-        <div class="settings-panel active" data-panel="account">
-          <div class="settings-card">
-            <div class="profile-row">
-              <div class="profile-avatar">👤</div>
-              <div>
-                <div class="profile-info-name" id="settingsProfileName">Guest User</div>
-                <div class="profile-info-email" id="settingsProfileEmail">Not signed in</div>
-              </div>
+      <!-- Account -->
+      <div class="settings-panel active" data-panel="account">
+        <div class="settings-card">
+          <div class="profile-row">
+            <div class="profile-avatar-wrap">
+              <img id="settingsAvatarImg" class="profile-avatar-img" style="display:none;" />
+              <div id="settingsAvatarPlaceholder" class="profile-avatar">👤</div>
+              <button id="avatarUploadBtn" class="avatar-edit-btn">✎</button>
+              <input type="file" id="avatarFileInput" accept="image/*" style="display:none;">
             </div>
-          </div>
-
-          <div class="settings-card">
-            <h3>Account Details</h3>
-            <div class="settings-row-item">
-              <div>
-                <div class="settings-row-label">Email Address</div>
-                <div class="settings-row-sub" id="settingsAccountEmail">—</div>
-              </div>
-              <span class="badge-verified">✓ Signed in</span>
-            </div>
-            <div class="settings-row-item">
-              <div>
-                <div class="settings-row-label">Password</div>
-                <div class="settings-row-sub">••••••••</div>
-              </div>
-              <button class="settings-tab" style="width:auto;" id="changePasswordBtn">Change</button>
-            </div>
-            <div class="settings-row-item">
-              <div>
-                <div class="settings-row-label">Two-Factor Authentication</div>
-                <div class="settings-row-sub">Add an extra layer of security</div>
-              </div>
-              <span class="badge-soon">Coming soon</span>
-            </div>
-          </div>
-
-          <div class="settings-card danger-zone">
-            <h3>Danger Zone</h3>
-            <div class="settings-row-item">
-              <div>
-                <div class="settings-row-label">Delete Account</div>
-                <div class="settings-row-sub">Permanently delete your account and data</div>
-              </div>
-              <button class="danger-btn" id="deleteAccountBtn">Delete Account</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Preferences -->
-        <div class="settings-panel" data-panel="preferences">
-          <div class="settings-card">
-            <h3>Reply Language</h3>
-            <label class="radio-row">
-              <input type="radio" name="language" value="auto" checked>
-              Auto-detect (default)
-            </label>
-            <label class="radio-row">
-              <input type="radio" name="language" value="english">
-              Always English
-            </label>
-            <label class="radio-row">
-              <input type="radio" name="language" value="pidgin">
-              Always Pidgin
-            </label>
-          </div>
-
-          <div class="settings-card">
-            <h3>Chat Data</h3>
-            <button id="clearHistoryBtn" class="secondary-btn danger">🗑️ Clear all conversations</button>
-          </div>
-        </div>
-
-        <!-- Appearance -->
-        <div class="settings-panel" data-panel="appearance">
-          <div class="settings-card">
-            <h3>Theme</h3>
-            <div class="theme-options">
-              <button class="theme-option" data-theme="light">Light</button>
-              <button class="theme-option" data-theme="dark">Dark</button>
-              <button class="theme-option" data-theme="system">System</button>
-            </div>
-          </div>
-          <div class="settings-card">
-            <h3>Accent Color</h3>
             <div>
-              <span class="accent-dot" data-accent="default" style="background:#5b3df5;"></span>
-              <span class="accent-dot" data-accent="blue" style="background:#2f7bf5;"></span>
-              <span class="accent-dot" data-accent="green" style="background:#1a9c53;"></span>
-              <span class="accent-dot" data-accent="red" style="background:#e0453f;"></span>
-              <span class="accent-dot" data-accent="orange" style="background:#e0862f;"></span>
+              <div class="profile-info-name" id="settingsProfileName">Guest User</div>
+              <div class="profile-info-email" id="settingsProfileEmail">Not signed in</div>
             </div>
           </div>
         </div>
 
-        <!-- About -->
-        <div class="settings-panel" data-panel="about">
-          <div class="settings-card">
-            <h3>About FormGuide AI</h3>
-            <p class="about-text">FormGuide AI helps Nigerians with government services, careers, and education — NIN, Passport, JAMB, CVs, interview prep and more.</p>
-            <p style="font-size:12px;color:#888;">Version 1.0.0</p>
+        <div class="settings-card">
+          <h3>Account Details</h3>
+          <div class="settings-row-item">
+            <div>
+              <div class="settings-row-label">Email Address</div>
+              <div class="settings-row-sub" id="settingsAccountEmail">—</div>
+            </div>
+            <span class="badge-verified">✓ Signed in</span>
+          </div>
+          <div class="settings-row-item">
+            <div>
+              <div class="settings-row-label">Phone Number</div>
+              <div class="settings-row-sub" id="settingsPhoneDisplay">Not set</div>
+            </div>
+            <button class="settings-tab-inline" id="changePhoneBtn">Edit</button>
+          </div>
+          <div class="settings-row-item">
+            <div>
+              <div class="settings-row-label">Password</div>
+              <div class="settings-row-sub">••••••••</div>
+            </div>
+            <button class="settings-tab-inline" id="changePasswordBtn">Change</button>
+          </div>
+          <div class="settings-row-item">
+            <div>
+              <div class="settings-row-label">Two-Factor Authentication</div>
+              <div class="settings-row-sub">Add an extra layer of security</div>
+            </div>
+            <span class="badge-soon">Coming soon</span>
           </div>
         </div>
 
+        <div class="settings-card danger-zone">
+          <h3>Danger Zone</h3>
+          <div class="settings-row-item">
+            <div>
+              <div class="settings-row-label">Delete Account</div>
+              <div class="settings-row-sub">Permanently delete your account and data</div>
+            </div>
+            <button class="danger-btn" id="deleteAccountBtn">Delete Account</button>
+          </div>
+        </div>
       </div>
+
+      <!-- Preferences -->
+      <div class="settings-panel" data-panel="preferences">
+        <div class="settings-card">
+          <h3>Reply Language</h3>
+          <label class="radio-row">
+            <input type="radio" name="language" value="auto" checked>
+            Auto-detect (default)
+          </label>
+          <label class="radio-row">
+            <input type="radio" name="language" value="english">
+            Always English
+          </label>
+          <label class="radio-row">
+            <input type="radio" name="language" value="pidgin">
+            Always Pidgin
+          </label>
+        </div>
+
+        <div class="settings-card">
+          <h3>Chat Data</h3>
+          <button id="clearHistoryBtn" class="secondary-btn danger">🗑️ Clear all conversations</button>
+        </div>
+      </div>
+
+      <!-- Appearance -->
+      <div class="settings-panel" data-panel="appearance">
+        <div class="settings-card">
+          <h3>Theme</h3>
+          <div class="theme-options">
+            <button class="theme-option" data-theme="light">Light</button>
+            <button class="theme-option" data-theme="dark">Dark</button>
+            <button class="theme-option" data-theme="system">System</button>
+          </div>
+        </div>
+        <div class="settings-card">
+          <h3>Accent Color</h3>
+          <div>
+            <span class="accent-dot" data-accent="default" style="background:#5b3df5;"></span>
+            <span class="accent-dot" data-accent="blue" style="background:#2f7bf5;"></span>
+            <span class="accent-dot" data-accent="green" style="background:#1a9c53;"></span>
+            <span class="accent-dot" data-accent="red" style="background:#e0453f;"></span>
+            <span class="accent-dot" data-accent="orange" style="background:#e0862f;"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- About -->
+      <div class="settings-panel" data-panel="about">
+        <div class="settings-card">
+          <h3>About FormGuide AI</h3>
+          <p class="about-text">FormGuide AI helps Nigerians with government services, careers, and education — NIN, Passport, JAMB, CVs, interview prep and more.</p>
+          <p style="font-size:12px;color:#888;">Version 1.0.0</p>
+        </div>
+      </div>
+
     </div>
   </div>
-</div>
 
-      
   <!-- Auth Screen (full page) -->
   <div id="authModal" class="auth-screen">
     <div class="auth-panel-left">
