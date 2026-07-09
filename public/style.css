@@ -587,6 +587,134 @@ body {
   font-weight: 600;
 }
 
+/* ===== Settings v2 ===== */
+.settings-modal-v2 .modal-content {
+  max-width: 720px;
+  width: 92%;
+  padding: 0;
+  background: #ffffff;
+  color: #1f2430;
+  border-radius: 16px;
+  overflow: hidden;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-v2-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #eee;
+}
+.settings-v2-header h2 { margin: 0; font-size: 20px; }
+.settings-v2-close {
+  background: none; border: none; font-size: 18px; cursor: pointer; color: #666;
+}
+
+.settings-v2-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.settings-v2-tabs {
+  width: 190px;
+  border-right: 1px solid #eee;
+  padding: 12px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.settings-tab {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 4px;
+}
+.settings-tab.active {
+  background: #ece9fe;
+  color: #5b3df5;
+  font-weight: 600;
+}
+
+.settings-v2-panels {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+.settings-panel { display: none; }
+.settings-panel.active { display: block; }
+
+.settings-card {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.settings-card h3 { margin: 0 0 12px 0; font-size: 15px; }
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.profile-avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: #ece9fe; display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: #5b3df5; flex-shrink: 0;
+}
+.profile-info-name { font-weight: 600; font-size: 15px; }
+.profile-info-email { font-size: 13px; color: #666; }
+
+.settings-row-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid #f2f2f2;
+}
+.settings-row-item:last-child { border-bottom: none; }
+.settings-row-label { font-size: 14px; }
+.settings-row-sub { font-size: 12px; color: #888; }
+.badge-verified { color: #1a9c53; font-size: 12px; }
+.badge-soon { color: #999; font-size: 12px; }
+
+.theme-options { display: flex; gap: 8px; }
+.theme-option {
+  padding: 6px 14px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;
+  background: #fff; font-size: 13px;
+}
+.theme-option.active { border-color: #5b3df5; color: #5b3df5; font-weight: 600; }
+
+.accent-dot {
+  width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; display: inline-block; margin-right: 6px;
+}
+.accent-dot.selected { border-color: #333; }
+
+.danger-zone { border-color: #f5b8b8; }
+.danger-zone h3 { color: #c0392b; }
+.danger-btn {
+  background: #fff; color: #c0392b; border: 1px solid #e2a5a5;
+  padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px;
+}
+
+/* Accent color applied app-wide */
+body.accent-blue .accent { color: #2f7bf5 !important; }
+body.accent-green .accent { color: #1a9c53 !important; }
+body.accent-red .accent { color: #e0453f !important; }
+body.accent-orange .accent { color: #e0862f !important; }
+
+body.theme-dark { background: #14161f; color: #e8e8ee; }
+body.theme-dark .settings-modal-v2 .modal-content { background: #1c1f2b; color: #e8e8ee; }
+body.theme-dark .settings-card { border-color: #2a2e3d; }
+body.theme-dark .settings-v2-tabs { border-color: #2a2e3d; }
+
 /* ---------- Auth screen (full page, split layout) ---------- */
 .auth-screen {
   display: none;
