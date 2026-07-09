@@ -15,24 +15,28 @@ const userSchema = new mongoose.Schema({
   },
   passwordHash: {
     type: String,
-    required: false, // not required for accounts created via Google Sign-In
+    default: null,
   },
   googleId: {
     type: String,
-    required: false,
+    default: null,
+  },
+  phone: {
+    type: String,
+    default: null,
+  },
+  avatar: {
+    type: String,
+    default: null,
   },
   resetTokenHash: {
     type: String,
-    required: false,
+    default: null,
   },
   resetTokenExpiry: {
     type: Date,
-    required: false,
+    default: null,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);
