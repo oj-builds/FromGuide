@@ -732,3 +732,48 @@ body.accent-orange .accent { color: #e0862f !important; }
   .auth-hero-title { font-size: 26px; }
   .auth-panel-right { flex: none; padding: 30px 20px; }
 }
+.notif-btn {
+  position: relative;
+}
+.notif-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #e0453f;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 50%;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+.notif-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #ececec;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  background: #fff;
+}
+.notif-item.unread {
+  background: #f7f6ff;
+  border-color: #ded9ff;
+}
+.notif-icon {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #ece9fe; color: #5b3df5;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.notif-content { flex: 1; min-width: 0; }
+.notif-title { font-weight: 600; font-size: 14px; color: #1f2430; }
+.notif-message { font-size: 12.5px; color: #666; margin-top: 2px; }
+.notif-time { font-size: 11px; color: #aaa; margin-top: 4px; }
+
