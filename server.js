@@ -434,6 +434,99 @@ app.patch("/api/notifications/read-all", authenticate, async (req, res) => {
   res.json({ success: true });
 });
 
+// ===============================
+// CHAT ROUTES
+// ===============================
+
+// Get all chats for the logged in user
+app.get("/api/chats", authenticate, async (req, res) => {
+  try {
+    const chats = await Chat.find({
+      user: req.userId,
+    }).sort({ updatedAt: -1 });
+
+    res.json(chats);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Could not load chats."
+    });
+  }
+});
+
+// Create a new chat
+app.post("/api/chats", authenticate, async (req, res) => {
+  try {
+    const chat = await Chat.create({
+      user: req.userId,
+      title: "New Chat",
+      messages: []
+    });
+
+    res.json(chat);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Could not create chat."
+    });
+  }
+});
+
+// Update chat
+app.patch("/api/chats/:id", authenticate, async (req, res) => {
+  try {
+    const chat = await Chat.findOne({
+      _id: req.params.id,
+      user: req.userId
+    });
+
+    if (!chat) {
+      return res.status(404).json({
+        error: "Chat not found."
+      });
+    }
+
+    if (req.body.title) {
+      chat.title = req.body.title;
+    }
+
+    if (req.body.messages) {
+      chat.messages = req.body.messages;
+    }
+
+    await chat.save();
+
+    res.json(chat);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Could not update chat."
+    });
+  }
+});
+
+// Delete chat
+app.delete("/api/chats/:id", authenticate, async (req, res) => {
+  try {
+
+    await Chat.deleteOne({
+      _id: req.params.id,
+      user: req.userId
+    });
+
+    res.json({
+      success: true
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Could not delete chat."
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`FormGuide server running at http://localhost:${PORT}`);
 });
