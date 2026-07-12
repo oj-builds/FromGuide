@@ -152,11 +152,25 @@ function removeTyping() {
   if (row) row.remove();
 }
 
-async function sendMessage(text) {
+  
+  async function sendMessage(text) {
   if (!text || loading) return;
-  loading = true;
-  inputEl.value = "";
 
+  loading = true;
+
+  if (!currentChatId && getToken()) {
+    const res = await fetch("/api/chats", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${getToken()}`
+      }
+    });
+
+    const chat = await res.json();
+    currentChatId = chat._id;
+  }
+
+  
   let conv = getCurrentConversation();
   if (!conv) {
     startNewChat();
