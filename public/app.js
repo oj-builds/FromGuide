@@ -82,8 +82,22 @@ function renderSidebar() {
   });
 }
 
-function deleteConversation(id) {
-  conversations = conversations.filter((c) => c.id !== id);
+async function deleteConversation(id) {
+
+  if (getToken()) {
+    try {
+      await fetch(`/api/chats/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${getToken()}`
+        }
+      });
+    } catch (err) {
+      console.error("Could not delete chat:", err);
+    }
+  }
+
+  conversations = conversations.filter(c => c.id !== id);
   saveConversations();
 
   if (id === currentId) {
@@ -94,6 +108,7 @@ function deleteConversation(id) {
       return;
     }
   }
+
   renderSidebar();
   renderActiveConversation();
 }
