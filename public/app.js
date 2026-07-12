@@ -600,6 +600,38 @@ function getToken() {
   return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
 }
 
+async function loadChatsFromServer() {
+  if (!getToken()) return;
+
+  try {
+    const res = await fetch("/api/chats", {
+      headers: {
+        Authorization: `Bearer ${getToken()}`
+      }
+    });
+
+    if (!res.ok) return;
+
+    const chats = await res.json();
+
+    conversations = chats.map(chat => ({
+      id: chat._id,
+      title: chat.title,
+      messages: chat.messages
+    }));
+
+    if (conversations.length > 0) {
+      currentId = conversations[0].id;
+    }
+
+    renderSidebar();
+    renderActiveConversation();
+
+  } catch (err) {
+    console.error("Could not load chats:", err);
+  }
+}
+
 function getStoredUser() {
   try {
     const raw = localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY);
@@ -809,13 +841,16 @@ authSubmitBtn.addEventListener("click", async () => {
 
 updateAccountButton();
 
-// Init
-if (conversations.length === 0) {
-  startNewChat();
+if (getToken()) {
+    loadChatsFromServer();
 } else {
-  currentId = conversations[0].id;
-  renderSidebar();
-  renderActiveConversation();
+    if (conversations.length === 0) {
+        startNewChat();
+    } else {
+        currentId = conversations[0].id;
+        renderSidebar();
+        renderActiveConversation();
+    }
 }
 
 // Notifications
