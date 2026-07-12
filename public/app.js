@@ -189,6 +189,23 @@ async function sendMessage(text) {
     conv.messages.push({ role: "assistant", content: reply });
     saveConversations();
     renderMessage("assistant", reply);
+    if (getToken() && currentId) {
+  try {
+    await fetch(`/api/chats/${currentId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({
+        title: conv.title,
+        messages: conv.messages
+      })
+    });
+  } catch (err) {
+    console.error("Failed to save chat:", err);
+  }
+}
   } catch (err) {
     removeTyping();
     renderMessage("assistant", "Could not reach the server. Please try again.");
