@@ -1,97 +1,38 @@
 const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-
-    passwordHash: {
-      type: String,
-      default: null,
-    },
-
-    googleId: {
-      type: String,
-      default: null,
-    },
-
-    phone: {
-      type: String,
-      default: null,
-    },
-
-    avatar: {
-      type: String,
-      default: null,
-    },
-
-    bio: {
-      type: String,
-      default: "",
-    },
-
-    country: {
-      type: String,
-      default: "Nigeria",
-    },
-
-    referralCode: {
-      type: String,
-      unique: true,
-      sparse: true,
-    },
-
-    referredBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
-    },
-
-    referralCount: {
-      type: Number,
-      default: 0,
-    },
-
-    isPro: {
-      type: Boolean,
-      default: false,
-    },
-
-    role: {
-      type: String,
-      enum: ["user", "admin"],
-      default: "user",
-    },
-
-    lastLogin: {
-      type: Date,
-      default: null,
-    },
-
-    resetTokenHash: {
-      type: String,
-      default: null,
-    },
-
-    resetTokenExpiry: {
-      type: Date,
-      default: null,
-    },
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
   },
-  {
-    timestamps: true,
-  }
-);
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+  },
+  passwordHash: {
+    type: String,
+    required: false, // not required for accounts created via Google Sign-In
+  },
+  googleId: {
+    type: String,
+    required: false,
+  },
+  resetTokenHash: {
+    type: String,
+    required: false,
+  },
+  resetTokenExpiry: {
+    type: Date,
+    required: false,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
 
 module.exports = mongoose.model("User", userSchema);
