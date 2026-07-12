@@ -84,6 +84,8 @@ function renderSidebar() {
 
 async function deleteConversation(id) {
 
+  console.log("Deleting chat:", id);
+
   if (getToken()) {
     try {
       await fetch(`/api/chats/${id}`, {
