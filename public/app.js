@@ -189,23 +189,6 @@ function removeTyping() {
 
   try {
 
-    if (getToken() && currentChatId) {
-  try {
-    await fetch(`/api/chats/${currentChatId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`
-      },
-      body: JSON.stringify({
-        title: conv.title,
-        messages: conv.messages
-      })
-    });
-  } catch (err) {
-    console.error("Could not save chat:", err);
-  }
-}
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: {
@@ -221,6 +204,24 @@ function removeTyping() {
     conv.messages.push({ role: "assistant", content: reply });
     saveConversations();
     renderMessage("assistant", reply);
+
+   if (getToken() && currentChatId) {
+  try {
+    await fetch(`/api/chats/${currentChatId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({
+        title: conv.title,
+        messages: conv.messages
+      })
+    });
+  } catch (err) {
+    console.error("Could not save chat:", err);
+  }
+} 
   } catch (err) {
     removeTyping();
     renderMessage("assistant", "Could not reach the server. Please try again.");
