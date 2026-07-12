@@ -1,21 +1,3 @@
-/* =========================================================
-   FormGuide AI — main client script
-   Sections:
-     1. DOM references & global state
-     2. Conversation storage (localStorage)
-     3. Sidebar rendering
-     4. Message rendering
-     5. Send message / chat flow
-     6. Welcome screen shortcuts
-     7. CV Builder modal
-     8. Interview Coach modal
-     9. Settings modal (language, theme, accent, account)
-    10. Auth (login/signup/google/forgot password)
-    11. Init
-    12. Notifications
-   ========================================================= */
-
-/* ---------- 1. DOM references & global state ---------- */
 const chatEl = document.getElementById("chat");
 const welcomeScreenEl = document.getElementById("welcomeScreen");
 const messagesEl = document.getElementById("messages");
@@ -30,20 +12,11 @@ const cvModal = document.getElementById("cvModal");
 
 const STORAGE_KEY = "formguide_conversations";
 const LANG_KEY = "formguide_language";
-const THEME_KEY = "formguide_theme";
-const ACCENT_KEY = "formguide_accent";
-const TOKEN_KEY = "formguide_token";
-const USER_KEY = "formguide_user";
-
 let conversations = loadConversations();
 let currentId = null;
-let currentChatId = null; // server-side chat id, created lazily on first send while logged in
 let loading = false;
 let languagePref = localStorage.getItem(LANG_KEY) || "auto";
-let googleClientId = null;
-let authMode = "login";
 
-/* ---------- 2. Conversation storage (localStorage) ---------- */
 function loadConversations() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -66,36 +39,18 @@ function makeTitle(text) {
   return clean.length > 34 ? clean.slice(0, 34) + "…" : clean;
 }
 
-function getCurrentConversation() {
-  return conversations.find((c) => c.id === currentId);
-}
-
 function startNewChat() {
   currentId = "c" + Date.now();
-  currentChatId = null;
   conversations.unshift({ id: currentId, title: null, messages: [] });
   saveConversations();
   renderSidebar();
   renderActiveConversation();
 }
 
-function deleteConversation(id) {
-  conversations = conversations.filter((c) => c.id !== id);
-  saveConversations();
-
-  if (id === currentId) {
-    if (conversations.length > 0) {
-      currentId = conversations[0].id;
-    } else {
-      startNewChat();
-      return;
-    }
-  }
-  renderSidebar();
-  renderActiveConversation();
+function getCurrentConversation() {
+  return conversations.find((c) => c.id === currentId);
 }
 
-/* ---------- 3. Sidebar rendering ---------- */
 function renderSidebar() {
   chatListEl.innerHTML = "";
   conversations.forEach((conv) => {
@@ -127,7 +82,22 @@ function renderSidebar() {
   });
 }
 
-/* ---------- 4. Message rendering ---------- */
+function deleteConversation(id) {
+  conversations = conversations.filter((c) => c.id !== id);
+  saveConversations();
+
+  if (id === currentId) {
+    if (conversations.length > 0) {
+      currentId = conversations[0].id;
+    } else {
+      startNewChat();
+      return;
+    }
+  }
+  renderSidebar();
+  renderActiveConversation();
+}
+
 function renderMessage(role, content) {
   const row = document.createElement("div");
   row.className = `msg-row ${role}`;
@@ -182,24 +152,10 @@ function removeTyping() {
   if (row) row.remove();
 }
 
-/* ---------- 5. Send message / chat flow ---------- */
 async function sendMessage(text) {
   if (!text || loading) return;
-
   loading = true;
-
-  if (!currentChatId && getToken()) {
-    try {
-      const res = await fetch("/api/chats", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      const chat = await res.json();
-      currentChatId = chat._id;
-    } catch (err) {
-      console.error("Could not create server chat:", err);
-    }
-  }
+  inputEl.value = "";
 
   let conv = getCurrentConversation();
   if (!conv) {
@@ -233,24 +189,6 @@ async function sendMessage(text) {
     conv.messages.push({ role: "assistant", content: reply });
     saveConversations();
     renderMessage("assistant", reply);
-
-    if (getToken() && currentChatId) {
-      try {
-        await fetch(`/api/chats/${currentChatId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${getToken()}`,
-          },
-          body: JSON.stringify({
-            title: conv.title,
-            messages: conv.messages,
-          }),
-        });
-      } catch (err) {
-        console.error("Could not save chat:", err);
-      }
-    }
   } catch (err) {
     removeTyping();
     renderMessage("assistant", "Could not reach the server. Please try again.");
@@ -264,7 +202,7 @@ formEl.addEventListener("submit", (e) => {
   sendMessage(inputEl.value.trim());
 });
 
-/* ---------- 6. Welcome screen & sidebar shortcuts ---------- */
+// Feature cards on the welcome screen
 document.querySelectorAll(".feature-card").forEach((card) => {
   card.addEventListener("click", () => {
     if (card.dataset.openCv === "true") {
@@ -283,6 +221,7 @@ document.querySelectorAll(".feature-card").forEach((card) => {
   });
 });
 
+// Sidebar quick-tool shortcuts
 document.getElementById("sidebarCvBtn").addEventListener("click", () => {
   openCvModal();
   sidebarEl.classList.remove("open");
@@ -296,20 +235,7 @@ document.getElementById("sidebarGovBtn").addEventListener("click", () => {
   sidebarEl.classList.remove("open");
 });
 
-newChatBtn.addEventListener("click", () => {
-  startNewChat();
-  sidebarEl.classList.remove("open");
-});
-
-openSidebarBtn.addEventListener("click", () => sidebarEl.classList.add("open"));
-closeSidebarBtn.addEventListener("click", () => sidebarEl.classList.remove("open"));
-
-/* ---------- 7. CV Builder modal ---------- */
-const cvPreviewEl = document.getElementById("cvPreview");
-const polishCvBtn = document.getElementById("polishCvBtn");
-const downloadCvBtn = document.getElementById("downloadCvBtn");
-let lastCvText = "";
-
+// CV Builder modal
 function openCvModal() {
   cvModal.style.display = "flex";
 }
@@ -319,6 +245,10 @@ function closeCvModal() {
 cvModal.addEventListener("click", (e) => {
   if (e.target === cvModal) closeCvModal();
 });
+
+const cvPreviewEl = document.getElementById("cvPreview");
+const polishCvBtn = document.getElementById("polishCvBtn");
+let lastCvText = "";
 
 document.getElementById("generateCV").addEventListener("click", () => {
   const fullName = document.getElementById("fullName").value.trim();
@@ -351,6 +281,8 @@ ${skills || "Not provided"}`;
   downloadCvBtn.style.display = "block";
   polishCvBtn.style.display = "block";
 });
+
+const downloadCvBtn = document.getElementById("downloadCvBtn");
 
 downloadCvBtn.addEventListener("click", () => {
   if (!lastCvText) return;
@@ -392,7 +324,7 @@ polishCvBtn.addEventListener("click", () => {
   );
 });
 
-/* ---------- 8. Interview Coach modal ---------- */
+// Interview Coach modal
 const interviewModal = document.getElementById("interviewModal");
 
 function openInterviewModal() {
@@ -415,11 +347,21 @@ document.getElementById("startInterviewBtn").addEventListener("click", () => {
   );
 });
 
-/* ---------- 9. Settings modal (language, theme, accent, account) ---------- */
+newChatBtn.addEventListener("click", () => {
+  startNewChat();
+  sidebarEl.classList.remove("open");
+});
+
+openSidebarBtn.addEventListener("click", () => sidebarEl.classList.add("open"));
+closeSidebarBtn.addEventListener("click", () => sidebarEl.classList.remove("open"));
+
+// ---------- Settings — full screen ----------
 const settingsModal = document.getElementById("settingsModal");
 const settingsBtn = document.getElementById("settingsBtn");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+const THEME_KEY = "formguide_theme";
+const ACCENT_KEY = "formguide_accent";
 
 function openSettingsModal() {
   document.querySelectorAll('input[name="language"]').forEach((radio) => {
@@ -504,6 +446,7 @@ function setTheme(theme) {
 document.querySelectorAll(".theme-option").forEach((btn) => {
   btn.addEventListener("click", () => setTheme(btn.dataset.theme));
 });
+setTheme(localStorage.getItem(THEME_KEY) || "light");
 
 function applyAccentUI() {
   const saved = localStorage.getItem(ACCENT_KEY) || "default";
@@ -520,6 +463,7 @@ function setAccent(accent) {
 document.querySelectorAll(".accent-dot").forEach((dot) => {
   dot.addEventListener("click", () => setAccent(dot.dataset.accent));
 });
+setAccent(localStorage.getItem(ACCENT_KEY) || "default");
 
 document.getElementById("changePhoneBtn").addEventListener("click", async () => {
   const phone = prompt("Enter your phone number:");
@@ -628,7 +572,10 @@ document.getElementById("deleteAccountBtn").addEventListener("click", () => {
   alert("Account deletion isn't wired up yet — this needs a backend endpoint first.");
 });
 
-/* ---------- 10. Auth (login/signup/google/forgot password) ---------- */
+// ---------- Auth ----------
+const TOKEN_KEY = "formguide_token";
+const USER_KEY = "formguide_user";
+
 const authModal = document.getElementById("authModal");
 const accountBtn = document.getElementById("accountBtn");
 const authTitle = document.getElementById("authTitle");
@@ -646,6 +593,8 @@ const togglePasswordBtn = document.getElementById("togglePasswordBtn");
 const rememberMeCheckbox = document.getElementById("rememberMeCheckbox");
 const googleAuthBtn = document.getElementById("googleAuthBtn");
 const forgotPasswordLink = document.getElementById("forgotPasswordLink");
+
+let authMode = "login";
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
@@ -741,6 +690,18 @@ togglePasswordBtn.addEventListener("click", () => {
   authPassword.type = isHidden ? "text" : "password";
   togglePasswordBtn.textContent = isHidden ? "🙈" : "👁️";
 });
+
+let googleClientId = null;
+
+fetch("/api/config")
+  .then((res) => res.json())
+  .then((data) => {
+    googleClientId = data.googleClientId;
+    if (googleClientId && window.google) {
+      initGoogleButton();
+    }
+  })
+  .catch(() => {});
 
 function initGoogleButton() {
   google.accounts.id.initialize({
@@ -846,21 +807,9 @@ authSubmitBtn.addEventListener("click", async () => {
   }
 });
 
-fetch("/api/config")
-  .then((res) => res.json())
-  .then((data) => {
-    googleClientId = data.googleClientId;
-    if (googleClientId && window.google) {
-      initGoogleButton();
-    }
-  })
-  .catch(() => {});
-
-/* ---------- 11. Init ---------- */
-setTheme(localStorage.getItem(THEME_KEY) || "light");
-setAccent(localStorage.getItem(ACCENT_KEY) || "default");
 updateAccountButton();
 
+// Init
 if (conversations.length === 0) {
   startNewChat();
 } else {
@@ -869,7 +818,7 @@ if (conversations.length === 0) {
   renderActiveConversation();
 }
 
-/* ---------- 12. Notifications ---------- */
+// Notifications
 const notificationsBtn = document.getElementById("notificationsBtn");
 const notificationsModal = document.getElementById("notificationsModal");
 const closeNotificationsBtn = document.getElementById("closeNotificationsBtn");
@@ -975,4 +924,5 @@ markAllReadBtn.addEventListener("click", async () => {
   } catch (err) {}
 });
 
+// Check unread count on page load if logged in
 if (getToken()) loadNotifications();
