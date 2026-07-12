@@ -506,17 +506,20 @@ app.patch("/api/chats/:id", authenticate, async (req, res) => {
   }
 });
 
-// Delete chat
 app.delete("/api/chats/:id", authenticate, async (req, res) => {
-  try {
+  console.log("DELETE REQUEST:", req.params.id);
 
-    await Chat.deleteOne({
+  try {
+    const result = await Chat.deleteOne({
       _id: req.params.id,
       user: req.userId
     });
 
+    console.log(result);
+
     res.json({
-      success: true
+      success: true,
+      result
     });
 
   } catch (err) {
