@@ -188,6 +188,24 @@ function removeTyping() {
   renderTyping();
 
   try {
+
+    if (getToken() && currentChatId) {
+  try {
+    await fetch(`/api/chats/${currentChatId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({
+        title: conv.title,
+        messages: conv.messages
+      })
+    });
+  } catch (err) {
+    console.error("Could not save chat:", err);
+  }
+}
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: {
