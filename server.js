@@ -12,6 +12,7 @@ const { OAuth2Client } = require("google-auth-library");
 
 const connectDB = require("./db");
 const User = require("./models/User");
+const Chat = require("./models/Chat");
 const Notification = require("./models/Notification");
 const authenticate = require("./middleware/auth");
 
