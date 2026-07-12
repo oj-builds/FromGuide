@@ -39,38 +39,23 @@ function makeTitle(text) {
   return clean.length > 34 ? clean.slice(0, 34) + "…" : clean;
 }
 
-async function startNewChat() {
-  try {
-    const res = await fetch("/api/chats", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${getToken()}`
-      }
-    });
-
-    const chat = await res.json();
-
-    conversations.unshift(chat);
-    currentId = chat._id;
-
-    renderSidebar();
-    renderActiveConversation();
-
-  } catch (err) {
-    console.error(err);
-    alert("Could not create a new chat.");
-  }
+function startNewChat() {
+  currentId = "c" + Date.now();
+  conversations.unshift({ id: currentId, title: null, messages: [] });
+  saveConversations();
+  renderSidebar();
+  renderActiveConversation();
 }
 
 function getCurrentConversation() {
-  return conversations.find((c) => c._id === currentId);
+  return conversations.find((c) => c.id === currentId);
 }
 
 function renderSidebar() {
   chatListEl.innerHTML = "";
   conversations.forEach((conv) => {
     const item = document.createElement("div");
-    item.className = "chat-list-item" + (conv._id === currentId ? " active" : "");
+    item.className = "chat-list-item" + (conv.id === currentId ? " active" : "");
 
     const label = document.createElement("span");
     label.className = "chat-list-label";
@@ -88,7 +73,7 @@ function renderSidebar() {
     deleteBtn.title = "Delete conversation";
     deleteBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      deleteConversation(conv._id);
+      deleteConversation(conv.id);
     });
 
     item.appendChild(label);
@@ -169,23 +154,8 @@ function removeTyping() {
 
 async function sendMessage(text) {
   if (!text || loading) return;
-
   loading = true;
-
-  if (!currentChatId && getToken()) {
-    const res = await fetch("/api/chats", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${getToken()}`
-      }
-    });
-
-    const chat = await res.json();
-    currentChatId = chat._id;
-  }
-
-  // ...the rest of your sendMessage() code...
-}
+  inputEl.value = "";
 
   let conv = getCurrentConversation();
   if (!conv) {
@@ -206,7 +176,10 @@ async function sendMessage(text) {
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
       body: JSON.stringify({ messages: conv.messages, language: languagePref }),
     });
     const data = await res.json();
@@ -222,7 +195,7 @@ async function sendMessage(text) {
   } finally {
     loading = false;
   }
-
+}
 
 formEl.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -269,7 +242,6 @@ function openCvModal() {
 function closeCvModal() {
   cvModal.style.display = "none";
 }
-
 cvModal.addEventListener("click", (e) => {
   if (e.target === cvModal) closeCvModal();
 });
@@ -361,7 +333,6 @@ function openInterviewModal() {
 function closeInterviewModal() {
   interviewModal.style.display = "none";
 }
-
 interviewModal.addEventListener("click", (e) => {
   if (e.target === interviewModal) closeInterviewModal();
 });
@@ -384,20 +355,42 @@ newChatBtn.addEventListener("click", () => {
 openSidebarBtn.addEventListener("click", () => sidebarEl.classList.add("open"));
 closeSidebarBtn.addEventListener("click", () => sidebarEl.classList.remove("open"));
 
-// Settings modal
+// ---------- Settings — full screen ----------
 const settingsModal = document.getElementById("settingsModal");
 const settingsBtn = document.getElementById("settingsBtn");
 const closeSettingsBtn = document.getElementById("closeSettingsBtn");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+const THEME_KEY = "formguide_theme";
+const ACCENT_KEY = "formguide_accent";
 
 function openSettingsModal() {
   document.querySelectorAll('input[name="language"]').forEach((radio) => {
     radio.checked = radio.value === languagePref;
   });
-  settingsModal.style.display = "flex";
+
+  const user = getStoredUser();
+  document.getElementById("settingsProfileName").textContent = user ? user.name : "Guest User";
+  document.getElementById("settingsProfileEmail").textContent = user ? user.email : "Not signed in";
+  document.getElementById("settingsAccountEmail").textContent = user ? user.email : "—";
+  document.getElementById("settingsPhoneDisplay").textContent = user && user.phone ? user.phone : "Not set";
+
+  const avatarImg = document.getElementById("settingsAvatarImg");
+  const avatarPlaceholder = document.getElementById("settingsAvatarPlaceholder");
+  if (user && user.avatar) {
+    avatarImg.src = user.avatar;
+    avatarImg.style.display = "block";
+    avatarPlaceholder.style.display = "none";
+  } else {
+    avatarImg.style.display = "none";
+    avatarPlaceholder.style.display = "flex";
+  }
+
+  applyThemeUI();
+  applyAccentUI();
+  settingsModal.classList.add("open");
 }
 function closeSettingsModal() {
-  settingsModal.style.display = "none";
+  settingsModal.classList.remove("open");
 }
 
 settingsBtn.addEventListener("click", () => {
@@ -405,8 +398,14 @@ settingsBtn.addEventListener("click", () => {
   sidebarEl.classList.remove("open");
 });
 closeSettingsBtn.addEventListener("click", closeSettingsModal);
-settingsModal.addEventListener("click", (e) => {
-  if (e.target === settingsModal) closeSettingsModal();
+
+document.querySelectorAll(".settings-tab[data-tab]").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".settings-tab[data-tab]").forEach((t) => t.classList.remove("active"));
+    document.querySelectorAll(".settings-panel").forEach((p) => p.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelector(`.settings-panel[data-panel="${tab.dataset.tab}"]`).classList.add("active");
+  });
 });
 
 document.querySelectorAll('input[name="language"]').forEach((radio) => {
@@ -425,6 +424,152 @@ clearHistoryBtn.addEventListener("click", () => {
   saveConversations();
   closeSettingsModal();
   startNewChat();
+});
+
+function applyThemeUI() {
+  const saved = localStorage.getItem(THEME_KEY) || "light";
+  document.querySelectorAll(".theme-option").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.theme === saved);
+  });
+}
+function setTheme(theme) {
+  localStorage.setItem(THEME_KEY, theme);
+  document.body.classList.remove("theme-dark", "theme-light");
+  if (theme === "dark") {
+    document.body.classList.add("theme-dark");
+  } else if (theme === "system") {
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.body.classList.add(prefersDark ? "theme-dark" : "theme-light");
+  }
+  applyThemeUI();
+}
+document.querySelectorAll(".theme-option").forEach((btn) => {
+  btn.addEventListener("click", () => setTheme(btn.dataset.theme));
+});
+setTheme(localStorage.getItem(THEME_KEY) || "light");
+
+function applyAccentUI() {
+  const saved = localStorage.getItem(ACCENT_KEY) || "default";
+  document.querySelectorAll(".accent-dot").forEach((dot) => {
+    dot.classList.toggle("selected", dot.dataset.accent === saved);
+  });
+}
+function setAccent(accent) {
+  localStorage.setItem(ACCENT_KEY, accent);
+  document.body.classList.remove("accent-blue", "accent-green", "accent-red", "accent-orange");
+  if (accent !== "default") document.body.classList.add(`accent-${accent}`);
+  applyAccentUI();
+}
+document.querySelectorAll(".accent-dot").forEach((dot) => {
+  dot.addEventListener("click", () => setAccent(dot.dataset.accent));
+});
+setAccent(localStorage.getItem(ACCENT_KEY) || "default");
+
+document.getElementById("changePhoneBtn").addEventListener("click", async () => {
+  const phone = prompt("Enter your phone number:");
+  if (!phone) return;
+
+  try {
+    const res = await fetch("/api/user/phone", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ phone }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Could not update phone number.");
+      return;
+    }
+    document.getElementById("settingsPhoneDisplay").textContent = data.user.phone;
+    const remember = !!localStorage.getItem(TOKEN_KEY);
+    setSession(getToken(), data.user, remember);
+  } catch (err) {
+    alert("Could not reach the server. Please try again.");
+  }
+});
+
+document.getElementById("changePasswordBtn").addEventListener("click", async () => {
+  const currentPassword = prompt("Enter your current password:");
+  if (!currentPassword) return;
+  const newPassword = prompt("Enter your new password (min 6 characters):");
+  if (!newPassword) return;
+
+  try {
+    const res = await fetch("/api/user/password", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Could not update password.");
+      return;
+    }
+    alert("Password updated successfully.");
+  } catch (err) {
+    alert("Could not reach the server. Please try again.");
+  }
+});
+
+const avatarUploadBtn = document.getElementById("avatarUploadBtn");
+const avatarFileInput = document.getElementById("avatarFileInput");
+
+avatarUploadBtn.addEventListener("click", () => {
+  if (!getStoredUser()) {
+    alert("Please log in first to set a profile picture.");
+    return;
+  }
+  avatarFileInput.click();
+});
+
+avatarFileInput.addEventListener("change", async () => {
+  const file = avatarFileInput.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    alert("Please choose an image smaller than 2MB.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const base64 = reader.result;
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ avatar: base64 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Could not update profile picture.");
+        return;
+      }
+
+      const remember = !!localStorage.getItem(TOKEN_KEY);
+      setSession(getToken(), data.user, remember);
+
+      document.getElementById("settingsAvatarImg").src = data.user.avatar;
+      document.getElementById("settingsAvatarImg").style.display = "block";
+      document.getElementById("settingsAvatarPlaceholder").style.display = "none";
+    } catch (err) {
+      alert("Could not reach the server. Please try again.");
+    }
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById("deleteAccountBtn").addEventListener("click", () => {
+  alert("Account deletion isn't wired up yet — this needs a backend endpoint first.");
 });
 
 // ---------- Auth ----------
@@ -449,7 +594,7 @@ const rememberMeCheckbox = document.getElementById("rememberMeCheckbox");
 const googleAuthBtn = document.getElementById("googleAuthBtn");
 const forgotPasswordLink = document.getElementById("forgotPasswordLink");
 
-let authMode = "login"; // "login" or "signup"
+let authMode = "login";
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
@@ -672,3 +817,112 @@ if (conversations.length === 0) {
   renderSidebar();
   renderActiveConversation();
 }
+
+// Notifications
+const notificationsBtn = document.getElementById("notificationsBtn");
+const notificationsModal = document.getElementById("notificationsModal");
+const closeNotificationsBtn = document.getElementById("closeNotificationsBtn");
+const markAllReadBtn = document.getElementById("markAllReadBtn");
+const notifBadge = document.getElementById("notifBadge");
+const notificationsList = document.getElementById("notificationsList");
+const notificationsEmpty = document.getElementById("notificationsEmpty");
+
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (diff < 60) return "Just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+async function loadNotifications() {
+  if (!getToken()) {
+    notificationsList.innerHTML = "";
+    notificationsEmpty.style.display = "block";
+    notificationsEmpty.textContent = "Log in to see your notifications.";
+    notifBadge.style.display = "none";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/notifications", {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    const data = await res.json();
+    const notifications = data.notifications || [];
+
+    const unreadCount = notifications.filter((n) => !n.read).length;
+    if (unreadCount > 0) {
+      notifBadge.textContent = unreadCount;
+      notifBadge.style.display = "flex";
+    } else {
+      notifBadge.style.display = "none";
+    }
+
+    if (notifications.length === 0) {
+      notificationsList.innerHTML = "";
+      notificationsEmpty.style.display = "block";
+      notificationsEmpty.textContent = "No notifications yet.";
+      return;
+    }
+
+    notificationsEmpty.style.display = "none";
+    notificationsList.innerHTML = "";
+    notifications.forEach((n) => {
+      const item = document.createElement("div");
+      item.className = "notif-item" + (n.read ? "" : " unread");
+      item.innerHTML = `
+        <div class="notif-icon">🔔</div>
+        <div class="notif-content">
+          <div class="notif-title">${n.title}</div>
+          <div class="notif-message">${n.message}</div>
+          <div class="notif-time">${timeAgo(n.createdAt)}</div>
+        </div>
+      `;
+      item.addEventListener("click", () => markNotificationRead(n._id, item));
+      notificationsList.appendChild(item);
+    });
+  } catch (err) {
+    notificationsList.innerHTML = "";
+    notificationsEmpty.style.display = "block";
+    notificationsEmpty.textContent = "Could not load notifications.";
+  }
+}
+
+async function markNotificationRead(id, itemEl) {
+  try {
+    await fetch(`/api/notifications/${id}/read`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    itemEl.classList.remove("unread");
+    const unreadLeft = document.querySelectorAll(".notif-item.unread").length;
+    if (unreadLeft > 0) {
+      notifBadge.textContent = unreadLeft;
+      notifBadge.style.display = "flex";
+    } else {
+      notifBadge.style.display = "none";
+    }
+  } catch (err) {}
+}
+
+notificationsBtn.addEventListener("click", () => {
+  notificationsModal.classList.add("open");
+  loadNotifications();
+});
+closeNotificationsBtn.addEventListener("click", () => {
+  notificationsModal.classList.remove("open");
+});
+
+markAllReadBtn.addEventListener("click", async () => {
+  try {
+    await fetch("/api/notifications/read-all", {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    loadNotifications();
+  } catch (err) {}
+});
+
+// Check unread count on page load if logged in
+if (getToken()) loadNotifications();
