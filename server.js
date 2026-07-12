@@ -527,34 +527,6 @@ app.delete("/api/chats/:id", authenticate, async (req, res) => {
   }
 });
 
-// Save messages to a chat
-app.patch("/api/chats/:id", authenticate, async (req, res) => {
-  try {
-    const chat = await Chat.findOne({
-      _id: req.params.id,
-      user: req.userId
-    });
-
-    if (!chat) {
-      return res.status(404).json({
-        error: "Chat not found."
-      });
-    }
-
-    chat.title = req.body.title || chat.title;
-    chat.messages = req.body.messages || chat.messages;
-
-    await chat.save();
-
-    res.json(chat);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Could not save chat."
-    });
-  }
-});
-
 app.listen(PORT, () => {
   console.log(`FormGuide server running at http://localhost:${PORT}`);
 });
