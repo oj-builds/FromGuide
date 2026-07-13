@@ -732,6 +732,7 @@ body.accent-orange .accent { color: #e0862f !important; }
   .auth-hero-title { font-size: 26px; }
   .auth-panel-right { flex: none; padding: 30px 20px; }
 }
+
 .notif-btn {
   position: relative;
 }
@@ -777,3 +778,18 @@ body.accent-orange .accent { color: #e0862f !important; }
 .notif-message { font-size: 12.5px; color: #666; margin-top: 2px; }
 .notif-time { font-size: 11px; color: #aaa; margin-top: 4px; }
 
+.chat-search {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  background: #1d1d1d;
+  color: white;
+  box-sizing: border-box;
+}
+
+.chat-search::placeholder {
+  color: #888;
+}
