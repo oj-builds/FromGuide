@@ -9,6 +9,7 @@ const sidebarEl = document.getElementById("sidebar");
 const openSidebarBtn = document.getElementById("openSidebar");
 const closeSidebarBtn = document.getElementById("closeSidebar");
 const cvModal = document.getElementById("cvModal");
+const searchInput = document.getElementById("chat-search");
 
 const STORAGE_KEY = "formguide_conversations";
 const LANG_KEY = "formguide_language";
@@ -53,13 +54,50 @@ function getCurrentConversation() {
 
 function renderSidebar() {
   chatListEl.innerHTML = "";
-  conversations.forEach((conv) => {
-    const item = document.createElement("div");
-    item.className = "chat-list-item" + (conv.id === currentId ? " active" : "");
-
+  const search = searchInput.value.toLowerCase();
+  conversations.sort((a, b) => {
+  if (a.pinned === b.pinned) return 0;
+  return a.pinned ? -1 : 1;
+});
+  conversations
+  .filter((conv) => {
+    if (!search) return true;
+    return (conv.title || "").toLowerCase().includes(search);
+  })
+  .forEach((conv) => {
     const label = document.createElement("span");
     label.className = "chat-list-label";
     label.textContent = conv.title || "New chat";
+    label.addEventListener("dblclick", async () => {
+
+  const title = prompt("Rename chat", conv.title);
+
+  if (!title) return;
+
+  conv.title = title;
+
+  saveConversations();
+
+  renderSidebar();
+
+  if (getToken()) {
+    try {
+      await fetch(`/api/chats/${conv.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({
+          title
+        })
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+});
     label.addEventListener("click", () => {
       currentId = conv.id;
       renderSidebar();
@@ -76,8 +114,35 @@ function renderSidebar() {
       deleteConversation(conv.id);
     });
 
+    const pinBtn = document.createElement("button");
+pinBtn.className = "chat-pin-btn";
+pinBtn.innerHTML = conv.pinned ? "📌" : "📍";
+pinBtn.title = "Pin chat";
+
+pinBtn.addEventListener("click", async (e) => {
+  e.stopPropagation();
+
+  conv.pinned = !conv.pinned;
+
+  renderSidebar();
+
+  if (getToken()) {
+    await fetch(`/api/chats/${conv.id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({
+        pinned: conv.pinned
+      })
+    });
+  }
+});
+
     item.appendChild(label);
-    item.appendChild(deleteBtn);
+item.appendChild(pinBtn);
+item.appendChild(deleteBtn);
     chatListEl.appendChild(item);
   });
 }
@@ -657,6 +722,12 @@ async function loadChatsFromServer() {
     if (conversations.length > 0) {
       currentId = conversations[0].id;
     }
+
+    if (searchInput) {
+    searchInput.addEventListener("input", () => {
+        renderSidebar();
+    });
+}
 
     renderSidebar();
     renderActiveConversation();
