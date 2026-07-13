@@ -887,3 +887,17 @@ body.accent-orange .accent { color: #e0862f !important; }
 .chat-search::placeholder {
   color: #888;
 }
+
+.search-page-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  outline: none;
+  font-size: 14px;
+  color: #1f2430;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.search-page-input::placeholder { color: #999; }
