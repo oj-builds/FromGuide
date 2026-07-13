@@ -18,23 +18,103 @@
 
       <button id="newChatBtn" class="new-chat-btn">+ New chat</button>
 
-      <div class="sidebar-section-label">Tools</div>
       <input
-  id="chat-search"
-  type="text"
-  placeholder="Search chats..."
-  class="chat-search"
-/>
-      <div class="chat-list-item" id="sidebarCvBtn"><span class="chat-list-label">📄 AI CV Builder</span></div>
-      <div class="chat-list-item" id="sidebarInterviewBtn"><span class="chat-list-label">🎤 Interview Coach</span></div>
-      <div class="chat-list-item" id="sidebarGovBtn"><span class="chat-list-label">🏛 Government Hub</span></div>
+        id="chat-search"
+        type="text"
+        placeholder="Search chats..."
+        class="chat-search"
+      />
+
+      <div class="nav-section">
+        <button class="nav-item active" id="navHome">🏠 Home</button>
+        <button class="nav-item" id="navChatLink">💬 Chat</button>
+        <button class="nav-item" id="navSearchLink">🔍 Search</button>
+        <button class="nav-item" id="navPinned">📌 Pinned</button>
+        <button class="nav-item" id="navHistory">🕘 History</button>
+      </div>
+
+      <div class="nav-divider"></div>
+      <div class="sidebar-section-label">AI Tools</div>
+
+      <div class="nav-group" id="groupEducation">
+        <button class="nav-group-header">
+          <span class="nav-item-left">🎓 Education</span>
+          <span class="nav-group-arrow">▶</span>
+        </button>
+        <div class="nav-subitems">
+          <button class="nav-subitem" data-text="Help me practice WAEC past questions.">WAEC Practice</button>
+          <button class="nav-subitem" data-text="Help me practice JAMB CBT questions.">JAMB CBT Practice</button>
+          <button class="nav-subitem" data-text="Help me with Post-UTME preparation.">Post-UTME Practice</button>
+          <button class="nav-subitem" data-text="Act as my AI homework helper.">Homework Helper</button>
+        </div>
+      </div>
+
+      <div class="nav-group" id="groupCareer">
+        <button class="nav-group-header">
+          <span class="nav-item-left">💼 Career</span>
+          <span class="nav-group-arrow">▶</span>
+        </button>
+        <div class="nav-subitems">
+          <button class="nav-subitem" id="sidebarCvBtn">CV Builder</button>
+          <button class="nav-subitem" data-text="Write me a professional cover letter.">Cover Letter</button>
+          <button class="nav-subitem" id="sidebarInterviewBtn">Mock Interview</button>
+          <button class="nav-subitem" data-text="Help me search for jobs in Nigeria.">Job Search</button>
+        </div>
+      </div>
+
+      <div class="nav-group" id="groupGovernment">
+        <button class="nav-group-header">
+          <span class="nav-item-left">🏛 Government</span>
+          <span class="nav-group-arrow">▶</span>
+        </button>
+        <div class="nav-subitems">
+          <button class="nav-subitem" id="sidebarGovBtn">Government Hub</button>
+          <button class="nav-subitem" data-text="Help me apply for or renew my NIN.">NIN Enrollment & Slip</button>
+          <button class="nav-subitem" data-text="Help me apply for or renew my passport.">Passport Apply/Renew</button>
+          <button class="nav-subitem" data-text="Help me with my JAMB registration.">JAMB Registration</button>
+        </div>
+      </div>
+
+      <div class="nav-group" id="groupDocuments">
+        <button class="nav-group-header">
+          <span class="nav-item-left">📄 Documents</span>
+          <span class="nav-group-arrow">▶</span>
+        </button>
+        <div class="nav-subitems">
+          <button class="nav-subitem" data-text="Help me understand an official document.">Upload & Analyze</button>
+          <button class="nav-subitem" data-text="Summarize this document for me.">Summarize PDF</button>
+        </div>
+      </div>
+
+      <div class="nav-divider"></div>
+
+      <div class="nav-section">
+        <button class="nav-item" id="navAiStudio">🧠 AI Studio <span style="margin-left:auto;font-size:10px;color:var(--accent);">New</span></button>
+        <button class="nav-item" id="navTemplates">📑 Templates</button>
+      </div>
+
+      <div class="nav-divider"></div>
+      <div class="sidebar-section-label">More</div>
+
+      <div class="nav-section">
+        <button class="nav-item" id="navCommunity">👥 Community</button>
+        <button class="nav-item" id="navSavedPrompts">🔖 Saved Prompts</button>
+      </div>
 
       <div class="sidebar-section-label">Recent conversations</div>
       <div id="chatList" class="chat-list"></div>
 
+      <div class="pro-banner" id="proBanner">
+        <div class="pro-banner-title">⚡ FormGuide AI Pro</div>
+        <div class="pro-banner-sub">Unlock all premium features</div>
+      </div>
+
       <div class="sidebar-footer">
+        <button id="notificationsBtn" class="upgrade-btn notif-btn">
+          🔔 Notifications
+          <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
+        </button>
         <button id="settingsBtn" class="upgrade-btn">⚙️ Settings</button>
-        <button class="upgrade-btn">👑 Upgrade to Pro</button>
         <button id="accountBtn" class="guest-btn">👤 Guest User <span class="chevron">⌄</span></button>
       </div>
     </aside>
@@ -48,10 +128,6 @@
           <div class="topbar-title">FormGuide <span class="accent">AI</span></div>
           <div class="topbar-tag">AI for Government • Careers • Education</div>
         </div>
-        <button id="notificationsBtn" class="icon-btn notif-btn" style="margin-left:auto;">
-          🔔
-          <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
-        </button>
       </header>
 
       <main id="chat" class="chat">
@@ -380,6 +456,13 @@
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    document.querySelectorAll('.nav-group-header').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.closest('.nav-group').classList.toggle('open');
+      });
+    });
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
