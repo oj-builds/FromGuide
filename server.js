@@ -13,6 +13,7 @@ const { OAuth2Client } = require("google-auth-library");
 const connectDB = require("./db");
 const User = require("./models/User");
 const Chat = require("./models/Chat");
+const Memory = require("./models/Memory");
 const Notification = require("./models/Notification");
 const authenticate = require("./middleware/auth");
 
@@ -320,8 +321,23 @@ app.get("/api/config", (req, res) => {
 });
 
 // ---------- CHAT ROUTE ----------
+const memory = await getUserMemory(req.userId);
+const memoryText = memory
+  ? JSON.stringify(memory, null, 2)
+  : "No saved memory.";
 
-const SYSTEM_PROMPT = `You are FormGuide AI, Nigeria's trusted AI assistant for government services, careers, education and official documents.
+const SYSTEM_PROMPT = `
+You are FormGuide AI.
+
+These are things you already know about the user:
+
+${memoryText}
+
+Remember these details while chatting.
+`;
+
+
+`You are FormGuide AI, Nigeria's trusted AI assistant for government services, careers, education and official documents.
 
 Your mission is to save users time and reduce confusion.
 
@@ -366,6 +382,33 @@ Rules you must follow:
 - Be friendly and encouraging.
 - Keep answers concise — avoid long essays.
 - EXCEPTION: If the user is doing a mock interview practice session, do NOT use the structured format above. Instead, act as a real interviewer: ask one question at a time, wait for their answer, then give brief constructive feedback (2-3 sentences) before asking the next question. Keep it conversational, not a form.`;
+
+async function getUserMemory(userId) {
+  let memory = await Memory.findOne({ user: userId });
+
+  if (!memory) {
+    memory = await Memory.create({
+      user: userId,
+      memories: []
+    });
+  }
+
+  return memory;
+}
+
+async function saveMemory(userId, key, value) {
+  const memory = await getUserMemory(userId);
+
+  const existing = memory.memories.find(m => m.key === key);
+
+  if (existing) {
+    existing.value = value;
+  } else {
+    memory.memories.push({ key, value });
+  }
+
+  await memory.save();
+}
 
 app.post("/api/chat", async (req, res) => {
   try {
@@ -441,9 +484,11 @@ app.patch("/api/notifications/read-all", authenticate, async (req, res) => {
 // Get all chats for the logged in user
 app.get("/api/chats", authenticate, async (req, res) => {
   try {
-    const chats = await Chat.find({
-      user: req.userId,
-    }).sort({ updatedAt: -1 });
+  const memory = await getUserMemory(req.userId);
+
+const chats = await Chat.find({
+    user: req.userId
+}).sort({ updatedAt: -1 });  
 
     res.json(chats);
   } catch (err) {
@@ -486,9 +531,13 @@ app.patch("/api/chats/:id", authenticate, async (req, res) => {
       });
     }
 
-    if (req.body.title) {
-      chat.title = req.body.title;
-    }
+    if (typeof req.body.title === "string") {
+  chat.title = req.body.title.trim();
+}
+
+if (typeof req.body.pinned === "boolean") {
+  chat.pinned = req.body.pinned;
+}
 
     if (req.body.messages) {
       chat.messages = req.body.messages;
