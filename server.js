@@ -53,11 +53,11 @@ app.post("/api/signup", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, passwordHash });
     await Notification.create({
-  user: user._id,
-  title: "Welcome to FormGuide AI 🎉",
-  message: "Your account has been created. Explore CV building, interview coaching, and more.",
-  type: "system",
-});
+      user: user._id,
+      title: "Welcome to FormGuide AI 🎉",
+      message: "Your account has been created. Explore CV building, interview coaching, and more.",
+      type: "system",
+    });
 
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "30d" });
 
@@ -320,24 +320,9 @@ app.get("/api/config", (req, res) => {
   res.json({ googleClientId: GOOGLE_CLIENT_ID || null });
 });
 
-// ---------- CHAT ROUTE ----------
-const memory = await getUserMemory(req.userId);
-const memoryText = memory
-  ? JSON.stringify(memory, null, 2)
-  : "No saved memory.";
+// ---------- CHAT SYSTEM PROMPT ----------
 
-const SYSTEM_PROMPT = `
-You are FormGuide AI.
-
-These are things you already know about the user:
-
-${memoryText}
-
-Remember these details while chatting.
-`;
-
-
-`You are FormGuide AI, Nigeria's trusted AI assistant for government services, careers, education and official documents.
+const SYSTEM_PROMPT = `You are FormGuide AI, Nigeria's trusted AI assistant for government services, careers, education and official documents.
 
 Your mission is to save users time and reduce confusion.
 
@@ -383,23 +368,22 @@ Rules you must follow:
 - Keep answers concise — avoid long essays.
 - EXCEPTION: If the user is doing a mock interview practice session, do NOT use the structured format above. Instead, act as a real interviewer: ask one question at a time, wait for their answer, then give brief constructive feedback (2-3 sentences) before asking the next question. Keep it conversational, not a form.`;
 
+// ---------- MEMORY HELPERS ----------
+
 async function getUserMemory(userId) {
   let memory = await Memory.findOne({ user: userId });
-
   if (!memory) {
     memory = await Memory.create({
       user: userId,
-      memories: []
+      memories: [],
     });
   }
-
   return memory;
 }
 
 async function saveMemory(userId, key, value) {
   const memory = await getUserMemory(userId);
-
-  const existing = memory.memories.find(m => m.key === key);
+  const existing = memory.memories.find((m) => m.key === key);
 
   if (existing) {
     existing.value = value;
@@ -410,7 +394,48 @@ async function saveMemory(userId, key, value) {
   await memory.save();
 }
 
-app.post("/api/chat", async (req, res) => {
+function buildMemoryText(memory) {
+  return memory.memories.map((m) => `${m.key}: ${m.value}`).join("\n");
+}
+
+// Step 3 (not wired into /api/chat yet — just defined for now)
+async function extractMemories(userMessage) {
+  const extractionPrompt = `Extract any new personal facts about the user from this message that are worth remembering long-term (name, job, education, country, preferred language, or anything they explicitly ask you to remember).
+
+User message: "${userMessage}"
+
+Reply ONLY with a JSON array, nothing else. Example: [{"key": "name", "value": "David"}]
+If there's nothing worth remembering, reply with: []`;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-5",
+      max_tokens: 300,
+      messages: [{ role: "user", content: extractionPrompt }],
+    }),
+  });
+
+  const data = await response.json();
+  const textBlock = data.content?.find((block) => block.type === "text");
+
+  try {
+    const clean = textBlock.text.replace(/```json|```/g, "").trim();
+    return JSON.parse(clean);
+  } catch (err) {
+    console.error("Memory extraction parse error:", err);
+    return [];
+  }
+}
+
+// ---------- CHAT COMPLETION ROUTE ----------
+
+app.post("/api/chat", authenticate, async (req, res) => {
   try {
     const { messages, language } = req.body;
 
@@ -420,7 +445,15 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
+    const memory = await getUserMemory(req.userId);
+    const memoryText = buildMemoryText(memory);
+
     let systemPrompt = SYSTEM_PROMPT;
+
+    if (memoryText) {
+      systemPrompt += `\n\nThese are things you already know about the user:\n\n${memoryText}\n\nRemember these details while chatting.`;
+    }
+
     if (language === "pidgin") {
       systemPrompt += "\n\nThe user has set their preference to always reply in Nigerian Pidgin, regardless of what language they type in.";
     } else if (language === "english") {
@@ -457,6 +490,8 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+// ---------- NOTIFICATION ROUTES ----------
+
 app.get("/api/notifications", authenticate, async (req, res) => {
   const notifications = await Notification.find({ user: req.userId }).sort({ createdAt: -1 });
   res.json({ notifications });
@@ -477,25 +512,16 @@ app.patch("/api/notifications/read-all", authenticate, async (req, res) => {
   res.json({ success: true });
 });
 
-// ===============================
-// CHAT ROUTES
-// ===============================
+// ---------- CHAT (CONVERSATION) ROUTES ----------
 
 // Get all chats for the logged in user
 app.get("/api/chats", authenticate, async (req, res) => {
   try {
-  const memory = await getUserMemory(req.userId);
-
-const chats = await Chat.find({
-    user: req.userId
-}).sort({ updatedAt: -1 });  
-
+    const chats = await Chat.find({ user: req.userId }).sort({ updatedAt: -1 });
     res.json(chats);
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      error: "Could not load chats."
-    });
+    res.status(500).json({ error: "Could not load chats." });
   }
 });
 
@@ -505,79 +531,56 @@ app.post("/api/chats", authenticate, async (req, res) => {
     const chat = await Chat.create({
       user: req.userId,
       title: "New Chat",
-      messages: []
+      messages: [],
     });
-
     res.json(chat);
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      error: "Could not create chat."
-    });
+    res.status(500).json({ error: "Could not create chat." });
   }
 });
 
 // Update chat
 app.patch("/api/chats/:id", authenticate, async (req, res) => {
   try {
-    const chat = await Chat.findOne({
-      _id: req.params.id,
-      user: req.userId
-    });
+    const chat = await Chat.findOne({ _id: req.params.id, user: req.userId });
 
     if (!chat) {
-      return res.status(404).json({
-        error: "Chat not found."
-      });
+      return res.status(404).json({ error: "Chat not found." });
     }
 
     if (typeof req.body.title === "string") {
-  chat.title = req.body.title.trim();
-}
+      chat.title = req.body.title.trim();
+    }
 
-if (typeof req.body.pinned === "boolean") {
-  chat.pinned = req.body.pinned;
-}
+    if (typeof req.body.pinned === "boolean") {
+      chat.pinned = req.body.pinned;
+    }
 
     if (req.body.messages) {
       chat.messages = req.body.messages;
     }
 
     await chat.save();
-
     res.json(chat);
-
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      error: "Could not update chat."
-    });
+    res.status(500).json({ error: "Could not update chat." });
   }
 });
 
+// Delete chat
 app.delete("/api/chats/:id", authenticate, async (req, res) => {
-  console.log("DELETE REQUEST:", req.params.id);
-
   try {
-    const result = await Chat.deleteOne({
-      _id: req.params.id,
-      user: req.userId
-    });
-
-    console.log(result);
-
-    res.json({
-      success: true,
-      result
-    });
-
+    const result = await Chat.deleteOne({ _id: req.params.id, user: req.userId });
+    res.json({ success: true, result });
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      error: "Could not delete chat."
-    });
+    res.status(500).json({ error: "Could not delete chat." });
   }
 });
+
+// ---------- SERVER START ----------
 
 app.listen(PORT, () => {
   console.log(`FormGuide server running at http://localhost:${PORT}`);
