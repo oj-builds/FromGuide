@@ -56,99 +56,100 @@ function renderSidebar() {
   chatListEl.innerHTML = "";
   const search = searchInput.value.toLowerCase();
   conversations.sort((a, b) => {
-  if (a.pinned === b.pinned) return 0;
-  return a.pinned ? -1 : 1;
-});
-  conversations
-  .filter((conv) => {
-    if (!search) return true;
-    return (conv.title || "").toLowerCase().includes(search);
-  })
-  .forEach((conv) => {
-    const label = document.createElement("span");
-    label.className = "chat-list-label";
-    label.textContent = conv.title || "New chat";
-    label.addEventListener("dblclick", async () => {
-
-  const title = prompt("Rename chat", conv.title);
-
-  if (!title) return;
-
-  conv.title = title;
-
-  saveConversations();
-
-  renderSidebar();
-
-  if (getToken()) {
-    try {
-      await fetch(`/api/chats/${conv.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`
-        },
-        body: JSON.stringify({
-          title
-        })
-      });
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-});
-    label.addEventListener("click", () => {
-      currentId = conv.id;
-      renderSidebar();
-      renderActiveConversation();
-      sidebarEl.classList.remove("open");
-    });
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.className = "chat-delete-btn";
-    deleteBtn.innerHTML = "✕";
-    deleteBtn.title = "Delete conversation";
-    deleteBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      deleteConversation(conv.id);
-    });
-
-    const pinBtn = document.createElement("button");
-pinBtn.className = "chat-pin-btn";
-pinBtn.innerHTML = conv.pinned ? "📌" : "📍";
-pinBtn.title = "Pin chat";
-
-pinBtn.addEventListener("click", async (e) => {
-  e.stopPropagation();
-
-  conv.pinned = !conv.pinned;
-
-  renderSidebar();
-
-  if (getToken()) {
-    await fetch(`/api/chats/${conv.id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`
-      },
-      body: JSON.stringify({
-        pinned: conv.pinned
-      })
-    });
-  }
-});
-
-    item.appendChild(label);
-item.appendChild(pinBtn);
-item.appendChild(deleteBtn);
-    chatListEl.appendChild(item);
+    if (a.pinned === b.pinned) return 0;
+    return a.pinned ? -1 : 1;
   });
+  conversations
+    .filter((conv) => {
+      if (!search) return true;
+      return (conv.title || "").toLowerCase().includes(search);
+    })
+    .forEach((conv) => {
+      const item = document.createElement("div");
+      item.className = "chat-list-item";
+      if (conv.id === currentId) item.classList.add("active");
+
+      const label = document.createElement("span");
+      label.className = "chat-list-label";
+      label.textContent = conv.title || "New chat";
+      label.addEventListener("dblclick", async () => {
+        const title = prompt("Rename chat", conv.title);
+
+        if (!title) return;
+
+        conv.title = title;
+
+        saveConversations();
+
+        renderSidebar();
+
+        if (getToken()) {
+          try {
+            await fetch(`/api/chats/${conv.id}`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`,
+              },
+              body: JSON.stringify({
+                title,
+              }),
+            });
+          } catch (err) {
+            console.error(err);
+          }
+        }
+      });
+      label.addEventListener("click", () => {
+        currentId = conv.id;
+        renderSidebar();
+        renderActiveConversation();
+        sidebarEl.classList.remove("open");
+      });
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "chat-delete-btn";
+      deleteBtn.innerHTML = "✕";
+      deleteBtn.title = "Delete conversation";
+      deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteConversation(conv.id);
+      });
+
+      const pinBtn = document.createElement("button");
+      pinBtn.className = "chat-pin-btn";
+      pinBtn.innerHTML = conv.pinned ? "📌" : "📍";
+      pinBtn.title = "Pin chat";
+
+      pinBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+
+        conv.pinned = !conv.pinned;
+
+        renderSidebar();
+
+        if (getToken()) {
+          await fetch(`/api/chats/${conv.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getToken()}`,
+            },
+            body: JSON.stringify({
+              pinned: conv.pinned,
+            }),
+          });
+        }
+      });
+
+      item.appendChild(label);
+      item.appendChild(pinBtn);
+      item.appendChild(deleteBtn);
+      chatListEl.appendChild(item);
+    });
 }
 
 async function deleteConversation(id) {
-
   console.log("Deleting chat:", id);
 
   if (getToken()) {
@@ -156,15 +157,15 @@ async function deleteConversation(id) {
       await fetch(`/api/chats/${id}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${getToken()}`
-        }
+          Authorization: `Bearer ${getToken()}`,
+        },
       });
     } catch (err) {
       console.error("Could not delete chat:", err);
     }
   }
 
-  conversations = conversations.filter(c => c.id !== id);
+  conversations = conversations.filter((c) => c.id !== id);
   saveConversations();
 
   if (id === currentId) {
@@ -272,22 +273,22 @@ async function sendMessage(text) {
     saveConversations();
     renderMessage("assistant", reply);
     if (getToken() && currentId) {
-  try {
-    await fetch(`/api/chats/${currentId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`
-      },
-      body: JSON.stringify({
-        title: conv.title,
-        messages: conv.messages
-      })
-    });
-  } catch (err) {
-    console.error("Failed to save chat:", err);
-  }
-}
+      try {
+        await fetch(`/api/chats/${currentId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify({
+            title: conv.title,
+            messages: conv.messages,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to save chat:", err);
+      }
+    }
   } catch (err) {
     removeTyping();
     renderMessage("assistant", "Could not reach the server. Please try again.");
@@ -705,36 +706,36 @@ async function loadChatsFromServer() {
   try {
     const res = await fetch("/api/chats", {
       headers: {
-        Authorization: `Bearer ${getToken()}`
-      }
+        Authorization: `Bearer ${getToken()}`,
+      },
     });
 
     if (!res.ok) return;
 
     const chats = await res.json();
 
-    conversations = chats.map(chat => ({
+    conversations = chats.map((chat) => ({
       id: chat._id,
       title: chat.title,
-      messages: chat.messages
+      messages: chat.messages,
+      pinned: chat.pinned,
     }));
 
     if (conversations.length > 0) {
       currentId = conversations[0].id;
     }
 
-    if (searchInput) {
-    searchInput.addEventListener("input", () => {
-        renderSidebar();
-    });
-}
-
     renderSidebar();
     renderActiveConversation();
-
   } catch (err) {
     console.error("Could not load chats:", err);
   }
+}
+
+if (searchInput) {
+  searchInput.addEventListener("input", () => {
+    renderSidebar();
+  });
 }
 
 function getStoredUser() {
@@ -947,15 +948,15 @@ authSubmitBtn.addEventListener("click", async () => {
 updateAccountButton();
 
 if (getToken()) {
-    loadChatsFromServer();
+  loadChatsFromServer();
 } else {
-    if (conversations.length === 0) {
-        startNewChat();
-    } else {
-        currentId = conversations[0].id;
-        renderSidebar();
-        renderActiveConversation();
-    }
+  if (conversations.length === 0) {
+    startNewChat();
+  } else {
+    currentId = conversations[0].id;
+    renderSidebar();
+    renderActiveConversation();
+  }
 }
 
 // Notifications
