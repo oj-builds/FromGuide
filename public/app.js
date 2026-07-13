@@ -1110,6 +1110,15 @@ if (navHomeBtn) {
 if (navChatLinkBtn) {
   navChatLinkBtn.addEventListener("click", () => {
     setActiveNavItem(navChatLinkBtn);
+    if (!currentId || !getCurrentConversation()) {
+      if (conversations.length > 0) {
+        currentId = conversations[0].id;
+      } else {
+        startNewChat();
+      }
+    }
+    renderSidebar();
+    renderActiveConversation();
     inputEl.focus();
     sidebarEl.classList.remove("open");
   });
