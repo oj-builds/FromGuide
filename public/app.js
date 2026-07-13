@@ -1067,3 +1067,109 @@ markAllReadBtn.addEventListener("click", async () => {
 
 // Check unread count on page load if logged in
 if (getToken()) loadNotifications();
+
+// ---------- New expanded sidebar nav (added for full-sidebar redesign) ----------
+
+// Sub-items inside collapsible groups (Education, Career, Government, Documents)
+// that just send a canned prompt into the chat.
+document.querySelectorAll(".nav-subitem[data-text]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    sendMessage(btn.dataset.text);
+    sidebarEl.classList.remove("open");
+  });
+});
+
+// Top-level nav items. Chat/Search behave like "focus the input" for now;
+// Home shows the welcome screen; the rest are placeholders until those
+// screens/features exist, so they just let you know what's coming.
+const navHomeBtn = document.getElementById("navHome");
+const navChatLinkBtn = document.getElementById("navChatLink");
+const navSearchLinkBtn = document.getElementById("navSearchLink");
+const navPinnedBtn = document.getElementById("navPinned");
+const navHistoryBtn = document.getElementById("navHistory");
+const navAiStudioBtn = document.getElementById("navAiStudio");
+const navTemplatesBtn = document.getElementById("navTemplates");
+const navCommunityBtn = document.getElementById("navCommunity");
+const navSavedPromptsBtn = document.getElementById("navSavedPrompts");
+const proBannerBtn = document.getElementById("proBanner");
+
+function setActiveNavItem(activeBtn) {
+  document.querySelectorAll(".nav-item").forEach((el) => el.classList.remove("active"));
+  if (activeBtn) activeBtn.classList.add("active");
+}
+
+if (navHomeBtn) {
+  navHomeBtn.addEventListener("click", () => {
+    setActiveNavItem(navHomeBtn);
+    welcomeScreenEl.style.display = "block";
+    messagesEl.innerHTML = "";
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navChatLinkBtn) {
+  navChatLinkBtn.addEventListener("click", () => {
+    setActiveNavItem(navChatLinkBtn);
+    inputEl.focus();
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navSearchLinkBtn) {
+  navSearchLinkBtn.addEventListener("click", () => {
+    setActiveNavItem(navSearchLinkBtn);
+    searchInput.focus();
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navPinnedBtn) {
+  navPinnedBtn.addEventListener("click", () => {
+    setActiveNavItem(navPinnedBtn);
+    renderSidebar();
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navHistoryBtn) {
+  navHistoryBtn.addEventListener("click", () => {
+    setActiveNavItem(navHistoryBtn);
+    chatListEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navAiStudioBtn) {
+  navAiStudioBtn.addEventListener("click", () => {
+    alert("AI Studio is coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navTemplatesBtn) {
+  navTemplatesBtn.addEventListener("click", () => {
+    alert("Templates are coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navCommunityBtn) {
+  navCommunityBtn.addEventListener("click", () => {
+    alert("Community is coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navSavedPromptsBtn) {
+  navSavedPromptsBtn.addEventListener("click", () => {
+    alert("Saved Prompts are coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (proBannerBtn) {
+  proBannerBtn.addEventListener("click", () => {
+    alert("FormGuide AI Pro is coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
