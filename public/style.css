@@ -33,6 +33,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: 18px 14px;
+  overflow-y: auto;
 }
 
 .sidebar-header {
@@ -149,6 +150,84 @@ body {
 }
 .upgrade-btn:hover, .guest-btn:hover { background: #223029; }
 .chevron { opacity: 0.6; }
+
+/* ---------- Expanded Sidebar Nav ---------- */
+.nav-section { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  background: none;
+  border: none;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+}
+.nav-item:hover { background: var(--panel-light); color: var(--text); }
+.nav-item.active { background: rgba(34,197,94,0.15); color: var(--text); }
+
+.nav-group { margin-bottom: 4px; }
+
+.nav-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  font-family: inherit;
+}
+.nav-group-header:hover { background: var(--panel-light); color: var(--text); }
+
+.nav-group-header .nav-item-left { display: flex; align-items: center; gap: 10px; }
+.nav-group-arrow { font-size: 10px; transition: transform 0.15s; opacity: 0.6; }
+.nav-group.open .nav-group-arrow { transform: rotate(90deg); }
+
+.nav-subitems {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 30px;
+  margin-top: 2px;
+}
+.nav-group.open .nav-subitems { display: flex; }
+
+.nav-subitem {
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+}
+.nav-subitem:hover { background: var(--panel-light); color: var(--text); }
+
+.nav-divider { height: 1px; background: var(--border); margin: 10px 0; }
+
+.pro-banner {
+  background: linear-gradient(135deg, #2d1b69, #4527a0);
+  border: 1px solid #6d3fd1;
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+.pro-banner-title { font-size: 13px; font-weight: 700; color: #fff; }
+.pro-banner-sub { font-size: 11px; color: rgba(255,255,255,0.75); margin-top: 2px; }
 
 /* ---------- Main area ---------- */
 .main-area {
