@@ -112,6 +112,20 @@ body {
 .chat-list-item:hover .chat-delete-btn { opacity: 0.7; }
 .chat-delete-btn:hover { opacity: 1 !important; background: rgba(255,255,255,0.1); }
 
+.chat-pin-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  opacity: 0;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.chat-list-item:hover .chat-pin-btn { opacity: 0.7; }
+.chat-pin-btn:hover { opacity: 1 !important; background: rgba(255,255,255,0.1); }
+
 .sidebar-footer {
   display: flex;
   flex-direction: column;
@@ -334,6 +348,7 @@ body {
   .sidebar.open { transform: translateX(0); }
   .mobile-only { display: inline-block; }
   .chat-delete-btn { opacity: 0.6; }
+  .chat-pin-btn { opacity: 0.6; }
   .welcome-card { flex-direction: column; text-align: center; gap: 12px; }
   .feature-grid { grid-template-columns: 1fr; }
 }
