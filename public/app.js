@@ -1124,10 +1124,72 @@ if (navChatLinkBtn) {
   });
 }
 
+// ---------- Full-page Search ----------
+const searchModal = document.getElementById("searchModal");
+const closeSearchBtn = document.getElementById("closeSearchBtn");
+const fullSearchInput = document.getElementById("fullSearchInput");
+const fullSearchResults = document.getElementById("fullSearchResults");
+const fullSearchEmpty = document.getElementById("fullSearchEmpty");
+
+function renderSearchResults(query) {
+  const q = (query || "").toLowerCase();
+  const results = conversations.filter((conv) => {
+    if (!q) return true;
+    const titleMatch = (conv.title || "").toLowerCase().includes(q);
+    const messageMatch = conv.messages.some((m) => m.content.toLowerCase().includes(q));
+    return titleMatch || messageMatch;
+  });
+
+  fullSearchResults.innerHTML = "";
+
+  if (results.length === 0) {
+    fullSearchEmpty.style.display = "block";
+    return;
+  }
+  fullSearchEmpty.style.display = "none";
+
+  results.forEach((conv) => {
+    const item = document.createElement("div");
+    item.className = "notif-item";
+    const lastMessage = conv.messages.length
+      ? conv.messages[conv.messages.length - 1].content.slice(0, 80)
+      : "No messages yet";
+    item.innerHTML = `
+      <div class="notif-icon">💬</div>
+      <div class="notif-content">
+        <div class="notif-title">${conv.title || "New chat"}</div>
+        <div class="notif-message">${lastMessage}</div>
+      </div>
+    `;
+    item.addEventListener("click", () => {
+      currentId = conv.id;
+      renderSidebar();
+      renderActiveConversation();
+      closeSearchModal();
+    });
+    fullSearchResults.appendChild(item);
+  });
+}
+
+function openSearchModal() {
+  searchModal.classList.add("open");
+  fullSearchInput.value = "";
+  renderSearchResults("");
+  fullSearchInput.focus();
+}
+function closeSearchModal() {
+  searchModal.classList.remove("open");
+}
+
+if (closeSearchBtn) closeSearchBtn.addEventListener("click", closeSearchModal);
+if (fullSearchInput) {
+  fullSearchInput.addEventListener("input", (e) => renderSearchResults(e.target.value));
+}
+
 if (navSearchLinkBtn) {
   navSearchLinkBtn.addEventListener("click", () => {
     setActiveNavItem(navSearchLinkBtn);
-    searchInput.focus();
+    openSearchModal();
     sidebarEl.classList.remove("open");
   });
 }
