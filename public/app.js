@@ -458,21 +458,49 @@ closeSidebarBtn.addEventListener("click", () => sidebarEl.classList.remove("open
 // ---------- Settings — full screen ----------
 const settingsModal = document.getElementById("settingsModal");
 const settingsBtn = document.getElementById("settingsBtn");
-const closeSettingsBtn = document.getElementById("closeSettingsBtn");
+const settingsBackBtn = document.getElementById("settingsBackBtn");
+const settingsHeaderTitle = document.getElementById("settingsHeaderTitle");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 const THEME_KEY = "formguide_theme";
 const ACCENT_KEY = "formguide_accent";
+let settingsCurrentPanel = "main";
+
+function showSettingsMain() {
+  document.querySelectorAll("#settingsModal .settings-panel").forEach((p) => p.classList.remove("active"));
+  document.getElementById("settingsMainMenu").classList.add("active");
+  settingsHeaderTitle.textContent = "Settings";
+  settingsCurrentPanel = "main";
+}
+
+function showSettingsPanel(name, title) {
+  document.querySelectorAll("#settingsModal .settings-panel").forEach((p) => p.classList.remove("active"));
+  const panel = document.querySelector(`#settingsModal .settings-panel[data-panel="${name}"]`);
+  if (panel) panel.classList.add("active");
+  settingsHeaderTitle.textContent = title;
+  settingsCurrentPanel = name;
+
+  if (name === "memory") renderMemoryList();
+  if (name === "appearance") {
+    applyThemeUI();
+    applyAccentUI();
+  }
+  if (name === "language") {
+    document.querySelectorAll('input[name="language"]').forEach((radio) => {
+      radio.checked = radio.value === languagePref;
+    });
+  }
+}
 
 function openSettingsModal() {
-  document.querySelectorAll('input[name="language"]').forEach((radio) => {
-    radio.checked = radio.value === languagePref;
-  });
-
   const user = getStoredUser();
   document.getElementById("settingsProfileName").textContent = user ? user.name : "Guest User";
   document.getElementById("settingsProfileEmail").textContent = user ? user.email : "Not signed in";
   document.getElementById("settingsAccountEmail").textContent = user ? user.email : "—";
   document.getElementById("settingsPhoneDisplay").textContent = user && user.phone ? user.phone : "Not set";
+
+  const langLabels = { auto: "Auto-detect", english: "Always English", pidgin: "Always Pidgin" };
+  const langSub = document.getElementById("settingsLangSub");
+  if (langSub) langSub.textContent = langLabels[languagePref] || "Auto-detect";
 
   const avatarImg = document.getElementById("settingsAvatarImg");
   const avatarPlaceholder = document.getElementById("settingsAvatarPlaceholder");
@@ -485,8 +513,7 @@ function openSettingsModal() {
     avatarPlaceholder.style.display = "flex";
   }
 
-  applyThemeUI();
-  applyAccentUI();
+  showSettingsMain();
   settingsModal.classList.add("open");
 }
 function closeSettingsModal() {
@@ -497,14 +524,26 @@ settingsBtn.addEventListener("click", () => {
   openSettingsModal();
   sidebarEl.classList.remove("open");
 });
-closeSettingsBtn.addEventListener("click", closeSettingsModal);
 
-document.querySelectorAll(".settings-tab[data-tab]").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".settings-tab[data-tab]").forEach((t) => t.classList.remove("active"));
-    document.querySelectorAll(".settings-panel").forEach((p) => p.classList.remove("active"));
-    tab.classList.add("active");
-    document.querySelector(`.settings-panel[data-panel="${tab.dataset.tab}"]`).classList.add("active");
+settingsBackBtn.addEventListener("click", () => {
+  if (settingsCurrentPanel === "main") {
+    closeSettingsModal();
+  } else {
+    showSettingsMain();
+  }
+});
+
+document.querySelectorAll(".settings-menu-row[data-target]").forEach((row) => {
+  row.addEventListener("click", () => {
+    const target = row.dataset.target;
+    if (target === "notifications") {
+      closeSettingsModal();
+      notificationsModal.classList.add("open");
+      loadNotifications();
+      return;
+    }
+    const title = row.querySelector(".settings-row-label").textContent;
+    showSettingsPanel(target, title);
   });
 });
 
@@ -1244,3 +1283,104 @@ if (proBannerBtn) {
     sidebarEl.classList.remove("open");
   });
 }
+
+// ---------- Memory Manager ----------
+const MEMORY_KEY = "formguide_memories";
+
+function loadMemories() {
+  try {
+    const raw = localStorage.getItem(MEMORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+function saveMemories(list) {
+  localStorage.setItem(MEMORY_KEY, JSON.stringify(list));
+}
+let memories = loadMemories();
+
+function renderMemoryList() {
+  const container = document.getElementById("memoryList");
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (memories.length === 0) {
+    container.innerHTML =
+      '<div style="text-align:center;color:#999;padding:24px 0;">No memories added yet. Tap "Add Memory" to get started.</div>';
+    return;
+  }
+
+  memories.forEach((mem, idx) => {
+    const item = document.createElement("div");
+    item.className = "memory-item";
+    item.innerHTML = `
+      <div class="memory-icon">🧠</div>
+      <div class="memory-content">
+        <div class="memory-label">${mem.label}</div>
+        <div class="memory-value">${mem.value}</div>
+      </div>
+      <button class="memory-edit-btn" title="Edit">✎</button>
+      <button class="memory-delete-btn" title="Delete">🗑️</button>
+    `;
+
+    item.querySelector(".memory-edit-btn").addEventListener("click", () => {
+      const newLabel = prompt("Label (e.g. Name, Goal, Profession):", mem.label);
+      if (newLabel === null) return;
+      const newValue = prompt(`Value for "${newLabel}":`, mem.value);
+      if (newValue === null) return;
+      memories[idx] = { label: newLabel.trim(), value: newValue.trim() };
+      saveMemories(memories);
+      renderMemoryList();
+    });
+
+    item.querySelector(".memory-delete-btn").addEventListener("click", () => {
+      if (!confirm(`Delete the memory "${mem.label}"?`)) return;
+      memories.splice(idx, 1);
+      saveMemories(memories);
+      renderMemoryList();
+    });
+
+    container.appendChild(item);
+  });
+}
+
+const addMemoryBtn = document.getElementById("addMemoryBtn");
+if (addMemoryBtn) {
+  addMemoryBtn.addEventListener("click", () => {
+    const label = prompt("What should this memory be called? (e.g. Name, Goal, Profession)");
+    if (!label || !label.trim()) return;
+    const value = prompt(`What's the value for "${label.trim()}"?`);
+    if (value === null || !value.trim()) return;
+    memories.push({ label: label.trim(), value: value.trim() });
+    saveMemories(memories);
+    renderMemoryList();
+  });
+}
+
+// ---------- Home screen hub cards (Government / Education / Career grids) ----------
+document.querySelectorAll(".hub-card").forEach((card) => {
+  card.addEventListener("click", () => {
+    if (card.dataset.openCv === "true") {
+      openCvModal();
+      return;
+    }
+    if (card.dataset.openInterview === "true") {
+      openInterviewModal();
+      return;
+    }
+    sendMessage(card.dataset.text);
+  });
+});
+
+// "View all" buttons on each hub section open the sidebar and expand the matching group
+document.querySelectorAll(".hub-view-all[data-view-group]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const groupEl = document.getElementById(btn.dataset.viewGroup);
+    sidebarEl.classList.add("open");
+    if (groupEl) {
+      groupEl.classList.add("open");
+      groupEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  });
+});
