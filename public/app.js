@@ -558,6 +558,7 @@ document.querySelectorAll('input[name="language"]').forEach((radio) => {
   radio.addEventListener("change", (e) => {
     languagePref = e.target.value;
     localStorage.setItem(LANG_KEY, languagePref);
+    syncPreferenceToBackend("language", languagePref);
   });
 });
 
@@ -572,13 +573,49 @@ clearHistoryBtn.addEventListener("click", () => {
   startNewChat();
 });
 
+// Logged-in users get their theme/accent/language saved to their account, so it
+// follows them across devices. Guests fall back to this browser's storage only.
+function syncPreferenceToBackend(key, value) {
+  if (!getToken()) return;
+  fetch("/api/user/preferences", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: JSON.stringify({ [key]: value }),
+  }).catch((err) => console.error("Could not sync preference:", err));
+}
+
+async function loadPreferencesFromAccount() {
+  if (!getToken()) return;
+  try {
+    const res = await fetch("/api/me", {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const prefs = data.user?.preferences;
+    if (!prefs) return;
+
+    if (prefs.theme) setTheme(prefs.theme, { skipSync: true });
+    if (prefs.accent) setAccent(prefs.accent, { skipSync: true });
+    if (prefs.language) {
+      languagePref = prefs.language;
+      localStorage.setItem(LANG_KEY, languagePref);
+    }
+  } catch (err) {
+    console.error("Could not load account preferences:", err);
+  }
+}
+
 function applyThemeUI() {
   const saved = localStorage.getItem(THEME_KEY) || "light";
   document.querySelectorAll(".theme-option").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.theme === saved);
   });
 }
-function setTheme(theme) {
+function setTheme(theme, opts = {}) {
   localStorage.setItem(THEME_KEY, theme);
   document.body.classList.remove("theme-dark", "theme-light");
   if (theme === "dark") {
@@ -588,11 +625,12 @@ function setTheme(theme) {
     document.body.classList.add(prefersDark ? "theme-dark" : "theme-light");
   }
   applyThemeUI();
+  if (!opts.skipSync) syncPreferenceToBackend("theme", theme);
 }
 document.querySelectorAll(".theme-option").forEach((btn) => {
   btn.addEventListener("click", () => setTheme(btn.dataset.theme));
 });
-setTheme(localStorage.getItem(THEME_KEY) || "light");
+setTheme(localStorage.getItem(THEME_KEY) || "light", { skipSync: true });
 
 function applyAccentUI() {
   const saved = localStorage.getItem(ACCENT_KEY) || "default";
@@ -600,16 +638,18 @@ function applyAccentUI() {
     dot.classList.toggle("selected", dot.dataset.accent === saved);
   });
 }
-function setAccent(accent) {
+function setAccent(accent, opts = {}) {
   localStorage.setItem(ACCENT_KEY, accent);
   document.body.classList.remove("accent-blue", "accent-green", "accent-red", "accent-orange");
   if (accent !== "default") document.body.classList.add(`accent-${accent}`);
   applyAccentUI();
+  if (!opts.skipSync) syncPreferenceToBackend("accent", accent);
 }
 document.querySelectorAll(".accent-dot").forEach((dot) => {
   dot.addEventListener("click", () => setAccent(dot.dataset.accent));
 });
-setAccent(localStorage.getItem(ACCENT_KEY) || "default");
+setAccent(localStorage.getItem(ACCENT_KEY) || "default", { skipSync: true });
+
 
 document.getElementById("changePhoneBtn").addEventListener("click", async () => {
   const phone = prompt("Enter your phone number:");
@@ -714,8 +754,40 @@ avatarFileInput.addEventListener("change", async () => {
   reader.readAsDataURL(file);
 });
 
-document.getElementById("deleteAccountBtn").addEventListener("click", () => {
-  alert("Account deletion isn't wired up yet — this needs a backend endpoint first.");
+document.getElementById("deleteAccountBtn").addEventListener("click", async () => {
+  if (!getToken()) {
+    alert("You need to be logged in to delete an account.");
+    return;
+  }
+
+  const firstConfirm = confirm(
+    "This will permanently delete your account, all your saved conversations, and everything FormGuide AI remembers about you. This cannot be undone. Continue?"
+  );
+  if (!firstConfirm) return;
+
+  const secondConfirm = confirm("Are you absolutely sure? This is your last chance to cancel.");
+  if (!secondConfirm) return;
+
+  try {
+    const res = await fetch("/api/user/account", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || "Could not delete your account. Please try again.");
+      return;
+    }
+
+    clearSession();
+    conversations = [];
+    saveConversations();
+    alert("Your account has been deleted. Goodbye for now!");
+    window.location.reload();
+  } catch (err) {
+    alert("Could not reach the server. Please try again.");
+  }
 });
 
 // ---------- Auth ----------
@@ -798,6 +870,7 @@ function setSession(token, user, remember) {
   store.setItem(TOKEN_KEY, token);
   store.setItem(USER_KEY, JSON.stringify(user));
   updateAccountButton();
+  loadPreferencesFromAccount();
 }
 
 function clearSession() {
@@ -995,6 +1068,7 @@ updateAccountButton();
 
 if (getToken()) {
   loadChatsFromServer();
+  loadPreferencesFromAccount();
 } else {
   if (conversations.length === 0) {
     startNewChat();
@@ -1315,9 +1389,20 @@ function renderMemoryList() {
   if (!container) return;
   container.innerHTML = "";
 
+  if (!getToken()) {
+    const notice = document.createElement("div");
+    notice.style.cssText =
+      "background:#fff3cd;color:#7a5c00;border:1px solid #ffe08a;border-radius:10px;padding:10px 12px;font-size:12px;margin-bottom:14px;";
+    notice.textContent =
+      "You're not logged in — these memories will only be saved on this device. Log in to keep them saved for good.";
+    container.appendChild(notice);
+  }
+
   if (memories.length === 0) {
-    container.innerHTML =
-      '<div style="text-align:center;color:#999;padding:24px 0;">No memories added yet. Tap "Add Memory" to get started.</div>';
+    const empty = document.createElement("div");
+    empty.style.cssText = "text-align:center;color:#999;padding:24px 0;";
+    empty.textContent = 'No memories added yet. Tap "Add Memory" to get started.';
+    container.appendChild(empty);
     return;
   }
 
@@ -1857,6 +1942,15 @@ if (generateImageBtn) {
       }
 
       await appendExchangeToCurrentChat(`Generate an image: ${description.trim()}`, data.image);
+
+      if (typeof data.remaining === "number") {
+        renderMessage(
+          "assistant",
+          data.remaining > 0
+            ? `You have ${data.remaining} image generation${data.remaining === 1 ? "" : "s"} left today.`
+            : "That was your last image generation for today. You can generate more tomorrow."
+        );
+      }
     } catch (err) {
       removeTyping();
       renderMessage("assistant", "Could not reach the server to generate this image.");
