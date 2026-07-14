@@ -8,6 +8,9 @@ const path = require("path");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const multer = require("multer");
+const pdfParse = require("pdf-parse");
+const mammoth = require("mammoth");
 const { OAuth2Client } = require("google-auth-library");
 
 const connectDB = require("./db");
@@ -20,12 +23,14 @@ const authenticate = require("./middleware/auth");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.ANTHROPIC_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const JWT_SECRET = process.env.JWT_SECRET;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const APP_URL = process.env.APP_URL || "http://localhost:3000";
 
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 app.use(express.json({ limit: "5mb" })); // raised so avatar base64 uploads don't get rejected
 app.use(express.static(path.join(__dirname, "public")));
@@ -358,6 +363,159 @@ app.patch("/api/user/preferences", authenticate, async (req, res) => {
 
 app.get("/api/config", (req, res) => {
   res.json({ googleClientId: GOOGLE_CLIENT_ID || null });
+});
+
+// ---------- FILE UPLOAD (PDF / DOCX text extraction) ----------
+
+app.post("/api/upload", authenticate, upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file was uploaded." });
+    }
+
+    const { originalname, buffer, mimetype } = req.file;
+    const ext = originalname.split(".").pop().toLowerCase();
+    let text = "";
+
+    if (ext === "pdf" || mimetype === "application/pdf") {
+      const parsed = await pdfParse(buffer);
+      text = parsed.text;
+    } else if (
+      ext === "docx" ||
+      mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
+      const result = await mammoth.extractRawText({ buffer });
+      text = result.value;
+    } else if (ext === "txt" || mimetype === "text/plain") {
+      text = buffer.toString("utf-8");
+    } else {
+      return res.status(400).json({ error: "Unsupported file type for text extraction." });
+    }
+
+    text = text.trim().slice(0, 12000); // keep prompts a reasonable size
+
+    if (!text) {
+      return res.status(400).json({ error: "Could not extract any readable text from this file." });
+    }
+
+    res.json({ filename: originalname, text });
+  } catch (err) {
+    console.error("File upload error:", err);
+    res.status(500).json({ error: "Could not process this file. Please try another." });
+  }
+});
+
+// ---------- IMAGE ANALYSIS (uploaded images, using Claude's vision) ----------
+
+app.post("/api/chat/vision", authenticate, async (req, res) => {
+  try {
+    const { imageBase64, mediaType, question } = req.body;
+
+    if (!imageBase64 || !mediaType) {
+      return res.status(400).json({ error: "Missing image data." });
+    }
+    if (!API_KEY) {
+      return res.status(500).json({ error: "No API key configured on the server." });
+    }
+
+    const memory = await getUserMemory(req.userId);
+    const memoryText = buildMemoryText(memory);
+    let systemPrompt = SYSTEM_PROMPT;
+    if (memoryText) {
+      systemPrompt += `\n\nThese are things you already know about the user:\n\n${memoryText}\n\nRemember these details while chatting.`;
+    }
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-5",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: { type: "base64", media_type: mediaType, data: imageBase64 },
+              },
+              {
+                type: "text",
+                text: question || "Please look at this image and help me with it.",
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Anthropic vision API error:", data);
+      return res.status(response.status).json({ error: data });
+    }
+
+    const textBlock = data.content?.find((block) => block.type === "text");
+    res.json({ reply: textBlock ? textBlock.text : "No response received." });
+  } catch (err) {
+    console.error("Vision chat error:", err);
+    res.status(500).json({ error: "Could not analyze this image." });
+  }
+});
+
+// ---------- IMAGE GENERATION (OpenAI) ----------
+
+app.post("/api/generate-image", authenticate, async (req, res) => {
+  try {
+    const { prompt } = req.body;
+
+    if (!prompt || !prompt.trim()) {
+      return res.status(400).json({ error: "Please describe the image you want." });
+    }
+    if (!OPENAI_API_KEY) {
+      return res.status(500).json({
+        error: "Image generation isn't configured yet. Add OPENAI_API_KEY to your .env file.",
+      });
+    }
+
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: prompt.trim(),
+        n: 1,
+        size: "1024x1024",
+        response_format: "b64_json",
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("OpenAI image generation error:", data);
+      return res.status(response.status).json({ error: data.error?.message || "Image generation failed." });
+    }
+
+    const b64 = data.data?.[0]?.b64_json;
+    if (!b64) {
+      return res.status(500).json({ error: "No image was returned." });
+    }
+
+    res.json({ image: `data:image/png;base64,${b64}` });
+  } catch (err) {
+    console.error("Image generation error:", err);
+    res.status(500).json({ error: "Could not generate this image. Please try again." });
+  }
 });
 
 // ---------- CHAT SYSTEM PROMPT ----------
