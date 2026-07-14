@@ -1038,3 +1038,180 @@ body.accent-orange .accent { color: #e0862f !important; }
   margin-bottom: 16px;
 }
 .add-memory-btn:hover { opacity: 0.9; }
+
+/* ---------- Action buttons row (Voice Chat / Upload / Search / etc) ---------- */
+.action-buttons-row {
+  display: flex;
+  gap: 10px;
+  padding: 0 24px 14px;
+  max-width: 900px;
+  margin: 0 auto;
+  overflow-x: auto;
+}
+.action-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.action-pill:hover { border-color: var(--accent); }
+
+/* ---------- Dark full-screen panels (Voice Chat / Upload & Analyze) ---------- */
+.dark-fullscreen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: var(--bg);
+  color: var(--text);
+  flex-direction: column;
+}
+.dark-fullscreen.open { display: flex; }
+
+.dark-fs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.dark-fs-header h2 { margin: 0; font-size: 18px; }
+.dark-back-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text);
+  width: 28px;
+}
+
+.dark-fs-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.voice-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+}
+
+.waveform {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 50px;
+  margin-bottom: 30px;
+}
+.waveform span {
+  width: 4px;
+  height: 12px;
+  background: var(--border);
+  border-radius: 2px;
+  transition: height 0.15s ease, background 0.15s ease;
+}
+.waveform.active span {
+  background: var(--accent);
+  animation: wave-bounce 1s infinite ease-in-out;
+}
+.waveform.active span:nth-child(1) { animation-delay: 0s; }
+.waveform.active span:nth-child(2) { animation-delay: 0.1s; }
+.waveform.active span:nth-child(3) { animation-delay: 0.2s; }
+.waveform.active span:nth-child(4) { animation-delay: 0.3s; }
+.waveform.active span:nth-child(5) { animation-delay: 0.4s; }
+.waveform.active span:nth-child(6) { animation-delay: 0.3s; }
+.waveform.active span:nth-child(7) { animation-delay: 0.2s; }
+.waveform.active span:nth-child(8) { animation-delay: 0.1s; }
+.waveform.active span:nth-child(9) { animation-delay: 0s; }
+.waveform.active span:nth-child(10) { animation-delay: 0.1s; }
+
+@keyframes wave-bounce {
+  0%, 100% { height: 12px; }
+  50% { height: 42px; }
+}
+
+.voice-mic-btn {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  border: none;
+  color: #fff;
+  font-size: 34px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.voice-mic-btn.listening {
+  animation: mic-pulse 1.5s infinite;
+  background: #dc2626;
+}
+@keyframes mic-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
+  70% { box-shadow: 0 0 0 22px rgba(220,38,38,0); }
+  100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+}
+
+.voice-status {
+  margin-top: 18px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(34,197,94,0.05);
+}
+
+.recent-file-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.recent-file-item:hover { border-color: var(--accent); }
+.recent-file-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(34,197,94,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.recent-file-info { flex: 1; min-width: 0; }
+.recent-file-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recent-file-meta { font-size: 10.5px; color: var(--text-dim); }
