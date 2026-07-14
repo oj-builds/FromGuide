@@ -128,6 +128,10 @@
           <div class="topbar-title">FormGuide <span class="accent">AI</span></div>
           <div class="topbar-tag">AI for Government • Careers • Education</div>
         </div>
+        <button id="topNotifBtn" class="icon-btn notif-btn" style="margin-left:auto;">
+          🔔
+          <span id="topNotifBadge" class="notif-badge" style="display:none;">0</span>
+        </button>
       </header>
 
       <main id="chat" class="chat">
@@ -242,39 +246,26 @@
         <div id="messages" class="messages"></div>
       </main>
 
+      <div id="recordingIndicator" class="recording-indicator">
+        🔴 Recording… <span id="recordingTimer">0:00</span> — release to send
+      </div>
+
       <form id="chat-form" class="input-bar">
         <input id="chat-input" type="text" placeholder="Ask about any form…" autocomplete="off" />
-        <button type="button" id="inlineAttachBtn" class="input-icon-btn" title="Attach file">📎</button>
-        <button type="button" id="inlineMicBtn" class="input-icon-btn" title="Voice input">🎙️</button>
+        <button type="button" id="inlineAttachBtn" class="input-icon-btn" title="Attach photo">📎</button>
+        <button type="button" id="inlineMicBtn" class="input-icon-btn" title="Hold to record a voice note">🎙️</button>
         <button type="submit" class="input-send-btn" title="Send">➤</button>
       </form>
 
       <div class="action-buttons-row">
-        <button class="action-pill" id="voiceChatBtn"><span>🎙️</span> Voice Chat</button>
-        <button class="action-pill" id="uploadFileBtn"><span>📎</span> Upload File</button>
+        <button class="action-pill" id="voiceChatBtn"><span>🎙️</span> Voice Note</button>
+        <button class="action-pill" id="uploadFileBtn"><span>📄</span> Upload File</button>
         <button class="action-pill" id="aiSearchBtn"><span>🔍</span> AI Search</button>
         <button class="action-pill" id="generateImageBtn"><span>🖼️</span> Generate Image</button>
         <button class="action-pill" id="moreToolsBtn"><span>➕</span> More Tools</button>
       </div>
 
       <div class="disclaimer">FormGuide AI can make mistakes. Please verify important information.</div>
-    </div>
-  </div>
-
-  <!-- Chat with Voice -->
-  <div id="voiceChatModal" class="dark-fullscreen">
-    <div class="dark-fs-header">
-      <button id="closeVoiceChatBtn" class="dark-back-btn">←</button>
-      <h2>Chat with Voice</h2>
-      <span style="width:28px;"></span>
-    </div>
-    <div class="dark-fs-body voice-body">
-      <div id="voiceWaveform" class="waveform">
-        <span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span>
-      </div>
-      <button id="voiceMicBtn" class="voice-mic-btn">🎤</button>
-      <div id="voiceStatusText" class="voice-status">Tap to speak</div>
     </div>
   </div>
 
@@ -291,7 +282,7 @@
     </div>
   </div>
 
-  <!-- Upload & Analyze -->
+  <!-- Upload & Analyze (documents only — photos use the attach icon instead) -->
   <div id="uploadModal" class="dark-fullscreen">
     <div class="dark-fs-header">
       <button id="closeUploadBtn" class="dark-back-btn">←</button>
@@ -300,16 +291,19 @@
     </div>
     <div class="dark-fs-body">
       <div id="dropZone" class="drop-zone">
-        <div style="font-size:32px;">📎</div>
-        <p style="margin:10px 0 2px;font-weight:600;">Drag &amp; drop your file here</p>
+        <div style="font-size:32px;">📄</div>
+        <p style="margin:10px 0 2px;font-weight:600;">Drag &amp; drop your document here</p>
         <p style="margin:0;font-size:12px;color:var(--text-dim);">or click to browse</p>
-        <p style="margin-top:8px;font-size:11px;color:var(--text-dim);">Supports: PDF, DOCX, TXT, PNG, JPG (Max 20MB)</p>
-        <input type="file" id="uploadFileInput" style="display:none;" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg">
+        <p style="margin-top:8px;font-size:11px;color:var(--text-dim);">Supports: PDF, DOCX, TXT (Max 20MB) — for photos, use the 📎 icon in the message box</p>
+        <input type="file" id="uploadFileInput" style="display:none;" accept=".pdf,.docx,.txt">
       </div>
       <div class="sidebar-section-label" style="margin-top:22px;">Recent Files</div>
       <div id="recentFilesList"></div>
     </div>
   </div>
+
+  <!-- Hidden input for the attach icon: personal photos, straight to Claude's vision -->
+  <input type="file" id="photoFileInput" accept="image/*" style="display:none;">
 
   <!-- CV Builder Modal -->
   <div id="cvModal" class="modal">
