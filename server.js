@@ -63,7 +63,13 @@ app.post("/api/signup", async (req, res) => {
 
     res.json({
       token,
-      user: { name: user.name, email: user.email, phone: user.phone, avatar: user.avatar },
+      user: {
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        avatar: user.avatar,
+        preferences: user.preferences,
+      },
     });
   } catch (err) {
     console.error("Signup error:", err);
@@ -99,7 +105,13 @@ app.post("/api/login", async (req, res) => {
 
     res.json({
       token,
-      user: { name: user.name, email: user.email, phone: user.phone, avatar: user.avatar },
+      user: {
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        avatar: user.avatar,
+        preferences: user.preferences,
+      },
     });
   } catch (err) {
     console.error("Login error:", err);
@@ -228,7 +240,13 @@ app.post("/api/auth/google", async (req, res) => {
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "30d" });
     res.json({
       token,
-      user: { name: user.name, email: user.email, phone: user.phone, avatar: user.avatar },
+      user: {
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        avatar: user.avatar,
+        preferences: user.preferences,
+      },
     });
   } catch (err) {
     console.error("Google auth error:", err);
@@ -238,7 +256,7 @@ app.post("/api/auth/google", async (req, res) => {
 
 app.get("/api/me", authenticate, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select("name email phone avatar");
+    const user = await User.findById(req.userId).select("name email phone avatar preferences");
     if (!user) return res.status(404).json({ error: "User not found." });
     res.json({ user });
   } catch (err) {
@@ -255,7 +273,7 @@ app.patch("/api/user/phone", authenticate, async (req, res) => {
       req.userId,
       { phone },
       { new: true }
-    ).select("name email phone avatar");
+    ).select("name email phone avatar preferences");
 
     res.json({ user });
   } catch (err) {
@@ -307,12 +325,34 @@ app.patch("/api/user/profile", authenticate, async (req, res) => {
     if (name) update.name = name;
 
     const user = await User.findByIdAndUpdate(req.userId, update, { new: true }).select(
-      "name email phone avatar"
+      "name email phone avatar preferences"
     );
     res.json({ user });
   } catch (err) {
     console.error("Profile update error:", err);
     res.status(500).json({ error: "Could not update profile." });
+  }
+});
+
+// Theme / accent color / reply language — synced to the account instead of the browser
+app.patch("/api/user/preferences", authenticate, async (req, res) => {
+  try {
+    const { theme, accent, language } = req.body;
+    const update = {};
+    if (theme) update["preferences.theme"] = theme;
+    if (accent) update["preferences.accent"] = accent;
+    if (language) update["preferences.language"] = language;
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      { $set: update },
+      { new: true }
+    ).select("name email phone avatar preferences");
+
+    res.json({ user });
+  } catch (err) {
+    console.error("Preferences update error:", err);
+    res.status(500).json({ error: "Could not update preferences." });
   }
 });
 
@@ -398,7 +438,6 @@ function buildMemoryText(memory) {
   return memory.memories.map((m) => `${m.key}: ${m.value}`).join("\n");
 }
 
-// Step 3 (not wired into /api/chat yet — just defined for now)
 async function extractMemories(userMessage) {
   const extractionPrompt = `Extract any new personal facts about the user from this message that are worth remembering long-term (name, job, education, country, preferred language, or anything they explicitly ask you to remember).
 
@@ -484,9 +523,85 @@ app.post("/api/chat", authenticate, async (req, res) => {
 
     const textBlock = data.content?.find((block) => block.type === "text");
     res.json({ reply: textBlock ? textBlock.text : "No response received." });
+
+    // Fire-and-forget: pull out any new personal facts from the user's latest
+    // message and save them, without delaying the chat reply above.
+    const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
+    if (lastUserMessage && lastUserMessage.content) {
+      extractMemories(lastUserMessage.content)
+        .then((facts) => {
+          if (!Array.isArray(facts)) return;
+          facts.forEach((fact) => {
+            if (fact && fact.key && fact.value) {
+              saveMemory(req.userId, String(fact.key).trim(), String(fact.value).trim()).catch((err) =>
+                console.error("Could not save extracted memory:", err)
+              );
+            }
+          });
+        })
+        .catch((err) => console.error("Memory extraction failed:", err));
+    }
   } catch (err) {
     console.error("Server error:", err);
     res.status(500).json({ error: "Something went wrong on the server." });
+  }
+});
+
+// ---------- MEMORY ROUTES ----------
+
+app.get("/api/memories", authenticate, async (req, res) => {
+  try {
+    const memory = await getUserMemory(req.userId);
+    res.json({ memories: memory.memories });
+  } catch (err) {
+    console.error("Load memories error:", err);
+    res.status(500).json({ error: "Could not load memories." });
+  }
+});
+
+app.post("/api/memories", authenticate, async (req, res) => {
+  try {
+    const { key, value } = req.body;
+    if (!key || !value) {
+      return res.status(400).json({ error: "Both key and value are required." });
+    }
+
+    await saveMemory(req.userId, String(key).trim(), String(value).trim());
+    const memory = await getUserMemory(req.userId);
+    res.json({ memories: memory.memories });
+  } catch (err) {
+    console.error("Add memory error:", err);
+    res.status(500).json({ error: "Could not save memory." });
+  }
+});
+
+app.patch("/api/memories/:key", authenticate, async (req, res) => {
+  try {
+    const { value } = req.body;
+    if (!value) return res.status(400).json({ error: "Value is required." });
+
+    const memory = await getUserMemory(req.userId);
+    const entry = memory.memories.find((m) => m.key === req.params.key);
+    if (!entry) return res.status(404).json({ error: "Memory not found." });
+
+    entry.value = String(value).trim();
+    await memory.save();
+    res.json({ memories: memory.memories });
+  } catch (err) {
+    console.error("Update memory error:", err);
+    res.status(500).json({ error: "Could not update memory." });
+  }
+});
+
+app.delete("/api/memories/:key", authenticate, async (req, res) => {
+  try {
+    const memory = await getUserMemory(req.userId);
+    memory.memories = memory.memories.filter((m) => m.key !== req.params.key);
+    await memory.save();
+    res.json({ memories: memory.memories });
+  } catch (err) {
+    console.error("Delete memory error:", err);
+    res.status(500).json({ error: "Could not delete memory." });
   }
 });
 
