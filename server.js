@@ -1,860 +1,1806 @@
-// server.js
-// This is the backend. It keeps your API key secret, talks to Claude,
-// and handles user accounts (signup, login, Google, settings).
+const chatEl = document.getElementById("chat");
+const welcomeScreenEl = document.getElementById("welcomeScreen");
+const messagesEl = document.getElementById("messages");
+const formEl = document.getElementById("chat-form");
+const inputEl = document.getElementById("chat-input");
+const chatListEl = document.getElementById("chatList");
+const newChatBtn = document.getElementById("newChatBtn");
+const sidebarEl = document.getElementById("sidebar");
+const openSidebarBtn = document.getElementById("openSidebar");
+const closeSidebarBtn = document.getElementById("closeSidebar");
+const cvModal = document.getElementById("cvModal");
+const searchInput = document.getElementById("chat-search");
 
-require("dotenv").config();
-const express = require("express");
-const path = require("path");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
-const multer = require("multer");
-const pdfParse = require("pdf-parse");
-const mammoth = require("mammoth");
-const { OAuth2Client } = require("google-auth-library");
+const STORAGE_KEY = "formguide_conversations";
+const LANG_KEY = "formguide_language";
+let conversations = loadConversations();
+let currentId = null;
+let loading = false;
+let languagePref = localStorage.getItem(LANG_KEY) || "auto";
 
-const connectDB = require("./db");
-const User = require("./models/User");
-const Chat = require("./models/Chat");
-const Memory = require("./models/Memory");
-const Notification = require("./models/Notification");
-const authenticate = require("./middleware/auth");
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.ANTHROPIC_API_KEY;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const JWT_SECRET = process.env.JWT_SECRET;
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const APP_URL = process.env.APP_URL || "http://localhost:3000";
-
-const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
-
-app.use(express.json({ limit: "5mb" })); // raised so avatar base64 uploads don't get rejected
-app.use(express.static(path.join(__dirname, "public")));
-
-connectDB();
-
-// ---------- AUTH ROUTES ----------
-
-app.post("/api/signup", async (req, res) => {
+function loadConversations() {
   try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: "Please fill in all fields." });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters." });
-    }
-
-    const existing = await User.findOne({ email: email.toLowerCase() });
-    if (existing) {
-      return res.status(400).json({ error: "An account with this email already exists." });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, passwordHash });
-    await Notification.create({
-      user: user._id,
-      title: "Welcome to FormGuide AI 🎉",
-      message: "Your account has been created. Explore CV building, interview coaching, and more.",
-      type: "system",
-    });
-
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "30d" });
-
-    res.json({
-      token,
-      user: {
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        avatar: user.avatar,
-        preferences: user.preferences,
-      },
-    });
-  } catch (err) {
-    console.error("Signup error:", err);
-    res.status(500).json({ error: "Something went wrong creating your account." });
-  }
-});
-
-app.post("/api/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: "Please enter your email and password." });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return res.status(400).json({ error: "No account found with this email." });
-    }
-
-    if (!user.passwordHash) {
-      return res.status(400).json({
-        error: "This account uses Google Sign-In. Please continue with Google instead.",
-      });
-    }
-
-    const match = await bcrypt.compare(password, user.passwordHash);
-    if (!match) {
-      return res.status(400).json({ error: "Incorrect password." });
-    }
-
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "30d" });
-
-    res.json({
-      token,
-      user: {
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        avatar: user.avatar,
-        preferences: user.preferences,
-      },
-    });
-  } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ error: "Something went wrong logging you in." });
-  }
-});
-
-app.post("/api/forgot-password", async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ error: "Please enter your email." });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-
-    if (!user) {
-      return res.json({
-        message: "If an account exists with this email, a reset link has been sent.",
-      });
-    }
-
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-
-    user.resetTokenHash = tokenHash;
-    user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
-    await user.save();
-
-    const resetLink = `${APP_URL}/reset.html?token=${rawToken}&email=${encodeURIComponent(user.email)}`;
-
-    if (!RESEND_API_KEY) {
-      console.log("⚠️ RESEND_API_KEY not set. Reset link (for testing):", resetLink);
-      return res.json({
-        message: "If an account exists with this email, a reset link has been sent.",
-      });
-    }
-
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "FormGuide AI <onboarding@resend.dev>",
-        to: user.email,
-        subject: "Reset your FormGuide AI password",
-        html: `<p>Hi ${user.name},</p><p>Click the link below to reset your password. This link expires in 1 hour.</p><p><a href="${resetLink}">${resetLink}</a></p><p>If you didn't request this, you can ignore this email.</p>`,
-      }),
-    });
-
-    res.json({ message: "If an account exists with this email, a reset link has been sent." });
-  } catch (err) {
-    console.error("Forgot password error:", err);
-    res.status(500).json({ error: "Something went wrong. Please try again." });
-  }
-});
-
-app.post("/api/reset-password", async (req, res) => {
-  try {
-    const { email, token, newPassword } = req.body;
-
-    if (!email || !token || !newPassword) {
-      return res.status(400).json({ error: "Missing information." });
-    }
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters." });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user || !user.resetTokenHash || !user.resetTokenExpiry) {
-      return res.status(400).json({ error: "Invalid or expired reset link." });
-    }
-    if (user.resetTokenExpiry < new Date()) {
-      return res.status(400).json({ error: "This reset link has expired. Please request a new one." });
-    }
-
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-    if (tokenHash !== user.resetTokenHash) {
-      return res.status(400).json({ error: "Invalid or expired reset link." });
-    }
-
-    user.passwordHash = await bcrypt.hash(newPassword, 10);
-    user.resetTokenHash = undefined;
-    user.resetTokenExpiry = undefined;
-    await user.save();
-
-    res.json({ message: "Password updated. You can now log in with your new password." });
-  } catch (err) {
-    console.error("Reset password error:", err);
-    res.status(500).json({ error: "Something went wrong. Please try again." });
-  }
-});
-
-app.post("/api/auth/google", async (req, res) => {
-  try {
-    if (!googleClient) {
-      return res.status(500).json({ error: "Google Sign-In isn't configured on the server yet." });
-    }
-
-    const { idToken } = req.body;
-    if (!idToken) {
-      return res.status(400).json({ error: "Missing Google credential." });
-    }
-
-    const ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: GOOGLE_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-
-    let user = await User.findOne({ email: payload.email.toLowerCase() });
-
-    if (!user) {
-      user = await User.create({
-        name: payload.name || payload.email.split("@")[0],
-        email: payload.email,
-        googleId: payload.sub,
-      });
-    } else if (!user.googleId) {
-      user.googleId = payload.sub;
-      await user.save();
-    }
-
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "30d" });
-    res.json({
-      token,
-      user: {
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        avatar: user.avatar,
-        preferences: user.preferences,
-      },
-    });
-  } catch (err) {
-    console.error("Google auth error:", err);
-    res.status(500).json({ error: "Google sign-in failed. Please try again." });
-  }
-});
-
-app.get("/api/me", authenticate, async (req, res) => {
-  try {
-    const user = await User.findById(req.userId).select("name email phone avatar preferences");
-    if (!user) return res.status(404).json({ error: "User not found." });
-    res.json({ user });
-  } catch (err) {
-    res.status(500).json({ error: "Something went wrong." });
-  }
-});
-
-app.patch("/api/user/phone", authenticate, async (req, res) => {
-  try {
-    const { phone } = req.body;
-    if (!phone) return res.status(400).json({ error: "Phone number is required." });
-
-    const user = await User.findByIdAndUpdate(
-      req.userId,
-      { phone },
-      { new: true }
-    ).select("name email phone avatar preferences");
-
-    res.json({ user });
-  } catch (err) {
-    console.error("Phone update error:", err);
-    res.status(500).json({ error: "Could not update phone number." });
-  }
-});
-
-app.patch("/api/user/password", authenticate, async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: "Both current and new password are required." });
-    }
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: "New password must be at least 6 characters." });
-    }
-
-    const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ error: "User not found." });
-
-    if (!user.passwordHash) {
-      return res.status(400).json({
-        error: "This account uses Google Sign-In and has no password to change.",
-      });
-    }
-
-    const match = await bcrypt.compare(currentPassword, user.passwordHash);
-    if (!match) {
-      return res.status(401).json({ error: "Current password is incorrect." });
-    }
-
-    user.passwordHash = await bcrypt.hash(newPassword, 10);
-    await user.save();
-
-    res.json({ success: true, message: "Password updated successfully." });
-  } catch (err) {
-    console.error("Password change error:", err);
-    res.status(500).json({ error: "Could not update password." });
-  }
-});
-
-app.patch("/api/user/profile", authenticate, async (req, res) => {
-  try {
-    const { avatar, name } = req.body;
-    const update = {};
-    if (avatar) update.avatar = avatar;
-    if (name) update.name = name;
-
-    const user = await User.findByIdAndUpdate(req.userId, update, { new: true }).select(
-      "name email phone avatar preferences"
-    );
-    res.json({ user });
-  } catch (err) {
-    console.error("Profile update error:", err);
-    res.status(500).json({ error: "Could not update profile." });
-  }
-});
-
-// Theme / accent color / reply language — synced to the account instead of the browser
-app.patch("/api/user/preferences", authenticate, async (req, res) => {
-  try {
-    const { theme, accent, language } = req.body;
-    const update = {};
-    if (theme) update["preferences.theme"] = theme;
-    if (accent) update["preferences.accent"] = accent;
-    if (language) update["preferences.language"] = language;
-
-    const user = await User.findByIdAndUpdate(
-      req.userId,
-      { $set: update },
-      { new: true }
-    ).select("name email phone avatar preferences");
-
-    res.json({ user });
-  } catch (err) {
-    console.error("Preferences update error:", err);
-    res.status(500).json({ error: "Could not update preferences." });
-  }
-});
-
-app.get("/api/config", (req, res) => {
-  res.json({ googleClientId: GOOGLE_CLIENT_ID || null });
-});
-
-// ---------- FILE UPLOAD (PDF / DOCX text extraction) ----------
-
-app.post("/api/upload", authenticate, upload.single("file"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file was uploaded." });
-    }
-
-    const { originalname, buffer, mimetype } = req.file;
-    const ext = originalname.split(".").pop().toLowerCase();
-    let text = "";
-
-    if (ext === "pdf" || mimetype === "application/pdf") {
-      const parsed = await pdfParse(buffer);
-      text = parsed.text;
-    } else if (
-      ext === "docx" ||
-      mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ) {
-      const result = await mammoth.extractRawText({ buffer });
-      text = result.value;
-    } else if (ext === "txt" || mimetype === "text/plain") {
-      text = buffer.toString("utf-8");
-    } else {
-      return res.status(400).json({ error: "Unsupported file type for text extraction." });
-    }
-
-    text = text.trim().slice(0, 12000); // keep prompts a reasonable size
-
-    if (!text) {
-      return res.status(400).json({ error: "Could not extract any readable text from this file." });
-    }
-
-    res.json({ filename: originalname, text });
-  } catch (err) {
-    console.error("File upload error:", err);
-    res.status(500).json({ error: "Could not process this file. Please try another." });
-  }
-});
-
-// ---------- IMAGE ANALYSIS (uploaded images, using Claude's vision) ----------
-
-app.post("/api/chat/vision", authenticate, async (req, res) => {
-  try {
-    const { imageBase64, mediaType, question } = req.body;
-
-    if (!imageBase64 || !mediaType) {
-      return res.status(400).json({ error: "Missing image data." });
-    }
-    if (!API_KEY) {
-      return res.status(500).json({ error: "No API key configured on the server." });
-    }
-
-    const memory = await getUserMemory(req.userId);
-    const memoryText = buildMemoryText(memory);
-    let systemPrompt = SYSTEM_PROMPT;
-    if (memoryText) {
-      systemPrompt += `\n\nThese are things you already know about the user:\n\n${memoryText}\n\nRemember these details while chatting.`;
-    }
-
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image",
-                source: { type: "base64", media_type: mediaType, data: imageBase64 },
-              },
-              {
-                type: "text",
-                text: question || "Please look at this image and help me with it.",
-              },
-            ],
-          },
-        ],
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Anthropic vision API error:", data);
-      return res.status(response.status).json({ error: data });
-    }
-
-    const textBlock = data.content?.find((block) => block.type === "text");
-    res.json({ reply: textBlock ? textBlock.text : "No response received." });
-  } catch (err) {
-    console.error("Vision chat error:", err);
-    res.status(500).json({ error: "Could not analyze this image." });
-  }
-});
-
-// ---------- IMAGE GENERATION (OpenAI) ----------
-
-app.post("/api/generate-image", authenticate, async (req, res) => {
-  try {
-    const { prompt } = req.body;
-
-    if (!prompt || !prompt.trim()) {
-      return res.status(400).json({ error: "Please describe the image you want." });
-    }
-    if (!OPENAI_API_KEY) {
-      return res.status(500).json({
-        error: "Image generation isn't configured yet. Add OPENAI_API_KEY to your .env file.",
-      });
-    }
-
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: prompt.trim(),
-        n: 1,
-        size: "1024x1024",
-        response_format: "b64_json",
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("OpenAI image generation error:", data);
-      return res.status(response.status).json({ error: data.error?.message || "Image generation failed." });
-    }
-
-    const b64 = data.data?.[0]?.b64_json;
-    if (!b64) {
-      return res.status(500).json({ error: "No image was returned." });
-    }
-
-    res.json({ image: `data:image/png;base64,${b64}` });
-  } catch (err) {
-    console.error("Image generation error:", err);
-    res.status(500).json({ error: "Could not generate this image. Please try again." });
-  }
-});
-
-// ---------- CHAT SYSTEM PROMPT ----------
-
-const SYSTEM_PROMPT = `You are FormGuide AI, Nigeria's trusted AI assistant for government services, careers, education and official documents.
-
-Your mission is to save users time and reduce confusion.
-
-Always answer using this format whenever it makes sense:
-
-📋 Service
-(Name of the service)
-
-📝 Overview
-(Short explanation)
-
-✅ Requirements
-- List all required documents.
-
-🪜 Steps
-1. First step
-2. Second step
-3. Third step
-
-💰 Cost
-Only provide official costs if you are confident.
-If you are not certain, clearly say the user should verify on the official website.
-
-⏳ Processing Time
-Provide an estimate only if reliable.
-
-⚠️ Common Mistakes
-- Mistake 1
-- Mistake 2
-
-💡 Helpful Tips
-Give practical advice that saves the user time.
-
-➡️ Next Step
-Tell the user exactly what to do next.
-
-Rules you must follow:
-- Never invent information, fees, office addresses, or requirements you are not confident about. If unsure, say "I'm not certain. Please verify on the official government website."
-- Use simple English.
-- If the user writes in Nigerian Pidgin, reply in Pidgin.
-- Use bullet points instead of long paragraphs.
-- Be friendly and encouraging.
-- Keep answers concise — avoid long essays.
-- EXCEPTION: If the user is doing a mock interview practice session, do NOT use the structured format above. Instead, act as a real interviewer: ask one question at a time, wait for their answer, then give brief constructive feedback (2-3 sentences) before asking the next question. Keep it conversational, not a form.`;
-
-// ---------- MEMORY HELPERS ----------
-
-async function getUserMemory(userId) {
-  let memory = await Memory.findOne({ user: userId });
-  if (!memory) {
-    memory = await Memory.create({
-      user: userId,
-      memories: [],
-    });
-  }
-  return memory;
-}
-
-async function saveMemory(userId, key, value) {
-  const memory = await getUserMemory(userId);
-  const existing = memory.memories.find((m) => m.key === key);
-
-  if (existing) {
-    existing.value = value;
-  } else {
-    memory.memories.push({ key, value });
-  }
-
-  await memory.save();
-}
-
-function buildMemoryText(memory) {
-  return memory.memories.map((m) => `${m.key}: ${m.value}`).join("\n");
-}
-
-async function extractMemories(userMessage) {
-  const extractionPrompt = `Extract any new personal facts about the user from this message that are worth remembering long-term (name, job, education, country, preferred language, or anything they explicitly ask you to remember).
-
-User message: "${userMessage}"
-
-Reply ONLY with a JSON array, nothing else. Example: [{"key": "name", "value": "David"}]
-If there's nothing worth remembering, reply with: []`;
-
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-5",
-      max_tokens: 300,
-      messages: [{ role: "user", content: extractionPrompt }],
-    }),
-  });
-
-  const data = await response.json();
-  const textBlock = data.content?.find((block) => block.type === "text");
-
-  try {
-    const clean = textBlock.text.replace(/```json|```/g, "").trim();
-    return JSON.parse(clean);
-  } catch (err) {
-    console.error("Memory extraction parse error:", err);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
     return [];
   }
 }
 
-// ---------- CHAT COMPLETION ROUTE ----------
-
-app.post("/api/chat", authenticate, async (req, res) => {
+function saveConversations() {
   try {
-    const { messages, language } = req.body;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+  } catch (e) {
+    console.error("Could not save conversation history:", e);
+  }
+}
 
-    if (!API_KEY) {
-      return res.status(500).json({
-        error: "No API key configured on the server. Add ANTHROPIC_API_KEY to your .env file.",
+function makeTitle(text) {
+  const clean = text.trim().replace(/\s+/g, " ");
+  return clean.length > 34 ? clean.slice(0, 34) + "…" : clean;
+}
+
+function startNewChat() {
+  currentId = "c" + Date.now();
+  conversations.unshift({ id: currentId, title: null, messages: [] });
+  saveConversations();
+  renderSidebar();
+  renderActiveConversation();
+}
+
+function getCurrentConversation() {
+  return conversations.find((c) => c.id === currentId);
+}
+
+function renderSidebar() {
+  chatListEl.innerHTML = "";
+  const search = searchInput.value.toLowerCase();
+  conversations.sort((a, b) => {
+    if (a.pinned === b.pinned) return 0;
+    return a.pinned ? -1 : 1;
+  });
+  conversations
+    .filter((conv) => {
+      if (!search) return true;
+      return (conv.title || "").toLowerCase().includes(search);
+    })
+    .forEach((conv) => {
+      const item = document.createElement("div");
+      item.className = "chat-list-item";
+      if (conv.id === currentId) item.classList.add("active");
+
+      const label = document.createElement("span");
+      label.className = "chat-list-label";
+      label.textContent = conv.title || "New chat";
+      label.addEventListener("dblclick", async () => {
+        const title = prompt("Rename chat", conv.title);
+
+        if (!title) return;
+
+        conv.title = title;
+
+        saveConversations();
+
+        renderSidebar();
+
+        if (getToken()) {
+          try {
+            await fetch(`/api/chats/${conv.id}`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`,
+              },
+              body: JSON.stringify({
+                title,
+              }),
+            });
+          } catch (err) {
+            console.error(err);
+          }
+        }
       });
+      label.addEventListener("click", () => {
+        currentId = conv.id;
+        renderSidebar();
+        renderActiveConversation();
+        sidebarEl.classList.remove("open");
+      });
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "chat-delete-btn";
+      deleteBtn.innerHTML = "✕";
+      deleteBtn.title = "Delete conversation";
+      deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteConversation(conv.id);
+      });
+
+      const pinBtn = document.createElement("button");
+      pinBtn.className = "chat-pin-btn";
+      pinBtn.innerHTML = conv.pinned ? "📌" : "📍";
+      pinBtn.title = "Pin chat";
+
+      pinBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+
+        conv.pinned = !conv.pinned;
+
+        renderSidebar();
+
+        if (getToken()) {
+          await fetch(`/api/chats/${conv.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getToken()}`,
+            },
+            body: JSON.stringify({
+              pinned: conv.pinned,
+            }),
+          });
+        }
+      });
+
+      item.appendChild(label);
+      item.appendChild(pinBtn);
+      item.appendChild(deleteBtn);
+      chatListEl.appendChild(item);
+    });
+}
+
+async function deleteConversation(id) {
+  console.log("Deleting chat:", id);
+
+  if (getToken()) {
+    try {
+      await fetch(`/api/chats/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+    } catch (err) {
+      console.error("Could not delete chat:", err);
     }
+  }
 
-    const memory = await getUserMemory(req.userId);
-    const memoryText = buildMemoryText(memory);
+  conversations = conversations.filter((c) => c.id !== id);
+  saveConversations();
 
-    let systemPrompt = SYSTEM_PROMPT;
-
-    if (memoryText) {
-      systemPrompt += `\n\nThese are things you already know about the user:\n\n${memoryText}\n\nRemember these details while chatting.`;
+  if (id === currentId) {
+    if (conversations.length > 0) {
+      currentId = conversations[0].id;
+    } else {
+      startNewChat();
+      return;
     }
+  }
 
-    if (language === "pidgin") {
-      systemPrompt += "\n\nThe user has set their preference to always reply in Nigerian Pidgin, regardless of what language they type in.";
-    } else if (language === "english") {
-      systemPrompt += "\n\nThe user has set their preference to always reply in English, even if they write in Pidgin.";
-    }
+  renderSidebar();
+  renderActiveConversation();
+}
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+function renderMessage(role, content) {
+  const row = document.createElement("div");
+  row.className = `msg-row ${role}`;
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+
+  const stamp = document.createElement("div");
+  stamp.className = "stamp";
+  stamp.innerHTML =
+    role === "assistant"
+      ? `<span class="stamp-circle">🤖</span> FormGuide AI`
+      : `<span class="stamp-circle">👤</span> You`;
+  bubble.appendChild(stamp);
+
+  if (typeof content === "string" && content.startsWith("data:image")) {
+    const img = document.createElement("img");
+    img.src = content;
+    img.className = "chat-generated-image";
+    bubble.appendChild(img);
+  } else {
+    const textNode = document.createElement("div");
+    textNode.textContent = content;
+    bubble.appendChild(textNode);
+  }
+
+  row.appendChild(bubble);
+  messagesEl.appendChild(row);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function renderActiveConversation() {
+  messagesEl.innerHTML = "";
+  const conv = getCurrentConversation();
+
+  if (!conv || conv.messages.length === 0) {
+    welcomeScreenEl.style.display = "block";
+    return;
+  }
+
+  welcomeScreenEl.style.display = "none";
+  conv.messages.forEach((m) => renderMessage(m.role, m.content));
+}
+
+function renderTyping() {
+  const row = document.createElement("div");
+  row.className = "msg-row assistant";
+  row.id = "typing-row";
+  const bubble = document.createElement("div");
+  bubble.className = "bubble typing";
+  bubble.innerHTML = `🤖 FormGuide AI is thinking<span class="dots"><span>.</span><span>.</span><span>.</span></span>`;
+  row.appendChild(bubble);
+  messagesEl.appendChild(row);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function removeTyping() {
+  const row = document.getElementById("typing-row");
+  if (row) row.remove();
+}
+
+async function sendMessage(text) {
+  if (!text || loading) return;
+  loading = true;
+  inputEl.value = "";
+
+  let conv = getCurrentConversation();
+  if (!conv) {
+    startNewChat();
+    conv = getCurrentConversation();
+  }
+
+  if (!conv.title) conv.title = makeTitle(text);
+
+  welcomeScreenEl.style.display = "none";
+
+  conv.messages.push({ role: "user", content: text });
+  saveConversations();
+  renderSidebar();
+  renderMessage("user", text);
+  renderTyping();
+
+  try {
+    const res = await fetch("/api/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": API_KEY,
-        "anthropic-version": "2023-06-01",
+        Authorization: `Bearer ${getToken()}`,
       },
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: messages,
-      }),
+      body: JSON.stringify({ messages: conv.messages, language: languagePref }),
     });
+    const data = await res.json();
+    removeTyping();
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Anthropic API error:", data);
-      return res.status(response.status).json({ error: data });
-    }
-
-    const textBlock = data.content?.find((block) => block.type === "text");
-    res.json({ reply: textBlock ? textBlock.text : "No response received." });
-
-    // Fire-and-forget: pull out any new personal facts from the user's latest
-    // message and save them, without delaying the chat reply above.
-    const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
-    if (lastUserMessage && lastUserMessage.content) {
-      extractMemories(lastUserMessage.content)
-        .then((facts) => {
-          if (!Array.isArray(facts)) return;
-          facts.forEach((fact) => {
-            if (fact && fact.key && fact.value) {
-              saveMemory(req.userId, String(fact.key).trim(), String(fact.value).trim()).catch((err) =>
-                console.error("Could not save extracted memory:", err)
-              );
-            }
-          });
-        })
-        .catch((err) => console.error("Memory extraction failed:", err));
+    const reply = data.reply || "Sorry, something went wrong. Please try again.";
+    conv.messages.push({ role: "assistant", content: reply });
+    saveConversations();
+    renderMessage("assistant", reply);
+    if (getToken() && currentId) {
+      try {
+        await fetch(`/api/chats/${currentId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify({
+            title: conv.title,
+            messages: conv.messages,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to save chat:", err);
+      }
     }
   } catch (err) {
-    console.error("Server error:", err);
-    res.status(500).json({ error: "Something went wrong on the server." });
+    removeTyping();
+    renderMessage("assistant", "Could not reach the server. Please try again.");
+  } finally {
+    loading = false;
   }
+}
+
+formEl.addEventListener("submit", (e) => {
+  e.preventDefault();
+  sendMessage(inputEl.value.trim());
 });
 
-// ---------- MEMORY ROUTES ----------
-
-app.get("/api/memories", authenticate, async (req, res) => {
-  try {
-    const memory = await getUserMemory(req.userId);
-    res.json({ memories: memory.memories });
-  } catch (err) {
-    console.error("Load memories error:", err);
-    res.status(500).json({ error: "Could not load memories." });
-  }
-});
-
-app.post("/api/memories", authenticate, async (req, res) => {
-  try {
-    const { key, value } = req.body;
-    if (!key || !value) {
-      return res.status(400).json({ error: "Both key and value are required." });
+// Feature cards on the welcome screen
+document.querySelectorAll(".feature-card").forEach((card) => {
+  card.addEventListener("click", () => {
+    if (card.dataset.openCv === "true") {
+      openCvModal();
+      return;
     }
+    if (card.dataset.openInterview === "true") {
+      openInterviewModal();
+      return;
+    }
+    if (card.dataset.focusOnly === "true") {
+      inputEl.focus();
+      return;
+    }
+    sendMessage(card.dataset.text);
+  });
+});
 
-    await saveMemory(req.userId, String(key).trim(), String(value).trim());
-    const memory = await getUserMemory(req.userId);
-    res.json({ memories: memory.memories });
-  } catch (err) {
-    console.error("Add memory error:", err);
-    res.status(500).json({ error: "Could not save memory." });
+// Sidebar quick-tool shortcuts
+document.getElementById("sidebarCvBtn").addEventListener("click", () => {
+  openCvModal();
+  sidebarEl.classList.remove("open");
+});
+document.getElementById("sidebarInterviewBtn").addEventListener("click", () => {
+  openInterviewModal();
+  sidebarEl.classList.remove("open");
+});
+document.getElementById("sidebarGovBtn").addEventListener("click", () => {
+  sendMessage("Help me apply for NIN.");
+  sidebarEl.classList.remove("open");
+});
+
+// CV Builder modal
+function openCvModal() {
+  cvModal.style.display = "flex";
+}
+function closeCvModal() {
+  cvModal.style.display = "none";
+}
+cvModal.addEventListener("click", (e) => {
+  if (e.target === cvModal) closeCvModal();
+});
+
+const cvPreviewEl = document.getElementById("cvPreview");
+const polishCvBtn = document.getElementById("polishCvBtn");
+let lastCvText = "";
+
+document.getElementById("generateCV").addEventListener("click", () => {
+  const fullName = document.getElementById("fullName").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const education = document.getElementById("education").value.trim();
+  const experience = document.getElementById("experience").value.trim();
+  const skills = document.getElementById("skills").value.trim();
+
+  if (!fullName) {
+    alert("Please enter at least your full name.");
+    return;
   }
+
+  const cv = `${fullName}
+${email ? "Email: " + email : ""}${phone ? "  |  Phone: " + phone : ""}
+
+EDUCATION
+${education || "Not provided"}
+
+WORK EXPERIENCE
+${experience || "Not provided"}
+
+SKILLS
+${skills || "Not provided"}`;
+
+  lastCvText = cv;
+  cvPreviewEl.innerText = cv;
+  cvPreviewEl.style.display = "block";
+  downloadCvBtn.style.display = "block";
+  polishCvBtn.style.display = "block";
 });
 
-app.patch("/api/memories/:key", authenticate, async (req, res) => {
-  try {
-    const { value } = req.body;
-    if (!value) return res.status(400).json({ error: "Value is required." });
+const downloadCvBtn = document.getElementById("downloadCvBtn");
 
-    const memory = await getUserMemory(req.userId);
-    const entry = memory.memories.find((m) => m.key === req.params.key);
-    if (!entry) return res.status(404).json({ error: "Memory not found." });
+downloadCvBtn.addEventListener("click", () => {
+  if (!lastCvText) return;
 
-    entry.value = String(value).trim();
-    await memory.save();
-    res.json({ memories: memory.memories });
-  } catch (err) {
-    console.error("Update memory error:", err);
-    res.status(500).json({ error: "Could not update memory." });
-  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+
+  const marginLeft = 50;
+  const marginTop = 60;
+  const maxWidth = 495;
+  const lineHeight = 16;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+
+  const lines = doc.splitTextToSize(lastCvText, maxWidth);
+
+  let y = marginTop;
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  lines.forEach((line) => {
+    if (y > pageHeight - 50) {
+      doc.addPage();
+      y = marginTop;
+    }
+    doc.text(line, marginLeft, y);
+    y += lineHeight;
+  });
+
+  const fileName = document.getElementById("fullName").value.trim() || "CV";
+  doc.save(`${fileName.replace(/\s+/g, "_")}_CV.pdf`);
 });
 
-app.delete("/api/memories/:key", authenticate, async (req, res) => {
-  try {
-    const memory = await getUserMemory(req.userId);
-    memory.memories = memory.memories.filter((m) => m.key !== req.params.key);
-    await memory.save();
-    res.json({ memories: memory.memories });
-  } catch (err) {
-    console.error("Delete memory error:", err);
-    res.status(500).json({ error: "Could not delete memory." });
-  }
-});
-
-// ---------- NOTIFICATION ROUTES ----------
-
-app.get("/api/notifications", authenticate, async (req, res) => {
-  const notifications = await Notification.find({ user: req.userId }).sort({ createdAt: -1 });
-  res.json({ notifications });
-});
-
-app.patch("/api/notifications/:id/read", authenticate, async (req, res) => {
-  const notification = await Notification.findOneAndUpdate(
-    { _id: req.params.id, user: req.userId },
-    { read: true },
-    { new: true }
+polishCvBtn.addEventListener("click", () => {
+  if (!lastCvText) return;
+  closeCvModal();
+  sendMessage(
+    `Please improve and professionally format this CV, keeping all the real information the same:\n\n${lastCvText}`
   );
-  if (!notification) return res.status(404).json({ error: "Notification not found" });
-  res.json({ notification });
 });
 
-app.patch("/api/notifications/read-all", authenticate, async (req, res) => {
-  await Notification.updateMany({ user: req.userId, read: false }, { read: true });
-  res.json({ success: true });
+// Interview Coach modal
+const interviewModal = document.getElementById("interviewModal");
+
+function openInterviewModal() {
+  interviewModal.style.display = "flex";
+}
+function closeInterviewModal() {
+  interviewModal.style.display = "none";
+}
+interviewModal.addEventListener("click", (e) => {
+  if (e.target === interviewModal) closeInterviewModal();
 });
 
-// ---------- CHAT (CONVERSATION) ROUTES ----------
+document.getElementById("startInterviewBtn").addEventListener("click", () => {
+  const jobRole = document.getElementById("jobRole").value.trim() || "this role";
+  const level = document.getElementById("experienceLevel").value;
 
-// Get all chats for the logged in user
-app.get("/api/chats", authenticate, async (req, res) => {
-  try {
-    const chats = await Chat.find({ user: req.userId }).sort({ updatedAt: -1 });
-    res.json(chats);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Could not load chats." });
+  closeInterviewModal();
+  sendMessage(
+    `Let's do a mock interview. I'm applying for a ${jobRole} position at ${level} experience level. Please act as the interviewer: ask me one interview question at a time, wait for my answer, then give brief constructive feedback before asking the next question. Start now with your first question.`
+  );
+});
+
+newChatBtn.addEventListener("click", () => {
+  startNewChat();
+  sidebarEl.classList.remove("open");
+});
+
+openSidebarBtn.addEventListener("click", () => sidebarEl.classList.add("open"));
+closeSidebarBtn.addEventListener("click", () => sidebarEl.classList.remove("open"));
+
+// ---------- Settings — full screen ----------
+const settingsModal = document.getElementById("settingsModal");
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsBackBtn = document.getElementById("settingsBackBtn");
+const settingsHeaderTitle = document.getElementById("settingsHeaderTitle");
+const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+const THEME_KEY = "formguide_theme";
+const ACCENT_KEY = "formguide_accent";
+let settingsCurrentPanel = "main";
+
+function showSettingsMain() {
+  document.querySelectorAll("#settingsModal .settings-panel").forEach((p) => p.classList.remove("active"));
+  document.getElementById("settingsMainMenu").classList.add("active");
+  settingsHeaderTitle.textContent = "Settings";
+  settingsCurrentPanel = "main";
+}
+
+function showSettingsPanel(name, title) {
+  document.querySelectorAll("#settingsModal .settings-panel").forEach((p) => p.classList.remove("active"));
+  const panel = document.querySelector(`#settingsModal .settings-panel[data-panel="${name}"]`);
+  if (panel) panel.classList.add("active");
+  settingsHeaderTitle.textContent = title;
+  settingsCurrentPanel = name;
+
+  if (name === "memory") renderMemoryList();
+  if (name === "appearance") {
+    applyThemeUI();
+    applyAccentUI();
   }
-});
-
-// Create a new chat
-app.post("/api/chats", authenticate, async (req, res) => {
-  try {
-    const chat = await Chat.create({
-      user: req.userId,
-      title: "New Chat",
-      messages: [],
+  if (name === "language") {
+    document.querySelectorAll('input[name="language"]').forEach((radio) => {
+      radio.checked = radio.value === languagePref;
     });
-    res.json(chat);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Could not create chat." });
+  }
+}
+
+function openSettingsModal() {
+  const user = getStoredUser();
+  document.getElementById("settingsProfileName").textContent = user ? user.name : "Guest User";
+  document.getElementById("settingsProfileEmail").textContent = user ? user.email : "Not signed in";
+  document.getElementById("settingsAccountEmail").textContent = user ? user.email : "—";
+  document.getElementById("settingsPhoneDisplay").textContent = user && user.phone ? user.phone : "Not set";
+
+  const langLabels = { auto: "Auto-detect", english: "Always English", pidgin: "Always Pidgin" };
+  const langSub = document.getElementById("settingsLangSub");
+  if (langSub) langSub.textContent = langLabels[languagePref] || "Auto-detect";
+
+  const avatarImg = document.getElementById("settingsAvatarImg");
+  const avatarPlaceholder = document.getElementById("settingsAvatarPlaceholder");
+  if (user && user.avatar) {
+    avatarImg.src = user.avatar;
+    avatarImg.style.display = "block";
+    avatarPlaceholder.style.display = "none";
+  } else {
+    avatarImg.style.display = "none";
+    avatarPlaceholder.style.display = "flex";
+  }
+
+  showSettingsMain();
+  settingsModal.classList.add("open");
+}
+function closeSettingsModal() {
+  settingsModal.classList.remove("open");
+}
+
+settingsBtn.addEventListener("click", () => {
+  openSettingsModal();
+  sidebarEl.classList.remove("open");
+});
+
+settingsBackBtn.addEventListener("click", () => {
+  if (settingsCurrentPanel === "main") {
+    closeSettingsModal();
+  } else {
+    showSettingsMain();
   }
 });
 
-// Update chat
-app.patch("/api/chats/:id", authenticate, async (req, res) => {
+document.querySelectorAll(".settings-menu-row[data-target]").forEach((row) => {
+  row.addEventListener("click", () => {
+    const target = row.dataset.target;
+    if (target === "notifications") {
+      closeSettingsModal();
+      notificationsModal.classList.add("open");
+      loadNotifications();
+      return;
+    }
+    const title = row.querySelector(".settings-row-label").textContent;
+    showSettingsPanel(target, title);
+  });
+});
+
+document.querySelectorAll('input[name="language"]').forEach((radio) => {
+  radio.addEventListener("change", (e) => {
+    languagePref = e.target.value;
+    localStorage.setItem(LANG_KEY, languagePref);
+  });
+});
+
+clearHistoryBtn.addEventListener("click", () => {
+  const confirmed = confirm(
+    "This will delete all your saved conversations. This cannot be undone. Continue?"
+  );
+  if (!confirmed) return;
+  conversations = [];
+  saveConversations();
+  closeSettingsModal();
+  startNewChat();
+});
+
+function applyThemeUI() {
+  const saved = localStorage.getItem(THEME_KEY) || "light";
+  document.querySelectorAll(".theme-option").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.theme === saved);
+  });
+}
+function setTheme(theme) {
+  localStorage.setItem(THEME_KEY, theme);
+  document.body.classList.remove("theme-dark", "theme-light");
+  if (theme === "dark") {
+    document.body.classList.add("theme-dark");
+  } else if (theme === "system") {
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.body.classList.add(prefersDark ? "theme-dark" : "theme-light");
+  }
+  applyThemeUI();
+}
+document.querySelectorAll(".theme-option").forEach((btn) => {
+  btn.addEventListener("click", () => setTheme(btn.dataset.theme));
+});
+setTheme(localStorage.getItem(THEME_KEY) || "light");
+
+function applyAccentUI() {
+  const saved = localStorage.getItem(ACCENT_KEY) || "default";
+  document.querySelectorAll(".accent-dot").forEach((dot) => {
+    dot.classList.toggle("selected", dot.dataset.accent === saved);
+  });
+}
+function setAccent(accent) {
+  localStorage.setItem(ACCENT_KEY, accent);
+  document.body.classList.remove("accent-blue", "accent-green", "accent-red", "accent-orange");
+  if (accent !== "default") document.body.classList.add(`accent-${accent}`);
+  applyAccentUI();
+}
+document.querySelectorAll(".accent-dot").forEach((dot) => {
+  dot.addEventListener("click", () => setAccent(dot.dataset.accent));
+});
+setAccent(localStorage.getItem(ACCENT_KEY) || "default");
+
+document.getElementById("changePhoneBtn").addEventListener("click", async () => {
+  const phone = prompt("Enter your phone number:");
+  if (!phone) return;
+
   try {
-    const chat = await Chat.findOne({ _id: req.params.id, user: req.userId });
-
-    if (!chat) {
-      return res.status(404).json({ error: "Chat not found." });
+    const res = await fetch("/api/user/phone", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ phone }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Could not update phone number.");
+      return;
     }
-
-    if (typeof req.body.title === "string") {
-      chat.title = req.body.title.trim();
-    }
-
-    if (typeof req.body.pinned === "boolean") {
-      chat.pinned = req.body.pinned;
-    }
-
-    if (req.body.messages) {
-      chat.messages = req.body.messages;
-    }
-
-    await chat.save();
-    res.json(chat);
+    document.getElementById("settingsPhoneDisplay").textContent = data.user.phone;
+    const remember = !!localStorage.getItem(TOKEN_KEY);
+    setSession(getToken(), data.user, remember);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Could not update chat." });
+    alert("Could not reach the server. Please try again.");
   }
 });
 
-// Delete chat
-app.delete("/api/chats/:id", authenticate, async (req, res) => {
+document.getElementById("changePasswordBtn").addEventListener("click", async () => {
+  const currentPassword = prompt("Enter your current password:");
+  if (!currentPassword) return;
+  const newPassword = prompt("Enter your new password (min 6 characters):");
+  if (!newPassword) return;
+
   try {
-    const result = await Chat.deleteOne({ _id: req.params.id, user: req.userId });
-    res.json({ success: true, result });
+    const res = await fetch("/api/user/password", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Could not update password.");
+      return;
+    }
+    alert("Password updated successfully.");
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Could not delete chat." });
+    alert("Could not reach the server. Please try again.");
   }
 });
 
-// ---------- SERVER START ----------
+const avatarUploadBtn = document.getElementById("avatarUploadBtn");
+const avatarFileInput = document.getElementById("avatarFileInput");
 
-app.listen(PORT, () => {
-  console.log(`FormGuide server running at http://localhost:${PORT}`);
+avatarUploadBtn.addEventListener("click", () => {
+  if (!getStoredUser()) {
+    alert("Please log in first to set a profile picture.");
+    return;
+  }
+  avatarFileInput.click();
 });
+
+avatarFileInput.addEventListener("change", async () => {
+  const file = avatarFileInput.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    alert("Please choose an image smaller than 2MB.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const base64 = reader.result;
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ avatar: base64 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Could not update profile picture.");
+        return;
+      }
+
+      const remember = !!localStorage.getItem(TOKEN_KEY);
+      setSession(getToken(), data.user, remember);
+
+      document.getElementById("settingsAvatarImg").src = data.user.avatar;
+      document.getElementById("settingsAvatarImg").style.display = "block";
+      document.getElementById("settingsAvatarPlaceholder").style.display = "none";
+    } catch (err) {
+      alert("Could not reach the server. Please try again.");
+    }
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById("deleteAccountBtn").addEventListener("click", () => {
+  alert("Account deletion isn't wired up yet — this needs a backend endpoint first.");
+});
+
+// ---------- Auth ----------
+const TOKEN_KEY = "formguide_token";
+const USER_KEY = "formguide_user";
+
+const authModal = document.getElementById("authModal");
+const accountBtn = document.getElementById("accountBtn");
+const authTitle = document.getElementById("authTitle");
+const authSubtitle = document.getElementById("authSubtitle");
+const authError = document.getElementById("authError");
+const authNameLabel = document.getElementById("authNameLabel");
+const authName = document.getElementById("authName");
+const authEmail = document.getElementById("authEmail");
+const authPassword = document.getElementById("authPassword");
+const authSubmitBtn = document.getElementById("authSubmitBtn");
+const authSwitchText = document.getElementById("authSwitchText");
+const authSwitchLink = document.getElementById("authSwitchLink");
+const continueGuestBtn = document.getElementById("continueGuestBtn");
+const togglePasswordBtn = document.getElementById("togglePasswordBtn");
+const rememberMeCheckbox = document.getElementById("rememberMeCheckbox");
+const googleAuthBtn = document.getElementById("googleAuthBtn");
+const forgotPasswordLink = document.getElementById("forgotPasswordLink");
+
+let authMode = "login";
+
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+}
+
+async function loadChatsFromServer() {
+  if (!getToken()) return;
+
+  try {
+    const res = await fetch("/api/chats", {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
+
+    if (!res.ok) return;
+
+    const chats = await res.json();
+
+    conversations = chats.map((chat) => ({
+      id: chat._id,
+      title: chat.title,
+      messages: chat.messages,
+      pinned: chat.pinned,
+    }));
+
+    if (conversations.length > 0) {
+      currentId = conversations[0].id;
+    }
+
+    renderSidebar();
+    renderActiveConversation();
+  } catch (err) {
+    console.error("Could not load chats:", err);
+  }
+}
+
+if (searchInput) {
+  searchInput.addEventListener("input", () => {
+    renderSidebar();
+  });
+}
+
+function getStoredUser() {
+  try {
+    const raw = localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setSession(token, user, remember) {
+  const store = remember ? localStorage : sessionStorage;
+  store.setItem(TOKEN_KEY, token);
+  store.setItem(USER_KEY, JSON.stringify(user));
+  updateAccountButton();
+}
+
+function clearSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(USER_KEY);
+  updateAccountButton();
+}
+
+function updateAccountButton() {
+  const user = getStoredUser();
+  if (user) {
+    accountBtn.innerHTML = `👤 ${user.name} <span class="chevron">⌄</span>`;
+  } else {
+    accountBtn.innerHTML = `👤 Guest User <span class="chevron">⌄</span>`;
+  }
+}
+
+function openAuthModal(mode) {
+  authMode = mode;
+  authError.style.display = "none";
+  authName.value = "";
+  authEmail.value = "";
+  authPassword.value = "";
+  authPassword.type = "password";
+  togglePasswordBtn.textContent = "👁️";
+
+  if (mode === "signup") {
+    authTitle.textContent = "Create your account 🚀";
+    authSubtitle.textContent = "Join FormGuide AI in seconds";
+    authName.style.display = "block";
+    authNameLabel.style.display = "block";
+    authSubmitBtn.textContent = "🚀 Sign Up";
+    authSwitchText.textContent = "Already have an account?";
+    authSwitchLink.textContent = "Log in";
+  } else {
+    authTitle.textContent = "Welcome back! 👋";
+    authSubtitle.textContent = "Log in to your FormGuide AI account";
+    authName.style.display = "none";
+    authNameLabel.style.display = "none";
+    authSubmitBtn.textContent = "🔒 Log In";
+    authSwitchText.textContent = "Don't have an account?";
+    authSwitchLink.textContent = "Create Account";
+  }
+
+  authModal.style.display = "flex";
+}
+
+function closeAuthModal() {
+  authModal.style.display = "none";
+}
+
+accountBtn.addEventListener("click", () => {
+  const user = getStoredUser();
+  if (user) {
+    const confirmed = confirm(`Logged in as ${user.name} (${user.email}). Log out?`);
+    if (confirmed) clearSession();
+  } else {
+    openAuthModal("login");
+  }
+  sidebarEl.classList.remove("open");
+});
+
+authSwitchLink.addEventListener("click", (e) => {
+  e.preventDefault();
+  openAuthModal(authMode === "login" ? "signup" : "login");
+});
+
+continueGuestBtn.addEventListener("click", closeAuthModal);
+
+togglePasswordBtn.addEventListener("click", () => {
+  const isHidden = authPassword.type === "password";
+  authPassword.type = isHidden ? "text" : "password";
+  togglePasswordBtn.textContent = isHidden ? "🙈" : "👁️";
+});
+
+let googleClientId = null;
+
+fetch("/api/config")
+  .then((res) => res.json())
+  .then((data) => {
+    googleClientId = data.googleClientId;
+    if (googleClientId && window.google) {
+      initGoogleButton();
+    }
+  })
+  .catch(() => {});
+
+function initGoogleButton() {
+  google.accounts.id.initialize({
+    client_id: googleClientId,
+    callback: handleGoogleCredential,
+  });
+}
+
+async function handleGoogleCredential(response) {
+  try {
+    const res = await fetch("/api/auth/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken: response.credential }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      authError.textContent = data.error || "Google sign-in failed.";
+      authError.style.display = "block";
+      return;
+    }
+
+    setSession(data.token, data.user, rememberMeCheckbox.checked);
+    closeAuthModal();
+  } catch (err) {
+    authError.textContent = "Could not reach the server. Please try again.";
+    authError.style.display = "block";
+  }
+}
+
+googleAuthBtn.addEventListener("click", () => {
+  if (!googleClientId) {
+    alert(
+      "Google sign-in isn't configured yet. Add GOOGLE_CLIENT_ID to your .env file to enable it."
+    );
+    return;
+  }
+  google.accounts.id.prompt();
+});
+
+forgotPasswordLink.addEventListener("click", async (e) => {
+  e.preventDefault();
+  const email = prompt("Enter the email address for your account:");
+  if (!email) return;
+
+  try {
+    const res = await fetch("/api/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    alert(data.message || "If an account exists with this email, a reset link has been sent.");
+  } catch (err) {
+    alert("Could not reach the server. Please try again.");
+  }
+});
+
+authSubmitBtn.addEventListener("click", async () => {
+  const email = authEmail.value.trim();
+  const password = authPassword.value;
+  const name = authName.value.trim();
+  const remember = rememberMeCheckbox.checked;
+
+  authError.style.display = "none";
+
+  if (!email || !password || (authMode === "signup" && !name)) {
+    authError.textContent = "Please fill in all fields.";
+    authError.style.display = "block";
+    return;
+  }
+
+  const endpoint = authMode === "signup" ? "/api/signup" : "/api/login";
+  const body = authMode === "signup" ? { name, email, password } : { email, password };
+
+  authSubmitBtn.disabled = true;
+  const originalText = authSubmitBtn.textContent;
+  authSubmitBtn.textContent = "Please wait…";
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      authError.textContent = data.error || "Something went wrong.";
+      authError.style.display = "block";
+      return;
+    }
+
+    setSession(data.token, data.user, remember);
+    closeAuthModal();
+  } catch (err) {
+    authError.textContent = "Could not reach the server. Please try again.";
+    authError.style.display = "block";
+  } finally {
+    authSubmitBtn.disabled = false;
+    authSubmitBtn.textContent = originalText;
+  }
+});
+
+updateAccountButton();
+
+if (getToken()) {
+  loadChatsFromServer();
+} else {
+  if (conversations.length === 0) {
+    startNewChat();
+  } else {
+    currentId = conversations[0].id;
+    renderSidebar();
+    renderActiveConversation();
+  }
+}
+
+// Notifications
+const notificationsBtn = document.getElementById("notificationsBtn");
+const notificationsModal = document.getElementById("notificationsModal");
+const closeNotificationsBtn = document.getElementById("closeNotificationsBtn");
+const markAllReadBtn = document.getElementById("markAllReadBtn");
+const notifBadge = document.getElementById("notifBadge");
+const notificationsList = document.getElementById("notificationsList");
+const notificationsEmpty = document.getElementById("notificationsEmpty");
+
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (diff < 60) return "Just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+async function loadNotifications() {
+  if (!getToken()) {
+    notificationsList.innerHTML = "";
+    notificationsEmpty.style.display = "block";
+    notificationsEmpty.textContent = "Log in to see your notifications.";
+    notifBadge.style.display = "none";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/notifications", {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    const data = await res.json();
+    const notifications = data.notifications || [];
+
+    const unreadCount = notifications.filter((n) => !n.read).length;
+    if (unreadCount > 0) {
+      notifBadge.textContent = unreadCount;
+      notifBadge.style.display = "flex";
+    } else {
+      notifBadge.style.display = "none";
+    }
+
+    if (notifications.length === 0) {
+      notificationsList.innerHTML = "";
+      notificationsEmpty.style.display = "block";
+      notificationsEmpty.textContent = "No notifications yet.";
+      return;
+    }
+
+    notificationsEmpty.style.display = "none";
+    notificationsList.innerHTML = "";
+    notifications.forEach((n) => {
+      const item = document.createElement("div");
+      item.className = "notif-item" + (n.read ? "" : " unread");
+      item.innerHTML = `
+        <div class="notif-icon">🔔</div>
+        <div class="notif-content">
+          <div class="notif-title">${n.title}</div>
+          <div class="notif-message">${n.message}</div>
+          <div class="notif-time">${timeAgo(n.createdAt)}</div>
+        </div>
+      `;
+      item.addEventListener("click", () => markNotificationRead(n._id, item));
+      notificationsList.appendChild(item);
+    });
+  } catch (err) {
+    notificationsList.innerHTML = "";
+    notificationsEmpty.style.display = "block";
+    notificationsEmpty.textContent = "Could not load notifications.";
+  }
+}
+
+async function markNotificationRead(id, itemEl) {
+  try {
+    await fetch(`/api/notifications/${id}/read`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    itemEl.classList.remove("unread");
+    const unreadLeft = document.querySelectorAll(".notif-item.unread").length;
+    if (unreadLeft > 0) {
+      notifBadge.textContent = unreadLeft;
+      notifBadge.style.display = "flex";
+    } else {
+      notifBadge.style.display = "none";
+    }
+  } catch (err) {}
+}
+
+notificationsBtn.addEventListener("click", () => {
+  notificationsModal.classList.add("open");
+  loadNotifications();
+});
+closeNotificationsBtn.addEventListener("click", () => {
+  notificationsModal.classList.remove("open");
+});
+
+markAllReadBtn.addEventListener("click", async () => {
+  try {
+    await fetch("/api/notifications/read-all", {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    loadNotifications();
+  } catch (err) {}
+});
+
+// Check unread count on page load if logged in
+if (getToken()) loadNotifications();
+
+// ---------- New expanded sidebar nav (added for full-sidebar redesign) ----------
+
+// Sub-items inside collapsible groups (Education, Career, Government, Documents)
+// that just send a canned prompt into the chat.
+document.querySelectorAll(".nav-subitem[data-text]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    sendMessage(btn.dataset.text);
+    sidebarEl.classList.remove("open");
+  });
+});
+
+// Top-level nav items. Chat/Search behave like "focus the input" for now;
+// Home shows the welcome screen; the rest are placeholders until those
+// screens/features exist, so they just let you know what's coming.
+const navHomeBtn = document.getElementById("navHome");
+const navChatLinkBtn = document.getElementById("navChatLink");
+const navSearchLinkBtn = document.getElementById("navSearchLink");
+const navPinnedBtn = document.getElementById("navPinned");
+const navHistoryBtn = document.getElementById("navHistory");
+const navAiStudioBtn = document.getElementById("navAiStudio");
+const navTemplatesBtn = document.getElementById("navTemplates");
+const navCommunityBtn = document.getElementById("navCommunity");
+const navSavedPromptsBtn = document.getElementById("navSavedPrompts");
+const proBannerBtn = document.getElementById("proBanner");
+
+function setActiveNavItem(activeBtn) {
+  document.querySelectorAll(".nav-item").forEach((el) => el.classList.remove("active"));
+  if (activeBtn) activeBtn.classList.add("active");
+}
+
+if (navHomeBtn) {
+  navHomeBtn.addEventListener("click", () => {
+    setActiveNavItem(navHomeBtn);
+    welcomeScreenEl.style.display = "block";
+    messagesEl.innerHTML = "";
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navChatLinkBtn) {
+  navChatLinkBtn.addEventListener("click", () => {
+    setActiveNavItem(navChatLinkBtn);
+    if (!currentId || !getCurrentConversation()) {
+      if (conversations.length > 0) {
+        currentId = conversations[0].id;
+      } else {
+        startNewChat();
+      }
+    }
+    renderSidebar();
+    renderActiveConversation();
+    inputEl.focus();
+    sidebarEl.classList.remove("open");
+  });
+}
+
+// ---------- Full-page Search ----------
+const searchModal = document.getElementById("searchModal");
+const closeSearchBtn = document.getElementById("closeSearchBtn");
+const fullSearchInput = document.getElementById("fullSearchInput");
+const fullSearchResults = document.getElementById("fullSearchResults");
+const fullSearchEmpty = document.getElementById("fullSearchEmpty");
+
+function renderSearchResults(query) {
+  const q = (query || "").toLowerCase();
+  const results = conversations.filter((conv) => {
+    if (!q) return true;
+    const titleMatch = (conv.title || "").toLowerCase().includes(q);
+    const messageMatch = conv.messages.some((m) => m.content.toLowerCase().includes(q));
+    return titleMatch || messageMatch;
+  });
+
+  fullSearchResults.innerHTML = "";
+
+  if (results.length === 0) {
+    fullSearchEmpty.style.display = "block";
+    return;
+  }
+  fullSearchEmpty.style.display = "none";
+
+  results.forEach((conv) => {
+    const item = document.createElement("div");
+    item.className = "notif-item";
+    const lastMessage = conv.messages.length
+      ? conv.messages[conv.messages.length - 1].content.slice(0, 80)
+      : "No messages yet";
+    item.innerHTML = `
+      <div class="notif-icon">💬</div>
+      <div class="notif-content">
+        <div class="notif-title">${conv.title || "New chat"}</div>
+        <div class="notif-message">${lastMessage}</div>
+      </div>
+    `;
+    item.addEventListener("click", () => {
+      currentId = conv.id;
+      renderSidebar();
+      renderActiveConversation();
+      closeSearchModal();
+    });
+    fullSearchResults.appendChild(item);
+  });
+}
+
+function openSearchModal() {
+  searchModal.classList.add("open");
+  fullSearchInput.value = "";
+  renderSearchResults("");
+  fullSearchInput.focus();
+}
+function closeSearchModal() {
+  searchModal.classList.remove("open");
+}
+
+if (closeSearchBtn) closeSearchBtn.addEventListener("click", closeSearchModal);
+if (fullSearchInput) {
+  fullSearchInput.addEventListener("input", (e) => renderSearchResults(e.target.value));
+}
+
+if (navSearchLinkBtn) {
+  navSearchLinkBtn.addEventListener("click", () => {
+    setActiveNavItem(navSearchLinkBtn);
+    openSearchModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navPinnedBtn) {
+  navPinnedBtn.addEventListener("click", () => {
+    setActiveNavItem(navPinnedBtn);
+    renderSidebar();
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navHistoryBtn) {
+  navHistoryBtn.addEventListener("click", () => {
+    setActiveNavItem(navHistoryBtn);
+    chatListEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navAiStudioBtn) {
+  navAiStudioBtn.addEventListener("click", () => {
+    alert("AI Studio is coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navTemplatesBtn) {
+  navTemplatesBtn.addEventListener("click", () => {
+    alert("Templates are coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navCommunityBtn) {
+  navCommunityBtn.addEventListener("click", () => {
+    alert("Community is coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (navSavedPromptsBtn) {
+  navSavedPromptsBtn.addEventListener("click", () => {
+    alert("Saved Prompts are coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+
+if (proBannerBtn) {
+  proBannerBtn.addEventListener("click", () => {
+    alert("FormGuide AI Pro is coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+
+// ---------- Memory Manager ----------
+const MEMORY_KEY = "formguide_memories";
+
+function loadMemories() {
+  try {
+    const raw = localStorage.getItem(MEMORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+function saveMemories(list) {
+  localStorage.setItem(MEMORY_KEY, JSON.stringify(list));
+}
+let memories = loadMemories();
+
+function renderMemoryList() {
+  const container = document.getElementById("memoryList");
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (memories.length === 0) {
+    container.innerHTML =
+      '<div style="text-align:center;color:#999;padding:24px 0;">No memories added yet. Tap "Add Memory" to get started.</div>';
+    return;
+  }
+
+  memories.forEach((mem, idx) => {
+    const item = document.createElement("div");
+    item.className = "memory-item";
+    item.innerHTML = `
+      <div class="memory-icon">🧠</div>
+      <div class="memory-content">
+        <div class="memory-label">${mem.label}</div>
+        <div class="memory-value">${mem.value}</div>
+      </div>
+      <button class="memory-edit-btn" title="Edit">✎</button>
+      <button class="memory-delete-btn" title="Delete">🗑️</button>
+    `;
+
+    item.querySelector(".memory-edit-btn").addEventListener("click", () => {
+      const newLabel = prompt("Label (e.g. Name, Goal, Profession):", mem.label);
+      if (newLabel === null) return;
+      const newValue = prompt(`Value for "${newLabel}":`, mem.value);
+      if (newValue === null) return;
+      memories[idx] = { label: newLabel.trim(), value: newValue.trim() };
+      saveMemories(memories);
+      renderMemoryList();
+    });
+
+    item.querySelector(".memory-delete-btn").addEventListener("click", () => {
+      if (!confirm(`Delete the memory "${mem.label}"?`)) return;
+      memories.splice(idx, 1);
+      saveMemories(memories);
+      renderMemoryList();
+    });
+
+    container.appendChild(item);
+  });
+}
+
+const addMemoryBtn = document.getElementById("addMemoryBtn");
+if (addMemoryBtn) {
+  addMemoryBtn.addEventListener("click", () => {
+    const label = prompt("What should this memory be called? (e.g. Name, Goal, Profession)");
+    if (!label || !label.trim()) return;
+    const value = prompt(`What's the value for "${label.trim()}"?`);
+    if (value === null || !value.trim()) return;
+    memories.push({ label: label.trim(), value: value.trim() });
+    saveMemories(memories);
+    renderMemoryList();
+  });
+}
+
+// ---------- Home screen hub cards (Government / Education / Career grids) ----------
+document.querySelectorAll(".hub-card").forEach((card) => {
+  card.addEventListener("click", () => {
+    if (card.dataset.openCv === "true") {
+      openCvModal();
+      return;
+    }
+    if (card.dataset.openInterview === "true") {
+      openInterviewModal();
+      return;
+    }
+    sendMessage(card.dataset.text);
+  });
+});
+
+// "View all" buttons on each hub section open the sidebar and expand the matching group
+document.querySelectorAll(".hub-view-all[data-view-group]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const groupEl = document.getElementById(btn.dataset.viewGroup);
+    sidebarEl.classList.add("open");
+    if (groupEl) {
+      groupEl.classList.add("open");
+      groupEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  });
+});
+
+// ---------- Action buttons row: Voice Chat / Upload File / AI Search / Generate Image / More Tools ----------
+const voiceChatBtn = document.getElementById("voiceChatBtn");
+const voiceChatModal = document.getElementById("voiceChatModal");
+const closeVoiceChatBtn = document.getElementById("closeVoiceChatBtn");
+const voiceMicBtn = document.getElementById("voiceMicBtn");
+const voiceStatusText = document.getElementById("voiceStatusText");
+const voiceWaveform = document.getElementById("voiceWaveform");
+
+const uploadFileBtn = document.getElementById("uploadFileBtn");
+const uploadModal = document.getElementById("uploadModal");
+const closeUploadBtn = document.getElementById("closeUploadBtn");
+const dropZone = document.getElementById("dropZone");
+const uploadFileInput = document.getElementById("uploadFileInput");
+const recentFilesList = document.getElementById("recentFilesList");
+
+const aiSearchBtn = document.getElementById("aiSearchBtn");
+const generateImageBtn = document.getElementById("generateImageBtn");
+const moreToolsBtn = document.getElementById("moreToolsBtn");
+
+// --- Voice Chat (uses the browser's built-in speech recognition, where supported) ---
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let isListening = false;
+
+if (SpeechRecognitionAPI) {
+  recognition = new SpeechRecognitionAPI();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = "en-US";
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    closeVoiceChatModal();
+    sendMessage(transcript);
+  };
+
+  recognition.onerror = () => {
+    voiceStatusText.textContent = "Sorry, I couldn't hear that. Tap to try again.";
+    stopListeningUI();
+  };
+
+  recognition.onend = () => {
+    stopListeningUI();
+  };
+}
+
+function startListeningUI() {
+  isListening = true;
+  voiceMicBtn.classList.add("listening");
+  voiceWaveform.classList.add("active");
+  voiceStatusText.textContent = "I'm listening…";
+}
+function stopListeningUI() {
+  isListening = false;
+  voiceMicBtn.classList.remove("listening");
+  voiceWaveform.classList.remove("active");
+  voiceStatusText.textContent = "Tap to speak";
+}
+
+function openVoiceChatModal() {
+  voiceChatModal.classList.add("open");
+  stopListeningUI();
+  if (!SpeechRecognitionAPI) {
+    voiceStatusText.textContent = "Voice input isn't supported in this browser. Try Chrome.";
+  }
+}
+function closeVoiceChatModal() {
+  voiceChatModal.classList.remove("open");
+  if (recognition && isListening) recognition.stop();
+  stopListeningUI();
+}
+
+if (voiceChatBtn) {
+  voiceChatBtn.addEventListener("click", () => {
+    openVoiceChatModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+if (closeVoiceChatBtn) closeVoiceChatBtn.addEventListener("click", closeVoiceChatModal);
+
+if (voiceMicBtn) {
+  voiceMicBtn.addEventListener("click", () => {
+    if (!SpeechRecognitionAPI) return;
+    if (isListening) {
+      recognition.stop();
+    } else {
+      try {
+        recognition.start();
+        startListeningUI();
+      } catch (err) {
+        console.error("Speech recognition error:", err);
+      }
+    }
+  });
+}
+
+// --- Upload & Analyze ---
+const RECENT_FILES_KEY = "formguide_recent_files";
+
+function loadRecentFiles() {
+  try {
+    const raw = localStorage.getItem(RECENT_FILES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+function saveRecentFiles(list) {
+  localStorage.setItem(RECENT_FILES_KEY, JSON.stringify(list.slice(0, 10)));
+}
+
+function fileIconFor(name) {
+  const ext = name.split(".").pop().toLowerCase();
+  if (ext === "pdf") return "📕";
+  if (ext === "docx" || ext === "doc") return "📘";
+  if (["png", "jpg", "jpeg"].includes(ext)) return "🖼️";
+  return "📄";
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function renderRecentFiles() {
+  const files = loadRecentFiles();
+  recentFilesList.innerHTML = "";
+  if (files.length === 0) {
+    recentFilesList.innerHTML =
+      '<div style="text-align:center;color:var(--text-dim);padding:16px 0;font-size:12.5px;">No files uploaded yet.</div>';
+    return;
+  }
+  files.forEach((f) => {
+    const item = document.createElement("div");
+    item.className = "recent-file-item";
+    item.innerHTML = `
+      <div class="recent-file-icon">${fileIconFor(f.name)}</div>
+      <div class="recent-file-info">
+        <div class="recent-file-name">${f.name}</div>
+        <div class="recent-file-meta">${formatFileSize(f.size)} • ${f.type || "file"}</div>
+      </div>
+    `;
+    item.addEventListener("click", () => {
+      closeUploadModal();
+      sendMessage(`I previously uploaded a file called "${f.name}". Can you help me with it again?`);
+    });
+    recentFilesList.appendChild(item);
+  });
+}
+
+function openUploadModal() {
+  uploadModal.classList.add("open");
+  renderRecentFiles();
+}
+function closeUploadModal() {
+  uploadModal.classList.remove("open");
+}
+
+if (uploadFileBtn) {
+  uploadFileBtn.addEventListener("click", () => {
+    openUploadModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+if (closeUploadBtn) closeUploadBtn.addEventListener("click", closeUploadModal);
+
+if (dropZone) {
+  dropZone.addEventListener("click", () => uploadFileInput.click());
+  dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("dragover");
+  });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    if (e.dataTransfer.files.length > 0) {
+      handleUploadedFile(e.dataTransfer.files[0]);
+    }
+  });
+}
+
+if (uploadFileInput) {
+  uploadFileInput.addEventListener("change", () => {
+    if (uploadFileInput.files.length > 0) {
+      handleUploadedFile(uploadFileInput.files[0]);
+    }
+  });
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // reader.result looks like "data:image/png;base64,AAAA..." — strip the prefix
+      const base64 = String(reader.result).split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function appendExchangeToCurrentChat(userText, assistantText) {
+  let conv = getCurrentConversation();
+  if (!conv) {
+    startNewChat();
+    conv = getCurrentConversation();
+  }
+  if (!conv.title) conv.title = makeTitle(userText);
+
+  welcomeScreenEl.style.display = "none";
+  conv.messages.push({ role: "user", content: userText });
+  conv.messages.push({ role: "assistant", content: assistantText });
+  saveConversations();
+  renderSidebar();
+  renderMessage("user", userText);
+  renderMessage("assistant", assistantText);
+
+  if (getToken() && currentId) {
+    try {
+      await fetch(`/api/chats/${currentId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ title: conv.title, messages: conv.messages }),
+      });
+    } catch (err) {
+      console.error("Failed to save chat:", err);
+    }
+  }
+}
+
+async function handleUploadedFile(file) {
+  const maxSize = 20 * 1024 * 1024;
+  if (file.size > maxSize) {
+    alert("Please choose a file smaller than 20MB.");
+    return;
+  }
+
+  const files = loadRecentFiles();
+  files.unshift({ name: file.name, size: file.size, type: file.type });
+  saveRecentFiles(files);
+
+  const isImage = file.type.startsWith("image/");
+  const ext = file.name.split(".").pop().toLowerCase();
+  const isDocument = ["pdf", "docx", "txt"].includes(ext);
+
+  closeUploadModal();
+
+  if (isImage) {
+    // Images go straight to Claude's vision — no text extraction needed.
+    renderTyping();
+    try {
+      const base64 = await fileToBase64(file);
+      const res = await fetch("/api/chat/vision", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          imageBase64: base64,
+          mediaType: file.type,
+          question: `Please look at this image ("${file.name}") and help me with it.`,
+        }),
+      });
+      const data = await res.json();
+      removeTyping();
+
+      if (!res.ok) {
+        renderMessage("assistant", data.error || "Sorry, I couldn't analyze that image.");
+        return;
+      }
+
+      await appendExchangeToCurrentChat(`[Uploaded image: ${file.name}]`, data.reply);
+    } catch (err) {
+      removeTyping();
+      renderMessage("assistant", "Could not reach the server to analyze this image.");
+    }
+    return;
+  }
+
+  if (isDocument) {
+    renderTyping();
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: formData,
+      });
+      const data = await res.json();
+      removeTyping();
+
+      if (!res.ok) {
+        renderMessage("assistant", data.error || "Sorry, I couldn't read that file.");
+        return;
+      }
+
+      sendMessage(
+        `I've uploaded a file called "${data.filename}". Here is its content:\n\n${data.text}\n\nPlease help me understand or work with this.`
+      );
+    } catch (err) {
+      removeTyping();
+      renderMessage("assistant", "Could not reach the server to process this file.");
+    }
+    return;
+  }
+
+  sendMessage(
+    `I've uploaded a file called "${file.name}" (${formatFileSize(file.size)}), but I'm not sure FormGuide AI can read this file type yet.`
+  );
+}
+
+// --- AI Search (uses a proper modal instead of window.prompt, which is
+// unreliable or blocked in some mobile browser contexts) ---
+const aiSearchModal = document.getElementById("aiSearchModal");
+const closeAiSearchBtn = document.getElementById("closeAiSearchBtn");
+const aiSearchInput = document.getElementById("aiSearchInput");
+const aiSearchSubmitBtn = document.getElementById("aiSearchSubmitBtn");
+
+function openAiSearchModal() {
+  aiSearchModal.classList.add("open");
+  aiSearchInput.value = "";
+  setTimeout(() => aiSearchInput.focus(), 50);
+}
+function closeAiSearchModal() {
+  aiSearchModal.classList.remove("open");
+}
+function submitAiSearch() {
+  const query = aiSearchInput.value.trim();
+  if (!query) return;
+  closeAiSearchModal();
+  sendMessage(query);
+}
+
+if (aiSearchBtn) {
+  aiSearchBtn.addEventListener("click", () => {
+    sidebarEl.classList.remove("open");
+    openAiSearchModal();
+  });
+}
+if (closeAiSearchBtn) closeAiSearchBtn.addEventListener("click", closeAiSearchModal);
+if (aiSearchSubmitBtn) aiSearchSubmitBtn.addEventListener("click", submitAiSearch);
+if (aiSearchInput) {
+  aiSearchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submitAiSearch();
+  });
+}
+
+// --- Inline attach / mic buttons on the input bar ---
+const inlineAttachBtn = document.getElementById("inlineAttachBtn");
+const inlineMicBtn = document.getElementById("inlineMicBtn");
+
+if (inlineAttachBtn) {
+  inlineAttachBtn.addEventListener("click", () => openUploadModal());
+}
+if (inlineMicBtn) {
+  inlineMicBtn.addEventListener("click", () => openVoiceChatModal());
+}
+
+// --- Generate Image (OpenAI, via your backend) ---
+if (generateImageBtn) {
+  generateImageBtn.addEventListener("click", async () => {
+    sidebarEl.classList.remove("open");
+    const description = prompt("Describe the image you'd like FormGuide AI to generate:");
+    if (!description || !description.trim()) return;
+
+    welcomeScreenEl.style.display = "none";
+    renderTyping();
+
+    try {
+      const res = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ prompt: description.trim() }),
+      });
+      const data = await res.json();
+      removeTyping();
+
+      if (!res.ok) {
+        renderMessage("assistant", data.error || "Sorry, I couldn't generate that image.");
+        return;
+      }
+
+      await appendExchangeToCurrentChat(`Generate an image: ${description.trim()}`, data.image);
+    } catch (err) {
+      removeTyping();
+      renderMessage("assistant", "Could not reach the server to generate this image.");
+    }
+  });
+}
+
+// --- More Tools (opens sidebar's AI Tools section) ---
+if (moreToolsBtn) {
+  moreToolsBtn.addEventListener("click", () => {
+    sidebarEl.classList.add("open");
+    const label = Array.from(document.querySelectorAll(".sidebar-section-label")).find(
+      (el) => el.textContent.trim() === "AI Tools"
+    );
+    if (label) label.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+}
