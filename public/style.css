@@ -1084,11 +1084,11 @@ body.accent-orange .accent { color: #e0862f !important; }
 /* ---------- Action buttons row (Voice Chat / Upload / Search / etc) ---------- */
 .action-buttons-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 0 24px 14px;
   max-width: 900px;
   margin: 0 auto;
-  overflow-x: auto;
 }
 .action-pill {
   display: flex;
@@ -1107,6 +1107,23 @@ body.accent-orange .accent { color: #e0862f !important; }
 }
 .action-pill span { font-size: 11px; }
 .action-pill:hover { border-color: var(--accent); }
+
+.recording-indicator {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  max-width: 900px;
+  margin: 0 auto 8px;
+  padding: 8px 16px;
+  background: rgba(220,38,38,0.12);
+  border: 1px solid rgba(220,38,38,0.4);
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: var(--text);
+  text-align: center;
+}
+.recording-indicator.active { display: flex; }
 
 /* ---------- Dark full-screen panels (Voice Chat / Upload & Analyze) ---------- */
 .dark-fullscreen {
