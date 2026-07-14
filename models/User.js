@@ -21,6 +21,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
+  phone: {
+    type: String,
+    required: false,
+  },
+  avatar: {
+    type: String,
+    required: false,
+  },
   resetTokenHash: {
     type: String,
     required: false,
@@ -28,6 +36,23 @@ const userSchema = new mongoose.Schema({
   resetTokenExpiry: {
     type: Date,
     required: false,
+  },
+  preferences: {
+    theme: {
+      type: String,
+      enum: ["light", "dark", "system"],
+      default: "light",
+    },
+    accent: {
+      type: String,
+      enum: ["default", "blue", "green", "red", "orange"],
+      default: "default",
+    },
+    language: {
+      type: String,
+      enum: ["auto", "english", "pidgin"],
+      default: "auto",
+    },
   },
   createdAt: {
     type: Date,
