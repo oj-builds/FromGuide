@@ -54,6 +54,14 @@ const userSchema = new mongoose.Schema({
       default: "auto",
     },
   },
+  imageGenCount: {
+    type: Number,
+    default: 0,
+  },
+  imageGenDate: {
+    type: String, // stored as YYYY-MM-DD so we can compare "is this still today"
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
