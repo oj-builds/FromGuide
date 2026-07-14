@@ -244,7 +244,9 @@
 
       <form id="chat-form" class="input-bar">
         <input id="chat-input" type="text" placeholder="Ask about any form…" autocomplete="off" />
-        <button type="submit">➤ Send</button>
+        <button type="button" id="inlineAttachBtn" class="input-icon-btn" title="Attach file">📎</button>
+        <button type="button" id="inlineMicBtn" class="input-icon-btn" title="Voice input">🎙️</button>
+        <button type="submit" class="input-send-btn" title="Send">➤</button>
       </form>
 
       <div class="action-buttons-row">
@@ -273,6 +275,19 @@
       </div>
       <button id="voiceMicBtn" class="voice-mic-btn">🎤</button>
       <div id="voiceStatusText" class="voice-status">Tap to speak</div>
+    </div>
+  </div>
+
+  <!-- AI Search -->
+  <div id="aiSearchModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeAiSearchBtn" class="dark-back-btn">←</button>
+      <h2>AI Search</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <input id="aiSearchInput" type="text" placeholder="What would you like to find or understand?" class="ai-search-input" autocomplete="off" />
+      <button id="aiSearchSubmitBtn" class="add-memory-btn" style="margin-top:12px;">Search</button>
     </div>
   </div>
 
