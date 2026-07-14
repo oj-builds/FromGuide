@@ -196,9 +196,16 @@ function renderMessage(role, content) {
       : `<span class="stamp-circle">👤</span> You`;
   bubble.appendChild(stamp);
 
-  const textNode = document.createElement("div");
-  textNode.textContent = content;
-  bubble.appendChild(textNode);
+  if (typeof content === "string" && content.startsWith("data:image")) {
+    const img = document.createElement("img");
+    img.src = content;
+    img.className = "chat-generated-image";
+    bubble.appendChild(img);
+  } else {
+    const textNode = document.createElement("div");
+    textNode.textContent = content;
+    bubble.appendChild(textNode);
+  }
 
   row.appendChild(bubble);
   messagesEl.appendChild(row);
@@ -1576,7 +1583,52 @@ if (uploadFileInput) {
   });
 }
 
-function handleUploadedFile(file) {
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // reader.result looks like "data:image/png;base64,AAAA..." — strip the prefix
+      const base64 = String(reader.result).split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function appendExchangeToCurrentChat(userText, assistantText) {
+  let conv = getCurrentConversation();
+  if (!conv) {
+    startNewChat();
+    conv = getCurrentConversation();
+  }
+  if (!conv.title) conv.title = makeTitle(userText);
+
+  welcomeScreenEl.style.display = "none";
+  conv.messages.push({ role: "user", content: userText });
+  conv.messages.push({ role: "assistant", content: assistantText });
+  saveConversations();
+  renderSidebar();
+  renderMessage("user", userText);
+  renderMessage("assistant", assistantText);
+
+  if (getToken() && currentId) {
+    try {
+      await fetch(`/api/chats/${currentId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ title: conv.title, messages: conv.messages }),
+      });
+    } catch (err) {
+      console.error("Failed to save chat:", err);
+    }
+  }
+}
+
+async function handleUploadedFile(file) {
   const maxSize = 20 * 1024 * 1024;
   if (file.size > maxSize) {
     alert("Please choose a file smaller than 20MB.");
@@ -1587,42 +1639,158 @@ function handleUploadedFile(file) {
   files.unshift({ name: file.name, size: file.size, type: file.type });
   saveRecentFiles(files);
 
-  const isPlainText = file.type === "text/plain";
+  const isImage = file.type.startsWith("image/");
+  const ext = file.name.split(".").pop().toLowerCase();
+  const isDocument = ["pdf", "docx", "txt"].includes(ext);
 
-  if (isPlainText) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const content = String(reader.result).slice(0, 4000);
-      closeUploadModal();
-      sendMessage(
-        `I've uploaded a file called "${file.name}". Here is its content:\n\n${content}\n\nPlease help me understand or work with this.`
-      );
-    };
-    reader.readAsText(file);
-  } else {
-    closeUploadModal();
-    sendMessage(
-      `I've uploaded a file called "${file.name}" (${formatFileSize(file.size)}). Please let me know what kind of help you can give me with documents like this, and what I should tell you about its contents.`
-    );
+  closeUploadModal();
+
+  if (isImage) {
+    // Images go straight to Claude's vision — no text extraction needed.
+    renderTyping();
+    try {
+      const base64 = await fileToBase64(file);
+      const res = await fetch("/api/chat/vision", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          imageBase64: base64,
+          mediaType: file.type,
+          question: `Please look at this image ("${file.name}") and help me with it.`,
+        }),
+      });
+      const data = await res.json();
+      removeTyping();
+
+      if (!res.ok) {
+        renderMessage("assistant", data.error || "Sorry, I couldn't analyze that image.");
+        return;
+      }
+
+      await appendExchangeToCurrentChat(`[Uploaded image: ${file.name}]`, data.reply);
+    } catch (err) {
+      removeTyping();
+      renderMessage("assistant", "Could not reach the server to analyze this image.");
+    }
+    return;
   }
+
+  if (isDocument) {
+    renderTyping();
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: formData,
+      });
+      const data = await res.json();
+      removeTyping();
+
+      if (!res.ok) {
+        renderMessage("assistant", data.error || "Sorry, I couldn't read that file.");
+        return;
+      }
+
+      sendMessage(
+        `I've uploaded a file called "${data.filename}". Here is its content:\n\n${data.text}\n\nPlease help me understand or work with this.`
+      );
+    } catch (err) {
+      removeTyping();
+      renderMessage("assistant", "Could not reach the server to process this file.");
+    }
+    return;
+  }
+
+  sendMessage(
+    `I've uploaded a file called "${file.name}" (${formatFileSize(file.size)}), but I'm not sure FormGuide AI can read this file type yet.`
+  );
 }
 
-// --- AI Search ---
+// --- AI Search (uses a proper modal instead of window.prompt, which is
+// unreliable or blocked in some mobile browser contexts) ---
+const aiSearchModal = document.getElementById("aiSearchModal");
+const closeAiSearchBtn = document.getElementById("closeAiSearchBtn");
+const aiSearchInput = document.getElementById("aiSearchInput");
+const aiSearchSubmitBtn = document.getElementById("aiSearchSubmitBtn");
+
+function openAiSearchModal() {
+  aiSearchModal.classList.add("open");
+  aiSearchInput.value = "";
+  setTimeout(() => aiSearchInput.focus(), 50);
+}
+function closeAiSearchModal() {
+  aiSearchModal.classList.remove("open");
+}
+function submitAiSearch() {
+  const query = aiSearchInput.value.trim();
+  if (!query) return;
+  closeAiSearchModal();
+  sendMessage(query);
+}
+
 if (aiSearchBtn) {
   aiSearchBtn.addEventListener("click", () => {
     sidebarEl.classList.remove("open");
-    const query = prompt("What would you like help finding or understanding?");
-    if (query && query.trim()) {
-      sendMessage(query.trim());
-    }
+    openAiSearchModal();
+  });
+}
+if (closeAiSearchBtn) closeAiSearchBtn.addEventListener("click", closeAiSearchModal);
+if (aiSearchSubmitBtn) aiSearchSubmitBtn.addEventListener("click", submitAiSearch);
+if (aiSearchInput) {
+  aiSearchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submitAiSearch();
   });
 }
 
-// --- Generate Image (not built yet — honest placeholder) ---
+// --- Inline attach / mic buttons on the input bar ---
+const inlineAttachBtn = document.getElementById("inlineAttachBtn");
+const inlineMicBtn = document.getElementById("inlineMicBtn");
+
+if (inlineAttachBtn) {
+  inlineAttachBtn.addEventListener("click", () => openUploadModal());
+}
+if (inlineMicBtn) {
+  inlineMicBtn.addEventListener("click", () => openVoiceChatModal());
+}
+
+// --- Generate Image (OpenAI, via your backend) ---
 if (generateImageBtn) {
-  generateImageBtn.addEventListener("click", () => {
-    alert("Image generation is coming soon to FormGuide AI!");
+  generateImageBtn.addEventListener("click", async () => {
     sidebarEl.classList.remove("open");
+    const description = prompt("Describe the image you'd like FormGuide AI to generate:");
+    if (!description || !description.trim()) return;
+
+    welcomeScreenEl.style.display = "none";
+    renderTyping();
+
+    try {
+      const res = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ prompt: description.trim() }),
+      });
+      const data = await res.json();
+      removeTyping();
+
+      if (!res.ok) {
+        renderMessage("assistant", data.error || "Sorry, I couldn't generate that image.");
+        return;
+      }
+
+      await appendExchangeToCurrentChat(`Generate an image: ${description.trim()}`, data.image);
+    } catch (err) {
+      removeTyping();
+      renderMessage("assistant", "Could not reach the server to generate this image.");
+    }
   });
 }
 
