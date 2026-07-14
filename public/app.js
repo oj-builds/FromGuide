@@ -1384,3 +1384,255 @@ document.querySelectorAll(".hub-view-all[data-view-group]").forEach((btn) => {
     }
   });
 });
+
+// ---------- Action buttons row: Voice Chat / Upload File / AI Search / Generate Image / More Tools ----------
+const voiceChatBtn = document.getElementById("voiceChatBtn");
+const voiceChatModal = document.getElementById("voiceChatModal");
+const closeVoiceChatBtn = document.getElementById("closeVoiceChatBtn");
+const voiceMicBtn = document.getElementById("voiceMicBtn");
+const voiceStatusText = document.getElementById("voiceStatusText");
+const voiceWaveform = document.getElementById("voiceWaveform");
+
+const uploadFileBtn = document.getElementById("uploadFileBtn");
+const uploadModal = document.getElementById("uploadModal");
+const closeUploadBtn = document.getElementById("closeUploadBtn");
+const dropZone = document.getElementById("dropZone");
+const uploadFileInput = document.getElementById("uploadFileInput");
+const recentFilesList = document.getElementById("recentFilesList");
+
+const aiSearchBtn = document.getElementById("aiSearchBtn");
+const generateImageBtn = document.getElementById("generateImageBtn");
+const moreToolsBtn = document.getElementById("moreToolsBtn");
+
+// --- Voice Chat (uses the browser's built-in speech recognition, where supported) ---
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let isListening = false;
+
+if (SpeechRecognitionAPI) {
+  recognition = new SpeechRecognitionAPI();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = "en-US";
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    closeVoiceChatModal();
+    sendMessage(transcript);
+  };
+
+  recognition.onerror = () => {
+    voiceStatusText.textContent = "Sorry, I couldn't hear that. Tap to try again.";
+    stopListeningUI();
+  };
+
+  recognition.onend = () => {
+    stopListeningUI();
+  };
+}
+
+function startListeningUI() {
+  isListening = true;
+  voiceMicBtn.classList.add("listening");
+  voiceWaveform.classList.add("active");
+  voiceStatusText.textContent = "I'm listening…";
+}
+function stopListeningUI() {
+  isListening = false;
+  voiceMicBtn.classList.remove("listening");
+  voiceWaveform.classList.remove("active");
+  voiceStatusText.textContent = "Tap to speak";
+}
+
+function openVoiceChatModal() {
+  voiceChatModal.classList.add("open");
+  stopListeningUI();
+  if (!SpeechRecognitionAPI) {
+    voiceStatusText.textContent = "Voice input isn't supported in this browser. Try Chrome.";
+  }
+}
+function closeVoiceChatModal() {
+  voiceChatModal.classList.remove("open");
+  if (recognition && isListening) recognition.stop();
+  stopListeningUI();
+}
+
+if (voiceChatBtn) {
+  voiceChatBtn.addEventListener("click", () => {
+    openVoiceChatModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+if (closeVoiceChatBtn) closeVoiceChatBtn.addEventListener("click", closeVoiceChatModal);
+
+if (voiceMicBtn) {
+  voiceMicBtn.addEventListener("click", () => {
+    if (!SpeechRecognitionAPI) return;
+    if (isListening) {
+      recognition.stop();
+    } else {
+      try {
+        recognition.start();
+        startListeningUI();
+      } catch (err) {
+        console.error("Speech recognition error:", err);
+      }
+    }
+  });
+}
+
+// --- Upload & Analyze ---
+const RECENT_FILES_KEY = "formguide_recent_files";
+
+function loadRecentFiles() {
+  try {
+    const raw = localStorage.getItem(RECENT_FILES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+function saveRecentFiles(list) {
+  localStorage.setItem(RECENT_FILES_KEY, JSON.stringify(list.slice(0, 10)));
+}
+
+function fileIconFor(name) {
+  const ext = name.split(".").pop().toLowerCase();
+  if (ext === "pdf") return "📕";
+  if (ext === "docx" || ext === "doc") return "📘";
+  if (["png", "jpg", "jpeg"].includes(ext)) return "🖼️";
+  return "📄";
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function renderRecentFiles() {
+  const files = loadRecentFiles();
+  recentFilesList.innerHTML = "";
+  if (files.length === 0) {
+    recentFilesList.innerHTML =
+      '<div style="text-align:center;color:var(--text-dim);padding:16px 0;font-size:12.5px;">No files uploaded yet.</div>';
+    return;
+  }
+  files.forEach((f) => {
+    const item = document.createElement("div");
+    item.className = "recent-file-item";
+    item.innerHTML = `
+      <div class="recent-file-icon">${fileIconFor(f.name)}</div>
+      <div class="recent-file-info">
+        <div class="recent-file-name">${f.name}</div>
+        <div class="recent-file-meta">${formatFileSize(f.size)} • ${f.type || "file"}</div>
+      </div>
+    `;
+    item.addEventListener("click", () => {
+      closeUploadModal();
+      sendMessage(`I previously uploaded a file called "${f.name}". Can you help me with it again?`);
+    });
+    recentFilesList.appendChild(item);
+  });
+}
+
+function openUploadModal() {
+  uploadModal.classList.add("open");
+  renderRecentFiles();
+}
+function closeUploadModal() {
+  uploadModal.classList.remove("open");
+}
+
+if (uploadFileBtn) {
+  uploadFileBtn.addEventListener("click", () => {
+    openUploadModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+if (closeUploadBtn) closeUploadBtn.addEventListener("click", closeUploadModal);
+
+if (dropZone) {
+  dropZone.addEventListener("click", () => uploadFileInput.click());
+  dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("dragover");
+  });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("dragover");
+    if (e.dataTransfer.files.length > 0) {
+      handleUploadedFile(e.dataTransfer.files[0]);
+    }
+  });
+}
+
+if (uploadFileInput) {
+  uploadFileInput.addEventListener("change", () => {
+    if (uploadFileInput.files.length > 0) {
+      handleUploadedFile(uploadFileInput.files[0]);
+    }
+  });
+}
+
+function handleUploadedFile(file) {
+  const maxSize = 20 * 1024 * 1024;
+  if (file.size > maxSize) {
+    alert("Please choose a file smaller than 20MB.");
+    return;
+  }
+
+  const files = loadRecentFiles();
+  files.unshift({ name: file.name, size: file.size, type: file.type });
+  saveRecentFiles(files);
+
+  const isPlainText = file.type === "text/plain";
+
+  if (isPlainText) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = String(reader.result).slice(0, 4000);
+      closeUploadModal();
+      sendMessage(
+        `I've uploaded a file called "${file.name}". Here is its content:\n\n${content}\n\nPlease help me understand or work with this.`
+      );
+    };
+    reader.readAsText(file);
+  } else {
+    closeUploadModal();
+    sendMessage(
+      `I've uploaded a file called "${file.name}" (${formatFileSize(file.size)}). Please let me know what kind of help you can give me with documents like this, and what I should tell you about its contents.`
+    );
+  }
+}
+
+// --- AI Search ---
+if (aiSearchBtn) {
+  aiSearchBtn.addEventListener("click", () => {
+    sidebarEl.classList.remove("open");
+    const query = prompt("What would you like help finding or understanding?");
+    if (query && query.trim()) {
+      sendMessage(query.trim());
+    }
+  });
+}
+
+// --- Generate Image (not built yet — honest placeholder) ---
+if (generateImageBtn) {
+  generateImageBtn.addEventListener("click", () => {
+    alert("Image generation is coming soon to FormGuide AI!");
+    sidebarEl.classList.remove("open");
+  });
+}
+
+// --- More Tools (opens sidebar's AI Tools section) ---
+if (moreToolsBtn) {
+  moreToolsBtn.addEventListener("click", () => {
+    sidebarEl.classList.add("open");
+    const label = Array.from(document.querySelectorAll(".sidebar-section-label")).find(
+      (el) => el.textContent.trim() === "AI Tools"
+    );
+    if (label) label.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+}
