@@ -269,6 +269,24 @@ app.get("/api/me", authenticate, async (req, res) => {
   }
 });
 
+app.delete("/api/user/account", authenticate, async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    await Promise.all([
+      Chat.deleteMany({ user: userId }),
+      Memory.deleteOne({ user: userId }),
+      Notification.deleteMany({ user: userId }),
+      User.findByIdAndDelete(userId),
+    ]);
+
+    res.json({ success: true, message: "Your account and all associated data have been deleted." });
+  } catch (err) {
+    console.error("Delete account error:", err);
+    res.status(500).json({ error: "Could not delete your account. Please try again." });
+  }
+});
+
 app.patch("/api/user/phone", authenticate, async (req, res) => {
   try {
     const { phone } = req.body;
@@ -515,6 +533,12 @@ app.post("/api/chat/vision", authenticate, async (req, res) => {
 
 // ---------- IMAGE GENERATION (OpenAI) ----------
 
+const DAILY_IMAGE_LIMIT = 5;
+
+function todayString() {
+  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+}
+
 app.post("/api/generate-image", authenticate, async (req, res) => {
   try {
     const { prompt } = req.body;
@@ -525,6 +549,21 @@ app.post("/api/generate-image", authenticate, async (req, res) => {
     if (!OPENAI_API_KEY) {
       return res.status(500).json({
         error: "Image generation isn't configured yet. Add OPENAI_API_KEY to your .env file.",
+      });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    const today = todayString();
+    if (user.imageGenDate !== today) {
+      user.imageGenDate = today;
+      user.imageGenCount = 0;
+    }
+
+    if (user.imageGenCount >= DAILY_IMAGE_LIMIT) {
+      return res.status(429).json({
+        error: `You've reached today's limit of ${DAILY_IMAGE_LIMIT} generated images. Please try again tomorrow.`,
       });
     }
 
@@ -555,7 +594,13 @@ app.post("/api/generate-image", authenticate, async (req, res) => {
       return res.status(500).json({ error: "No image was returned." });
     }
 
-    res.json({ image: `data:image/png;base64,${b64}` });
+    user.imageGenCount += 1;
+    await user.save();
+
+    res.json({
+      image: `data:image/png;base64,${b64}`,
+      remaining: DAILY_IMAGE_LIMIT - user.imageGenCount,
+    });
   } catch (err) {
     console.error("Image generation error:", err);
     res.status(500).json({ error: "Could not generate this image. Please try again." });
