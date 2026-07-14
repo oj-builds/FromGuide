@@ -1011,8 +1011,21 @@ const notificationsModal = document.getElementById("notificationsModal");
 const closeNotificationsBtn = document.getElementById("closeNotificationsBtn");
 const markAllReadBtn = document.getElementById("markAllReadBtn");
 const notifBadge = document.getElementById("notifBadge");
+const topNotifBadge = document.getElementById("topNotifBadge");
 const notificationsList = document.getElementById("notificationsList");
 const notificationsEmpty = document.getElementById("notificationsEmpty");
+
+function setNotifBadge(count) {
+  [notifBadge, topNotifBadge].forEach((el) => {
+    if (!el) return;
+    if (count > 0) {
+      el.textContent = count;
+      el.style.display = "flex";
+    } else {
+      el.style.display = "none";
+    }
+  });
+}
 
 function timeAgo(dateStr) {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -1027,7 +1040,7 @@ async function loadNotifications() {
     notificationsList.innerHTML = "";
     notificationsEmpty.style.display = "block";
     notificationsEmpty.textContent = "Log in to see your notifications.";
-    notifBadge.style.display = "none";
+    setNotifBadge(0);
     return;
   }
 
@@ -1039,12 +1052,7 @@ async function loadNotifications() {
     const notifications = data.notifications || [];
 
     const unreadCount = notifications.filter((n) => !n.read).length;
-    if (unreadCount > 0) {
-      notifBadge.textContent = unreadCount;
-      notifBadge.style.display = "flex";
-    } else {
-      notifBadge.style.display = "none";
-    }
+    setNotifBadge(unreadCount);
 
     if (notifications.length === 0) {
       notificationsList.innerHTML = "";
@@ -1084,12 +1092,7 @@ async function markNotificationRead(id, itemEl) {
     });
     itemEl.classList.remove("unread");
     const unreadLeft = document.querySelectorAll(".notif-item.unread").length;
-    if (unreadLeft > 0) {
-      notifBadge.textContent = unreadLeft;
-      notifBadge.style.display = "flex";
-    } else {
-      notifBadge.style.display = "none";
-    }
+    setNotifBadge(unreadLeft);
   } catch (err) {}
 }
 
@@ -1393,12 +1396,7 @@ document.querySelectorAll(".hub-view-all[data-view-group]").forEach((btn) => {
 });
 
 // ---------- Action buttons row: Voice Chat / Upload File / AI Search / Generate Image / More Tools ----------
-const voiceChatBtn = document.getElementById("voiceChatBtn");
-const voiceChatModal = document.getElementById("voiceChatModal");
-const closeVoiceChatBtn = document.getElementById("closeVoiceChatBtn");
-const voiceMicBtn = document.getElementById("voiceMicBtn");
-const voiceStatusText = document.getElementById("voiceStatusText");
-const voiceWaveform = document.getElementById("voiceWaveform");
+const voiceChatBtn = document.getElementById("voiceChatBtn"); // now labeled "Voice Note"
 
 const uploadFileBtn = document.getElementById("uploadFileBtn");
 const uploadModal = document.getElementById("uploadModal");
@@ -1411,80 +1409,127 @@ const aiSearchBtn = document.getElementById("aiSearchBtn");
 const generateImageBtn = document.getElementById("generateImageBtn");
 const moreToolsBtn = document.getElementById("moreToolsBtn");
 
-// --- Voice Chat (uses the browser's built-in speech recognition, where supported) ---
-const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-let isListening = false;
+// --- Voice Notes (WhatsApp-style press-and-hold, transcribed via OpenAI Whisper —
+// handles Igbo, English, and mixing between them far better than browser speech recognition) ---
+const recordingIndicator = document.getElementById("recordingIndicator");
+const recordingTimerEl = document.getElementById("recordingTimer");
 
-if (SpeechRecognitionAPI) {
-  recognition = new SpeechRecognitionAPI();
-  recognition.continuous = false;
-  recognition.interimResults = false;
-  recognition.lang = "en-US";
+let mediaRecorder = null;
+let audioChunks = [];
+let recordingStream = null;
+let recordingTimerInterval = null;
+let recordingSeconds = 0;
+let isRecording = false;
 
-  recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    closeVoiceChatModal();
-    sendMessage(transcript);
-  };
-
-  recognition.onerror = () => {
-    voiceStatusText.textContent = "Sorry, I couldn't hear that. Tap to try again.";
-    stopListeningUI();
-  };
-
-  recognition.onend = () => {
-    stopListeningUI();
-  };
+function showRecordingIndicator() {
+  recordingSeconds = 0;
+  recordingTimerEl.textContent = "0:00";
+  recordingIndicator.classList.add("active");
+  recordingTimerInterval = setInterval(() => {
+    recordingSeconds += 1;
+    const mins = Math.floor(recordingSeconds / 60);
+    const secs = String(recordingSeconds % 60).padStart(2, "0");
+    recordingTimerEl.textContent = `${mins}:${secs}`;
+  }, 1000);
+}
+function hideRecordingIndicator() {
+  clearInterval(recordingTimerInterval);
+  recordingIndicator.classList.remove("active");
 }
 
-function startListeningUI() {
-  isListening = true;
-  voiceMicBtn.classList.add("listening");
-  voiceWaveform.classList.add("active");
-  voiceStatusText.textContent = "I'm listening…";
-}
-function stopListeningUI() {
-  isListening = false;
-  voiceMicBtn.classList.remove("listening");
-  voiceWaveform.classList.remove("active");
-  voiceStatusText.textContent = "Tap to speak";
-}
-
-function openVoiceChatModal() {
-  voiceChatModal.classList.add("open");
-  stopListeningUI();
-  if (!SpeechRecognitionAPI) {
-    voiceStatusText.textContent = "Voice input isn't supported in this browser. Try Chrome.";
+async function startRecording() {
+  if (isRecording) return;
+  try {
+    recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err) {
+    alert("Microphone access is needed for voice notes. Please allow microphone permission and try again.");
+    return;
   }
-}
-function closeVoiceChatModal() {
-  voiceChatModal.classList.remove("open");
-  if (recognition && isListening) recognition.stop();
-  stopListeningUI();
+
+  audioChunks = [];
+  mediaRecorder = new MediaRecorder(recordingStream);
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) audioChunks.push(e.data);
+  };
+  mediaRecorder.start();
+  isRecording = true;
+  showRecordingIndicator();
 }
 
-if (voiceChatBtn) {
-  voiceChatBtn.addEventListener("click", () => {
-    openVoiceChatModal();
-    sidebarEl.classList.remove("open");
-  });
-}
-if (closeVoiceChatBtn) closeVoiceChatBtn.addEventListener("click", closeVoiceChatModal);
+function stopRecordingAndSend() {
+  if (!isRecording || !mediaRecorder) return;
+  isRecording = false;
 
-if (voiceMicBtn) {
-  voiceMicBtn.addEventListener("click", () => {
-    if (!SpeechRecognitionAPI) return;
-    if (isListening) {
-      recognition.stop();
-    } else {
-      try {
-        recognition.start();
-        startListeningUI();
-      } catch (err) {
-        console.error("Speech recognition error:", err);
+  mediaRecorder.onstop = async () => {
+    hideRecordingIndicator();
+    recordingStream.getTracks().forEach((t) => t.stop());
+
+    const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+    if (audioBlob.size < 800) return; // too short — probably an accidental tap
+
+    welcomeScreenEl.style.display = "none";
+    renderTyping();
+
+    try {
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "voice-note.webm");
+
+      const res = await fetch("/api/transcribe", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: formData,
+      });
+      const data = await res.json();
+      removeTyping();
+
+      if (!res.ok) {
+        renderMessage("assistant", data.error || "Sorry, I couldn't understand that voice note.");
+        return;
       }
+      if (data.text && data.text.trim()) {
+        sendMessage(data.text.trim());
+      } else {
+        renderMessage("assistant", "I couldn't hear anything clearly in that voice note. Please try again.");
+      }
+    } catch (err) {
+      removeTyping();
+      renderMessage("assistant", "Could not reach the server to process your voice note.");
     }
+  };
+
+  mediaRecorder.stop();
+}
+
+function cancelRecording() {
+  if (!isRecording || !mediaRecorder) return;
+  isRecording = false;
+  mediaRecorder.onstop = () => {
+    recordingStream.getTracks().forEach((t) => t.stop());
+  };
+  mediaRecorder.stop();
+  hideRecordingIndicator();
+}
+
+function wireVoiceNoteButton(el) {
+  if (!el) return;
+  el.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    startRecording();
+  });
+  el.addEventListener("mouseup", stopRecordingAndSend);
+  el.addEventListener("mouseleave", () => {
+    if (isRecording) cancelRecording();
+  });
+  el.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    startRecording();
+  });
+  el.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    stopRecordingAndSend();
+  });
+  el.addEventListener("touchcancel", () => {
+    if (isRecording) cancelRecording();
   });
 }
 
@@ -1570,7 +1615,7 @@ if (dropZone) {
     e.preventDefault();
     dropZone.classList.remove("dragover");
     if (e.dataTransfer.files.length > 0) {
-      handleUploadedFile(e.dataTransfer.files[0]);
+      handleUploadedFile(e.dataTransfer.files[0], { allowImages: false });
     }
   });
 }
@@ -1578,7 +1623,7 @@ if (dropZone) {
 if (uploadFileInput) {
   uploadFileInput.addEventListener("change", () => {
     if (uploadFileInput.files.length > 0) {
-      handleUploadedFile(uploadFileInput.files[0]);
+      handleUploadedFile(uploadFileInput.files[0], { allowImages: false });
     }
   });
 }
@@ -1628,10 +1673,18 @@ async function appendExchangeToCurrentChat(userText, assistantText) {
   }
 }
 
-async function handleUploadedFile(file) {
+async function handleUploadedFile(file, options = {}) {
+  const { allowImages = true } = options;
   const maxSize = 20 * 1024 * 1024;
   if (file.size > maxSize) {
     alert("Please choose a file smaller than 20MB.");
+    return;
+  }
+
+  const isImage = file.type.startsWith("image/");
+
+  if (isImage && !allowImages) {
+    alert("This uploader is for documents only. Use the 📎 icon in the message box to send a photo.");
     return;
   }
 
@@ -1639,7 +1692,6 @@ async function handleUploadedFile(file) {
   files.unshift({ name: file.name, size: file.size, type: file.type });
   saveRecentFiles(files);
 
-  const isImage = file.type.startsWith("image/");
   const ext = file.name.split(".").pop().toLowerCase();
   const isDocument = ["pdf", "docx", "txt"].includes(ext);
 
@@ -1751,12 +1803,30 @@ if (aiSearchInput) {
 // --- Inline attach / mic buttons on the input bar ---
 const inlineAttachBtn = document.getElementById("inlineAttachBtn");
 const inlineMicBtn = document.getElementById("inlineMicBtn");
+const photoFileInput = document.getElementById("photoFileInput");
 
-if (inlineAttachBtn) {
-  inlineAttachBtn.addEventListener("click", () => openUploadModal());
+if (inlineAttachBtn && photoFileInput) {
+  inlineAttachBtn.addEventListener("click", () => photoFileInput.click());
 }
-if (inlineMicBtn) {
-  inlineMicBtn.addEventListener("click", () => openVoiceChatModal());
+if (photoFileInput) {
+  photoFileInput.addEventListener("change", () => {
+    if (photoFileInput.files.length > 0) {
+      handleUploadedFile(photoFileInput.files[0], { allowImages: true });
+      photoFileInput.value = "";
+    }
+  });
+}
+
+wireVoiceNoteButton(inlineMicBtn);
+wireVoiceNoteButton(voiceChatBtn); // the "Voice Note" pill in the action row — same press-and-hold behavior
+
+// --- Top bar notification bell (in addition to the one in the sidebar) ---
+const topNotifBtn = document.getElementById("topNotifBtn");
+if (topNotifBtn) {
+  topNotifBtn.addEventListener("click", () => {
+    notificationsModal.classList.add("open");
+    loadNotifications();
+  });
 }
 
 // --- Generate Image (OpenAI, via your backend) ---
