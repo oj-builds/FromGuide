@@ -258,7 +258,7 @@
       </form>
 
       <div class="action-buttons-row">
-        <button class="action-pill" id="voiceChatBtn"><span>🎙️</span> Voice Note</button>
+        <button class="action-pill" id="voiceChatBtn"><span>🎙️</span> Voice Chat</button>
         <button class="action-pill" id="uploadFileBtn"><span>📄</span> Upload File</button>
         <button class="action-pill" id="aiSearchBtn"><span>🔍</span> AI Search</button>
         <button class="action-pill" id="generateImageBtn"><span>🖼️</span> Generate Image</button>
@@ -266,6 +266,23 @@
       </div>
 
       <div class="disclaimer">FormGuide AI can make mistakes. Please verify important information.</div>
+    </div>
+  </div>
+
+  <!-- Chat with Voice (tap-to-talk, full screen — separate from the quick press-and-hold mic icon in the input bar) -->
+  <div id="voiceChatModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeVoiceChatBtn" class="dark-back-btn">←</button>
+      <h2>Chat with Voice</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body voice-body">
+      <div id="voiceWaveform" class="waveform">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <button id="voiceMicBtn" class="voice-mic-btn">🎤</button>
+      <div id="voiceStatusText" class="voice-status">Tap to speak</div>
     </div>
   </div>
 
