@@ -312,6 +312,18 @@ formEl.addEventListener("submit", (e) => {
 // Feature cards on the welcome screen
 document.querySelectorAll(".feature-card").forEach((card) => {
   card.addEventListener("click", () => {
+    if (card.id === "governmentCard") {
+      governmentModal.classList.add("open");
+      return;
+    }
+    if (card.id === "careerCard") {
+      careerModal.classList.add("open");
+      return;
+    }
+    if (card.id === "educationCard") {
+      educationModal.classList.add("open");
+      return;
+    }
     if (card.dataset.openCv === "true") {
       openCvModal();
       return;
@@ -322,6 +334,44 @@ document.querySelectorAll(".feature-card").forEach((card) => {
     }
     if (card.dataset.focusOnly === "true") {
       inputEl.focus();
+      return;
+    }
+    sendMessage(card.dataset.text);
+  });
+});
+
+const governmentModal = document.getElementById("governmentModal");
+const closeGovernmentBtn = document.getElementById("closeGovernmentBtn");
+if (closeGovernmentBtn) {
+  closeGovernmentBtn.addEventListener("click", () => governmentModal.classList.remove("open"));
+}
+
+const educationModal = document.getElementById("educationModal");
+const closeEducationBtn = document.getElementById("closeEducationBtn");
+if (closeEducationBtn) {
+  closeEducationBtn.addEventListener("click", () => educationModal.classList.remove("open"));
+}
+
+const careerModal = document.getElementById("careerModal");
+const closeCareerBtn = document.getElementById("closeCareerBtn");
+if (closeCareerBtn) {
+  closeCareerBtn.addEventListener("click", () => careerModal.classList.remove("open"));
+}
+
+// The tool cards inside these category pages (NIN, Passport, CV Builder, etc.)
+// reuse the same .hub-card class and click behavior as before.
+document.querySelectorAll(".hub-card").forEach((card) => {
+  card.addEventListener("click", () => {
+    governmentModal.classList.remove("open");
+    educationModal.classList.remove("open");
+    careerModal.classList.remove("open");
+
+    if (card.dataset.openCv === "true") {
+      openCvModal();
+      return;
+    }
+    if (card.dataset.openInterview === "true") {
+      openInterviewModal();
       return;
     }
     sendMessage(card.dataset.text);
@@ -891,17 +941,6 @@ function updateAccountButton() {
   }
 }
 
-// The owner/founder chip in the top bar is a fixed site-wide credit — it shows the
-// same name to every visitor, and does NOT change based on who happens to be
-// logged in. Set FOUNDER_NAME to your real name; leave it blank to just show
-// "Founder & CEO" with no name attached yet.
-const FOUNDER_NAME = "OJ BOSS BTC";
-(function setOwnerChip() {
-  const ownerNameEl = document.getElementById("ownerName");
-  if (!ownerNameEl) return;
-  ownerNameEl.textContent = FOUNDER_NAME ? `${FOUNDER_NAME} · Founder & CEO` : "Founder & CEO";
-})();
-
 function openAuthModal(mode) {
   authMode = mode;
   authError.style.display = "none";
@@ -1380,13 +1419,6 @@ if (proBannerBtn) {
   });
 }
 
-const topUpgradeBtn = document.getElementById("topUpgradeBtn");
-if (topUpgradeBtn) {
-  topUpgradeBtn.addEventListener("click", () => {
-    alert("FormGuide AI Pro is coming soon!");
-  });
-}
-
 // ---------- Memory Manager ----------
 const MEMORY_KEY = "formguide_memories";
 
@@ -1471,21 +1503,6 @@ if (addMemoryBtn) {
     renderMemoryList();
   });
 }
-
-// ---------- Home screen hub cards (Government / Education / Career grids) ----------
-document.querySelectorAll(".hub-card").forEach((card) => {
-  card.addEventListener("click", () => {
-    if (card.dataset.openCv === "true") {
-      openCvModal();
-      return;
-    }
-    if (card.dataset.openInterview === "true") {
-      openInterviewModal();
-      return;
-    }
-    sendMessage(card.dataset.text);
-  });
-});
 
 // "View all" buttons on each hub section open the sidebar and expand the matching group
 document.querySelectorAll(".hub-view-all[data-view-group]").forEach((btn) => {
