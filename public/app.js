@@ -1481,7 +1481,12 @@ document.querySelectorAll(".hub-view-all[data-view-group]").forEach((btn) => {
 });
 
 // ---------- Action buttons row: Voice Chat / Upload File / AI Search / Generate Image / More Tools ----------
-const voiceChatBtn = document.getElementById("voiceChatBtn"); // now labeled "Voice Note"
+const voiceChatBtn = document.getElementById("voiceChatBtn");
+const voiceChatModal = document.getElementById("voiceChatModal");
+const closeVoiceChatBtn = document.getElementById("closeVoiceChatBtn");
+const voiceMicBtn = document.getElementById("voiceMicBtn");
+const voiceStatusText = document.getElementById("voiceStatusText");
+const voiceWaveform = document.getElementById("voiceWaveform");
 
 const uploadFileBtn = document.getElementById("uploadFileBtn");
 const uploadModal = document.getElementById("uploadModal");
@@ -1493,6 +1498,85 @@ const recentFilesList = document.getElementById("recentFilesList");
 const aiSearchBtn = document.getElementById("aiSearchBtn");
 const generateImageBtn = document.getElementById("generateImageBtn");
 const moreToolsBtn = document.getElementById("moreToolsBtn");
+
+// --- Chat with Voice (tap to talk, full screen — uses the browser's built-in
+// speech recognition where supported; separate from the press-and-hold voice
+// note icon next to the send button) ---
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let isListening = false;
+
+if (SpeechRecognitionAPI) {
+  recognition = new SpeechRecognitionAPI();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = "en-US";
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    closeVoiceChatModal();
+    sendMessage(transcript);
+  };
+
+  recognition.onerror = () => {
+    voiceStatusText.textContent = "Sorry, I couldn't hear that. Tap to try again.";
+    stopListeningUI();
+  };
+
+  recognition.onend = () => {
+    stopListeningUI();
+  };
+}
+
+function startListeningUI() {
+  isListening = true;
+  voiceMicBtn.classList.add("listening");
+  voiceWaveform.classList.add("active");
+  voiceStatusText.textContent = "I'm listening…";
+}
+function stopListeningUI() {
+  isListening = false;
+  voiceMicBtn.classList.remove("listening");
+  voiceWaveform.classList.remove("active");
+  voiceStatusText.textContent = "Tap to speak";
+}
+
+function openVoiceChatModal() {
+  voiceChatModal.classList.add("open");
+  stopListeningUI();
+  if (!SpeechRecognitionAPI) {
+    voiceStatusText.textContent = "Voice input isn't supported in this browser. Try Chrome.";
+  }
+}
+function closeVoiceChatModal() {
+  voiceChatModal.classList.remove("open");
+  if (recognition && isListening) recognition.stop();
+  stopListeningUI();
+}
+
+if (voiceChatBtn) {
+  voiceChatBtn.addEventListener("click", () => {
+    openVoiceChatModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+if (closeVoiceChatBtn) closeVoiceChatBtn.addEventListener("click", closeVoiceChatModal);
+
+if (voiceMicBtn) {
+  voiceMicBtn.addEventListener("click", () => {
+    if (!SpeechRecognitionAPI) return;
+    if (isListening) {
+      recognition.stop();
+    } else {
+      try {
+        recognition.start();
+        startListeningUI();
+      } catch (err) {
+        console.error("Speech recognition error:", err);
+      }
+    }
+  });
+}
 
 // --- Voice Notes (WhatsApp-style press-and-hold, transcribed via OpenAI Whisper —
 // handles Igbo, English, and mixing between them far better than browser speech recognition) ---
@@ -1903,7 +1987,6 @@ if (photoFileInput) {
 }
 
 wireVoiceNoteButton(inlineMicBtn);
-wireVoiceNoteButton(voiceChatBtn); // the "Voice Note" pill in the action row — same press-and-hold behavior
 
 // --- Top bar notification bell (in addition to the one in the sidebar) ---
 const topNotifBtn = document.getElementById("topNotifBtn");
