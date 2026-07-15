@@ -128,19 +128,10 @@
           <div class="topbar-title">FormGuide <span class="accent">AI</span></div>
           <div class="topbar-tag">AI for Government • Careers • Education</div>
         </div>
-        <div class="topbar-right">
-          <button id="topUpgradeBtn" class="topbar-upgrade-btn">⚡ Upgrade to Pro</button>
-          <button id="topNotifBtn" class="icon-btn notif-btn">
-            🔔
-            <span id="topNotifBadge" class="notif-badge" style="display:none;">0</span>
-          </button>
-          <div id="ownerChip" class="owner-chip">
-            <span class="owner-avatar">👤</span>
-            <span class="owner-text">
-              <span id="ownerName" class="owner-name">Founder &amp; CEO</span>
-            </span>
-          </div>
-        </div>
+        <button id="topNotifBtn" class="icon-btn notif-btn" style="margin-left:auto;">
+          🔔
+          <span id="topNotifBadge" class="notif-badge" style="display:none;">0</span>
+        </button>
       </header>
 
       <main id="chat" class="chat">
@@ -154,17 +145,17 @@
           </div>
 
           <div class="feature-grid">
-            <button class="feature-card" id="governmentCard" data-text="Help me apply for NIN.">
+            <button class="feature-card" id="governmentCard">
               <span class="icon">🏛️</span>
               <h3>Government</h3>
               <p>NIN, Passport, BVN, CAC, NYSC and more.</p>
             </button>
-            <button class="feature-card" id="careerCard" data-open-cv="true">
+            <button class="feature-card" id="careerCard">
               <span class="icon">💼</span>
               <h3>Career</h3>
               <p>Create CVs, cover letters and prepare for interviews.</p>
             </button>
-            <button class="feature-card" id="educationCard" data-text="Help me with JAMB admission.">
+            <button class="feature-card" id="educationCard">
               <span class="icon">🎓</span>
               <h3>Education</h3>
               <p>JAMB, WAEC, scholarships and admissions.</p>
@@ -237,6 +228,74 @@
       </div>
       <button id="voiceMicBtn" class="voice-mic-btn">🎤</button>
       <div id="voiceStatusText" class="voice-status">Tap to speak</div>
+    </div>
+  </div>
+
+  <!-- Government tools page -->
+  <div id="governmentModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeGovernmentBtn" class="dark-back-btn">←</button>
+      <h2>🏛 Government Services</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div class="hub-grid">
+        <button class="hub-card" data-text="Help me apply for or renew my NIN and print my slip."><span class="hub-icon">🆔</span><h4>NIN</h4><p>Enrollment & Slip</p></button>
+        <button class="hub-card" data-text="Help me apply for or renew my international passport."><span class="hub-icon">🛂</span><h4>Passport</h4><p>Apply/Renew</p></button>
+        <button class="hub-card" data-text="Help me apply for or renew my driver's licence."><span class="hub-icon">🚗</span><h4>Driver's Licence</h4><p>Apply/Renew</p></button>
+        <button class="hub-card" data-text="Help me with my JAMB registration."><span class="hub-icon">🎓</span><h4>JAMB</h4><p>Registration Help</p></button>
+        <button class="hub-card" data-text="Help me check my WAEC result."><span class="hub-icon">☀️</span><h4>WAEC</h4><p>Result Checker</p></button>
+        <button class="hub-card" data-text="Give me information about NYSC."><span class="hub-icon">🧭</span><h4>NYSC</h4><p>Information</p></button>
+        <button class="hub-card" data-text="Help me register my business with CAC."><span class="hub-icon">🏢</span><h4>CAC</h4><p>Business Registration</p></button>
+        <button class="hub-card" data-text="Give me information about BVN."><span class="hub-icon">🏦</span><h4>BVN</h4><p>Information</p></button>
+        <button class="hub-card" data-text="Help me with a visa application."><span class="hub-icon">🛃</span><h4>Visa</h4><p>Visa Application</p></button>
+        <button class="hub-card" data-text="Give me tax information for Nigeria."><span class="hub-icon">💰</span><h4>Tax</h4><p>Tax Information</p></button>
+        <button class="hub-card" data-text="How do I file a police report in Nigeria?"><span class="hub-icon">🛡️</span><h4>Police Report</h4><p>How to Report</p></button>
+        <button class="hub-card" data-text="Help me register for my voter's card (PVC)."><span class="hub-icon">🗳️</span><h4>Voter's Card</h4><p>Registration</p></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Education tools page -->
+  <div id="educationModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeEducationBtn" class="dark-back-btn">←</button>
+      <h2>🎓 Education Hub</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div class="hub-grid">
+        <button class="hub-card" data-text="Help me practice WAEC past questions."><span class="hub-icon">📘</span><h4>WAEC Practice</h4><p>Past Questions</p></button>
+        <button class="hub-card" data-text="Help me practice JAMB CBT questions."><span class="hub-icon">📝</span><h4>JAMB CBT</h4><p>Practice</p></button>
+        <button class="hub-card" data-text="Help me with Post-UTME preparation."><span class="hub-icon">🎯</span><h4>Post-UTME</h4><p>Practice</p></button>
+        <button class="hub-card" data-text="Act as my AI homework helper and tutor."><span class="hub-icon">📖</span><h4>Homework Helper</h4><p>AI Tutor</p></button>
+        <button class="hub-card" data-text="Help me summarize a document I'll describe to you."><span class="hub-icon">📄</span><h4>Summarize PDF</h4><p>Instant Summary</p></button>
+        <button class="hub-card" data-text="Create smart flashcards to help me study a topic."><span class="hub-icon">🗂️</span><h4>Flashcards</h4><p>Smart Flashcards</p></button>
+        <button class="hub-card" data-text="Quiz me to test my knowledge on a topic."><span class="hub-icon">❓</span><h4>Quiz Mode</h4><p>Test Yourself</p></button>
+        <button class="hub-card" data-text="Help me generate study notes on a topic."><span class="hub-icon">📝</span><h4>Note Generator</h4><p>Create Notes</p></button>
+        <button class="hub-card" data-text="Find scholarships I can apply for."><span class="hub-icon">🔖</span><h4>Scholarships</h4><p>Find & Apply</p></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Career tools page -->
+  <div id="careerModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeCareerBtn" class="dark-back-btn">←</button>
+      <h2>💼 Career Hub</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div class="hub-grid">
+        <button class="hub-card" data-open-cv="true"><span class="hub-icon">📄</span><h4>CV Builder</h4><p>Professional CVs</p></button>
+        <button class="hub-card" data-text="Write me a professional cover letter."><span class="hub-icon">📃</span><h4>Cover Letter</h4><p>AI Generated</p></button>
+        <button class="hub-card" data-open-interview="true"><span class="hub-icon">🎙️</span><h4>Mock Interview</h4><p>Practice</p></button>
+        <button class="hub-card" data-text="Help me search for jobs in Nigeria."><span class="hub-icon">🔍</span><h4>Job Search</h4><p>Find Jobs</p></button>
+        <button class="hub-card" data-text="Help me optimize my LinkedIn profile."><span class="hub-icon">🔗</span><h4>LinkedIn Builder</h4><p>Optimize Profile</p></button>
+        <button class="hub-card" data-text="Help me check typical salary ranges for my role in Nigeria."><span class="hub-icon">🧮</span><h4>Salary Checker</h4><p>Know Your Worth</p></button>
+        <button class="hub-card" data-text="Analyze my skills and help me find gaps I should work on."><span class="hub-icon">📊</span><h4>Skill Analysis</h4><p>Find Your Gaps</p></button>
+        <button class="hub-card" data-text="Help me create a career roadmap to plan my future."><span class="hub-icon">🗺️</span><h4>Career Roadmap</h4><p>Plan Your Future</p></button>
+      </div>
     </div>
   </div>
 
