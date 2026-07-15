@@ -305,8 +305,7 @@ body {
 .owner-name { font-size: 11.5px; font-weight: 700; color: var(--text); white-space: nowrap; }
 
 @media (max-width: 640px) {
-  .topbar-tag { display: none; }
-  .topbar-upgrade-btn span { display: none; }
+  .topbar-upgrade-btn { display: none; }
   .owner-text { display: none; }
 }
 
