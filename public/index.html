@@ -36,43 +36,12 @@
       <div class="nav-divider"></div>
       <div class="sidebar-section-label">AI Tools</div>
 
-      <div class="nav-group" id="groupEducation">
-        <button class="nav-group-header">
-          <span class="nav-item-left">🎓 Education</span>
-          <span class="nav-group-arrow">▶</span>
-        </button>
-        <div class="nav-subitems">
-          <button class="nav-subitem" data-text="Help me practice WAEC past questions.">WAEC Practice</button>
-          <button class="nav-subitem" data-text="Help me practice JAMB CBT questions.">JAMB CBT Practice</button>
-          <button class="nav-subitem" data-text="Help me with Post-UTME preparation.">Post-UTME Practice</button>
-          <button class="nav-subitem" data-text="Act as my AI homework helper.">Homework Helper</button>
-        </div>
-      </div>
-
-      <div class="nav-group" id="groupCareer">
-        <button class="nav-group-header">
-          <span class="nav-item-left">💼 Career</span>
-          <span class="nav-group-arrow">▶</span>
-        </button>
-        <div class="nav-subitems">
-          <button class="nav-subitem" id="sidebarCvBtn">CV Builder</button>
-          <button class="nav-subitem" data-text="Write me a professional cover letter.">Cover Letter</button>
-          <button class="nav-subitem" id="sidebarInterviewBtn">Mock Interview</button>
-          <button class="nav-subitem" data-text="Help me search for jobs in Nigeria.">Job Search</button>
-        </div>
-      </div>
-
-      <div class="nav-group" id="groupGovernment">
-        <button class="nav-group-header">
-          <span class="nav-item-left">🏛 Government</span>
-          <span class="nav-group-arrow">▶</span>
-        </button>
-        <div class="nav-subitems">
-          <button class="nav-subitem" id="sidebarGovBtn">Government Hub</button>
-          <button class="nav-subitem" data-text="Help me apply for or renew my NIN.">NIN Enrollment & Slip</button>
-          <button class="nav-subitem" data-text="Help me apply for or renew my passport.">Passport Apply/Renew</button>
-          <button class="nav-subitem" data-text="Help me with my JAMB registration.">JAMB Registration</button>
-        </div>
+      <div class="nav-section">
+        <button class="nav-item" id="navEducation">🎓 Education</button>
+        <button class="nav-item" id="navCareer">💼 Career</button>
+        <button class="nav-item" id="navGovernment">🏛 Government</button>
+        <button class="nav-item" id="navInterview">🎙️ Interview Practice</button>
+        <button class="nav-item" id="navJourney">🎯 My Journey</button>
       </div>
 
       <div class="nav-group" id="groupDocuments">
@@ -104,11 +73,6 @@
       <div class="sidebar-section-label">Recent conversations</div>
       <div id="chatList" class="chat-list"></div>
 
-      <div class="pro-banner" id="proBanner">
-        <div class="pro-banner-title">⚡ FormGuide AI Pro</div>
-        <div class="pro-banner-sub">Unlock all premium features</div>
-      </div>
-
       <div class="sidebar-footer">
         <button id="notificationsBtn" class="upgrade-btn notif-btn">
           🔔 Notifications
@@ -132,6 +96,9 @@
           🔔
           <span id="topNotifBadge" class="notif-badge" style="display:none;">0</span>
         </button>
+        <div id="ownerChip" class="owner-chip" style="display:none;">
+          <span id="ownerName" class="owner-name">Founder &amp; CEO</span>
+        </div>
       </header>
 
       <main id="chat" class="chat">
@@ -142,49 +109,6 @@
               <p>Your personal AI assistant for government services, careers and education.</p>
             </div>
             <div class="welcome-illustration">🏛️</div>
-          </div>
-
-          <div class="feature-grid">
-            <button class="feature-card" id="governmentCard">
-              <span class="icon">🏛️</span>
-              <h3>Government</h3>
-              <p>NIN, Passport, BVN, CAC, NYSC and more.</p>
-            </button>
-            <button class="feature-card" id="careerCard">
-              <span class="icon">💼</span>
-              <h3>Career</h3>
-              <p>Create CVs, cover letters and prepare for interviews.</p>
-            </button>
-            <button class="feature-card" id="educationCard">
-              <span class="icon">🎓</span>
-              <h3>Education</h3>
-              <p>JAMB, WAEC, scholarships and admissions.</p>
-            </button>
-            <button class="feature-card" id="documentsCard" data-text="Help me understand official documents.">
-              <span class="icon">📄</span>
-              <h3>Documents</h3>
-              <p>Understand official forms and required documents.</p>
-            </button>
-            <button class="feature-card" id="interviewCard" data-open-interview="true">
-              <span class="icon">🎙️</span>
-              <h3>Interview Practice</h3>
-              <p>Practice interview questions and get AI feedback.</p>
-            </button>
-            <button class="feature-card" id="journeyCard" data-text="Create a learning roadmap for me.">
-              <span class="icon">🎯</span>
-              <h3>My Journey</h3>
-              <p>Get step-by-step plans and track your progress.</p>
-            </button>
-            <button class="feature-card" id="scholarshipCard" data-text="Find scholarships I can apply for.">
-              <span class="icon">🔖</span>
-              <h3>Scholarships</h3>
-              <p>Find and apply for scholarships easily.</p>
-            </button>
-            <button class="feature-card" id="askAnythingCard" data-focus-only="true">
-              <span class="icon">💬</span>
-              <h3>Ask Anything</h3>
-              <p>Ask any question and get instant AI answers.</p>
-            </button>
           </div>
         </div>
 
