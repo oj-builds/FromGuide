@@ -883,10 +883,14 @@ function clearSession() {
 
 function updateAccountButton() {
   const user = getStoredUser();
+  const ownerNameEl = document.getElementById("ownerName");
+
   if (user) {
     accountBtn.innerHTML = `👤 ${user.name} <span class="chevron">⌄</span>`;
+    if (ownerNameEl) ownerNameEl.textContent = `${user.name} · Founder & CEO`;
   } else {
     accountBtn.innerHTML = `👤 Guest User <span class="chevron">⌄</span>`;
+    if (ownerNameEl) ownerNameEl.textContent = "Founder & CEO";
   }
 }
 
@@ -1365,6 +1369,13 @@ if (proBannerBtn) {
   proBannerBtn.addEventListener("click", () => {
     alert("FormGuide AI Pro is coming soon!");
     sidebarEl.classList.remove("open");
+  });
+}
+
+const topUpgradeBtn = document.getElementById("topUpgradeBtn");
+if (topUpgradeBtn) {
+  topUpgradeBtn.addEventListener("click", () => {
+    alert("FormGuide AI Pro is coming soon!");
   });
 }
 
