@@ -305,8 +305,7 @@ body {
 .owner-name { font-size: 11.5px; font-weight: 700; color: var(--text); white-space: nowrap; }
 
 @media (max-width: 640px) {
-  .topbar-upgrade-btn { display: none; }
-  .owner-chip { display: none; }
+  .topbar-upgrade-btn span:not(:first-child) { display: none; }
 }
 
 .chat {
