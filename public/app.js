@@ -883,16 +883,24 @@ function clearSession() {
 
 function updateAccountButton() {
   const user = getStoredUser();
-  const ownerNameEl = document.getElementById("ownerName");
 
   if (user) {
     accountBtn.innerHTML = `👤 ${user.name} <span class="chevron">⌄</span>`;
-    if (ownerNameEl) ownerNameEl.textContent = `${user.name} · Founder & CEO`;
   } else {
     accountBtn.innerHTML = `👤 Guest User <span class="chevron">⌄</span>`;
-    if (ownerNameEl) ownerNameEl.textContent = "Founder & CEO";
   }
 }
+
+// The owner/founder chip in the top bar is a fixed site-wide credit — it shows the
+// same name to every visitor, and does NOT change based on who happens to be
+// logged in. Set FOUNDER_NAME to your real name; leave it blank to just show
+// "Founder & CEO" with no name attached yet.
+const FOUNDER_NAME = "OJ BOSS BTC";
+(function setOwnerChip() {
+  const ownerNameEl = document.getElementById("ownerName");
+  if (!ownerNameEl) return;
+  ownerNameEl.textContent = FOUNDER_NAME ? `${FOUNDER_NAME} · Founder & CEO` : "Founder & CEO";
+})();
 
 function openAuthModal(mode) {
   authMode = mode;
