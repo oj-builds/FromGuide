@@ -306,7 +306,7 @@ body {
 
 @media (max-width: 640px) {
   .topbar-upgrade-btn { display: none; }
-  .owner-text { display: none; }
+  .owner-chip { display: none; }
 }
 
 .chat {
