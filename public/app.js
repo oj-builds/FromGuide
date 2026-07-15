@@ -310,36 +310,6 @@ formEl.addEventListener("submit", (e) => {
 });
 
 // Feature cards on the welcome screen
-document.querySelectorAll(".feature-card").forEach((card) => {
-  card.addEventListener("click", () => {
-    if (card.id === "governmentCard") {
-      governmentModal.classList.add("open");
-      return;
-    }
-    if (card.id === "careerCard") {
-      careerModal.classList.add("open");
-      return;
-    }
-    if (card.id === "educationCard") {
-      educationModal.classList.add("open");
-      return;
-    }
-    if (card.dataset.openCv === "true") {
-      openCvModal();
-      return;
-    }
-    if (card.dataset.openInterview === "true") {
-      openInterviewModal();
-      return;
-    }
-    if (card.dataset.focusOnly === "true") {
-      inputEl.focus();
-      return;
-    }
-    sendMessage(card.dataset.text);
-  });
-});
-
 const governmentModal = document.getElementById("governmentModal");
 const closeGovernmentBtn = document.getElementById("closeGovernmentBtn");
 if (closeGovernmentBtn) {
@@ -359,7 +329,6 @@ if (closeCareerBtn) {
 }
 
 // The tool cards inside these category pages (NIN, Passport, CV Builder, etc.)
-// reuse the same .hub-card class and click behavior as before.
 document.querySelectorAll(".hub-card").forEach((card) => {
   card.addEventListener("click", () => {
     governmentModal.classList.remove("open");
@@ -378,17 +347,25 @@ document.querySelectorAll(".hub-card").forEach((card) => {
   });
 });
 
-// Sidebar quick-tool shortcuts
-document.getElementById("sidebarCvBtn").addEventListener("click", () => {
-  openCvModal();
+// Sidebar: Government / Career / Education each open their own dedicated page
+document.getElementById("navGovernment").addEventListener("click", () => {
+  governmentModal.classList.add("open");
   sidebarEl.classList.remove("open");
 });
-document.getElementById("sidebarInterviewBtn").addEventListener("click", () => {
+document.getElementById("navCareer").addEventListener("click", () => {
+  careerModal.classList.add("open");
+  sidebarEl.classList.remove("open");
+});
+document.getElementById("navEducation").addEventListener("click", () => {
+  educationModal.classList.add("open");
+  sidebarEl.classList.remove("open");
+});
+document.getElementById("navInterview").addEventListener("click", () => {
   openInterviewModal();
   sidebarEl.classList.remove("open");
 });
-document.getElementById("sidebarGovBtn").addEventListener("click", () => {
-  sendMessage("Help me apply for NIN.");
+document.getElementById("navJourney").addEventListener("click", () => {
+  sendMessage("Create a step-by-step learning/career roadmap for me and help me track my progress.");
   sidebarEl.classList.remove("open");
 });
 
@@ -938,6 +915,29 @@ function updateAccountButton() {
     accountBtn.innerHTML = `👤 ${user.name} <span class="chevron">⌄</span>`;
   } else {
     accountBtn.innerHTML = `👤 Guest User <span class="chevron">⌄</span>`;
+  }
+
+  applyOwnerVisibility();
+}
+
+// The name chip in the top bar is ONLY ever visible to you — never to regular
+// users, regardless of who else logs in. Set OWNER_EMAIL to the exact email
+// your account logs in with, and FOUNDER_NAME to your real name. Everyone
+// else, including guests, only ever sees the bell.
+const OWNER_EMAIL = "maninpeace919@gmail.com";
+const FOUNDER_NAME = "OJ BOSS BTC";
+
+function applyOwnerVisibility() {
+  const user = getStoredUser();
+  const isOwner = !!(OWNER_EMAIL && user && user.email && user.email.toLowerCase() === OWNER_EMAIL.toLowerCase());
+
+  const chip = document.getElementById("ownerChip");
+  const ownerNameEl = document.getElementById("ownerName");
+  if (!chip) return;
+
+  chip.style.display = isOwner ? "block" : "none";
+  if (ownerNameEl && isOwner) {
+    ownerNameEl.textContent = FOUNDER_NAME ? `${FOUNDER_NAME} · Founder & CEO` : "Founder & CEO";
   }
 }
 
