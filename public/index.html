@@ -128,10 +128,19 @@
           <div class="topbar-title">FormGuide <span class="accent">AI</span></div>
           <div class="topbar-tag">AI for Government • Careers • Education</div>
         </div>
-        <button id="topNotifBtn" class="icon-btn notif-btn" style="margin-left:auto;">
-          🔔
-          <span id="topNotifBadge" class="notif-badge" style="display:none;">0</span>
-        </button>
+        <div class="topbar-right">
+          <button id="topUpgradeBtn" class="topbar-upgrade-btn">⚡ Upgrade to Pro</button>
+          <button id="topNotifBtn" class="icon-btn notif-btn">
+            🔔
+            <span id="topNotifBadge" class="notif-badge" style="display:none;">0</span>
+          </button>
+          <div id="ownerChip" class="owner-chip">
+            <span class="owner-avatar">👤</span>
+            <span class="owner-text">
+              <span id="ownerName" class="owner-name">Founder &amp; CEO</span>
+            </span>
+          </div>
+        </div>
       </header>
 
       <main id="chat" class="chat">
@@ -251,10 +260,10 @@
       </div>
 
       <form id="chat-form" class="input-bar">
-        <input id="chat-input" type="text" placeholder="Ask about any form…" autocomplete="off" />
         <button type="button" id="inlineAttachBtn" class="input-icon-btn" title="Attach photo">📎</button>
+        <input id="chat-input" type="text" placeholder="Ask about any form…" autocomplete="off" />
         <button type="button" id="inlineMicBtn" class="input-icon-btn" title="Hold to record a voice note">🎙️</button>
-        <button type="submit" class="input-send-btn" title="Send">➤</button>
+        <button type="submit" class="input-send-btn" title="Send">↑</button>
       </form>
 
       <div class="action-buttons-row">
