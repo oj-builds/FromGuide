@@ -1512,12 +1512,44 @@ if (studioMoreToolsCard) {
   });
 }
 
+const templatesModal = document.getElementById("templatesModal");
+const closeTemplatesBtn = document.getElementById("closeTemplatesBtn");
+
 if (navTemplatesBtn) {
   navTemplatesBtn.addEventListener("click", () => {
-    alert("Templates are coming soon!");
+    templatesModal.classList.add("open");
     sidebarEl.classList.remove("open");
   });
 }
+if (closeTemplatesBtn) {
+  closeTemplatesBtn.addEventListener("click", () => templatesModal.classList.remove("open"));
+}
+
+document.querySelectorAll(".templates-tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".templates-tab").forEach((t) => t.classList.remove("active"));
+    tab.classList.add("active");
+    const category = tab.dataset.category;
+    document.querySelectorAll(".template-card").forEach((card) => {
+      card.style.display = category === "all" || card.dataset.category === category ? "flex" : "none";
+    });
+  });
+});
+
+document.querySelectorAll(".template-card").forEach((card) => {
+  card.addEventListener("click", () => {
+    templatesModal.classList.remove("open");
+    if (card.dataset.openCv === "true") {
+      openCvModal();
+      return;
+    }
+    if (card.dataset.openInterview === "true") {
+      openInterviewModal();
+      return;
+    }
+    sendMessage(card.dataset.text);
+  });
+});
 
 if (navCommunityBtn) {
   navCommunityBtn.addEventListener("click", () => {
