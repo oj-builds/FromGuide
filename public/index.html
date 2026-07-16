@@ -18,6 +18,11 @@
 
       <button id="newChatBtn" class="new-chat-btn">+ New chat</button>
 
+      <div class="pro-banner" id="sidebarProBanner">
+        <div class="pro-banner-title">⚡ FormGuide AI Pro</div>
+        <div class="pro-banner-sub">Unlock all premium features</div>
+      </div>
+
       <input
         id="chat-search"
         type="text"
@@ -116,7 +121,13 @@
       </main>
 
       <div id="recordingIndicator" class="recording-indicator">
-        🔴 Recording… <span id="recordingTimer">0:00</span> — release to send
+        <span class="recording-cancel-hint">🗑️</span>
+        <span class="recording-dot"></span>
+        <span id="recordingTimer" class="recording-timer">0:00</span>
+        <span class="recording-wave">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </span>
+        <span class="recording-hint">Slide away to cancel</span>
       </div>
 
       <form id="chat-form" class="input-bar">
@@ -125,6 +136,12 @@
         <button type="button" id="inlineMicBtn" class="input-icon-btn" title="Hold to record a voice note">🎙️</button>
         <button type="submit" class="input-send-btn" title="Send">↑</button>
       </form>
+
+      <div class="chatgpt-suggestions" id="chatgptSuggestions">
+        <button class="suggestion-row" id="suggestGovernment"><span>🏛️</span> Explore government services</button>
+        <button class="suggestion-row" id="suggestImage"><span>🖼️</span> Create an image</button>
+        <button class="suggestion-row" id="suggestSearch"><span>🔍</span> Ask me anything</button>
+      </div>
 
       <div class="action-buttons-row">
         <button class="action-pill" id="voiceChatBtn"><span>🎙️</span> Voice Chat</button>
