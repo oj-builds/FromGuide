@@ -18,18 +18,6 @@
 
       <button id="newChatBtn" class="new-chat-btn">+ New chat</button>
 
-      <div class="pro-banner" id="sidebarProBanner">
-        <div class="pro-banner-title">⚡ FormGuide AI Pro</div>
-        <div class="pro-banner-sub">Unlock all premium features</div>
-      </div>
-
-      <input
-        id="chat-search"
-        type="text"
-        placeholder="Search chats..."
-        class="chat-search"
-      />
-
       <div class="nav-section">
         <button class="nav-item active" id="navHome">🏠 Home</button>
         <button class="nav-item" id="navChatLink">💬 Chat</button>
@@ -79,6 +67,10 @@
       <div id="chatList" class="chat-list"></div>
 
       <div class="sidebar-footer">
+        <div class="pro-banner" id="sidebarProBanner">
+          <div class="pro-banner-title">⚡ FormGuide AI Pro</div>
+          <div class="pro-banner-sub">Unlock all premium features</div>
+        </div>
         <button id="notificationsBtn" class="upgrade-btn notif-btn">
           🔔 Notifications
           <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
@@ -215,6 +207,52 @@
         <button class="hub-card" data-text="Quiz me to test my knowledge on a topic."><span class="hub-icon">❓</span><h4>Quiz Mode</h4><p>Test Yourself</p></button>
         <button class="hub-card" data-text="Help me generate study notes on a topic."><span class="hub-icon">📝</span><h4>Note Generator</h4><p>Create Notes</p></button>
         <button class="hub-card" data-text="Find scholarships I can apply for."><span class="hub-icon">🔖</span><h4>Scholarships</h4><p>Find & Apply</p></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Studio dashboard -->
+  <div id="aiStudioModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeAiStudioBtn" class="dark-back-btn">←</button>
+      <h2>🧠 AI Studio</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div class="studio-welcome">
+        <h3 id="studioWelcomeName">Welcome back 👋</h3>
+        <p>Create, explore and build powerful AI tools and content.</p>
+      </div>
+
+      <div class="studio-create-panel">
+        <h4>What do you want to create today?</h4>
+        <p class="studio-create-sub">Choose a tool to get started</p>
+        <div class="studio-create-grid">
+          <button class="studio-create-card" data-text="Help me plan and build a custom AI agent for a specific task."><span class="studio-create-icon">🤖</span><span>AI Agent</span><small>Build smart agents</small></button>
+          <button class="studio-create-card" data-text="Help me design a chatbot for my business."><span class="studio-create-icon">💬</span><span>Chatbot</span><small>AI chat assistant</small></button>
+          <button class="studio-create-card" data-text="Help me write content — a blog post, article, or copy."><span class="studio-create-icon">✍️</span><span>Content Writer</span><small>Blog, articles & more</small></button>
+          <button class="studio-create-card" id="studioImageCard"><span class="studio-create-icon">🖼️</span><span>Image Generator</span><small>Create stunning images</small></button>
+          <button class="studio-create-card" data-text="Tell me about text-to-speech / voiceover options for my content."><span class="studio-create-icon">🎙️</span><span>Voiceover</span><small>Text to speech</small></button>
+          <button class="studio-create-card" id="studioMoreToolsCard"><span class="studio-create-icon">🧩</span><span>More Tools</span><small>All tools in one place</small></button>
+        </div>
+      </div>
+
+      <div class="studio-section-header">
+        <h4>Popular Tools</h4>
+      </div>
+      <div class="studio-popular-grid">
+        <button class="studio-popular-card" data-text="Let's chat — I have a question for you."><span class="studio-popular-icon purple">💬</span><span>AI Chat</span><small>Chat with advanced AI models</small><em class="tag purple">Popular</em></button>
+        <button class="studio-popular-card" id="studioImageCard2"><span class="studio-popular-icon green">🖼️</span><span>AI Image Generator</span><small>Generate stunning images from text</small><em class="tag green">Popular</em></button>
+        <button class="studio-popular-card" data-text="Help me analyze and extract insights from a document I'll describe."><span class="studio-popular-icon red">📄</span><span>AI Document Analyzer</span><small>Analyze PDFs and extract insights</small><em class="tag red">New</em></button>
+        <button class="studio-popular-card" data-text="Tell me about converting text to natural speech."><span class="studio-popular-icon orange">🔊</span><span>AI Voiceover</span><small>Convert text to natural speech</small><em class="tag orange">New</em></button>
+        <button class="studio-popular-card" data-text="Help me write, debug, and improve some code."><span class="studio-popular-icon blue">💻</span><span>AI Code Assistant</span><small>Write, debug & improve code</small><em class="tag blue">Popular</em></button>
+      </div>
+
+      <div class="studio-section-header">
+        <h4>Your Projects</h4>
+      </div>
+      <div id="studioProjectsGrid" class="studio-projects-grid">
+        <!-- Filled in by JS from the user's actual conversations -->
       </div>
     </div>
   </div>
