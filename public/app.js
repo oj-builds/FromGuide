@@ -968,8 +968,8 @@ function updateAccountButton() {
 // users, regardless of who else logs in. Set OWNER_EMAIL to the exact email
 // your account logs in with, and FOUNDER_NAME to your real name. Everyone
 // else, including guests, only ever sees the bell.
-const OWNER_EMAIL = "";
-const FOUNDER_NAME = "";
+const OWNER_EMAIL = "maninpeace919@gmail.com";
+const FOUNDER_NAME = "OJ BOSS BTC";
 
 function applyOwnerVisibility() {
   const user = getStoredUser();
