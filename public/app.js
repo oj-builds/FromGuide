@@ -1,5 +1,14 @@
 const chatEl = document.getElementById("chat");
 const welcomeScreenEl = document.getElementById("welcomeScreen");
+
+function hideSuggestions() {
+  const el = document.getElementById("chatgptSuggestions");
+  if (el) el.style.display = "none";
+}
+function showSuggestions() {
+  const el = document.getElementById("chatgptSuggestions");
+  if (el) el.style.display = "flex";
+}
 const messagesEl = document.getElementById("messages");
 const formEl = document.getElementById("chat-form");
 const inputEl = document.getElementById("chat-input");
@@ -52,18 +61,31 @@ function getCurrentConversation() {
   return conversations.find((c) => c.id === currentId);
 }
 
+let showPinnedOnly = false;
+
 function renderSidebar() {
   chatListEl.innerHTML = "";
-  const search = searchInput.value.toLowerCase();
+  const search = searchInput ? searchInput.value.toLowerCase() : "";
   conversations.sort((a, b) => {
     if (a.pinned === b.pinned) return 0;
     return a.pinned ? -1 : 1;
   });
-  conversations
-    .filter((conv) => {
-      if (!search) return true;
-      return (conv.title || "").toLowerCase().includes(search);
-    })
+
+  const visibleConvs = conversations.filter((conv) => {
+    if (showPinnedOnly && !conv.pinned) return false;
+    if (!search) return true;
+    return (conv.title || "").toLowerCase().includes(search);
+  });
+
+  if (showPinnedOnly && visibleConvs.length === 0) {
+    const empty = document.createElement("div");
+    empty.style.cssText = "padding:16px 8px;color:var(--text-dim);font-size:12.5px;text-align:center;";
+    empty.textContent = "No pinned chats yet. Tap the 📍 icon next to any chat to pin it here.";
+    chatListEl.appendChild(empty);
+    return;
+  }
+
+  visibleConvs
     .forEach((conv) => {
       const item = document.createElement("div");
       item.className = "chat-list-item";
@@ -217,11 +239,11 @@ function renderActiveConversation() {
   const conv = getCurrentConversation();
 
   if (!conv || conv.messages.length === 0) {
-    welcomeScreenEl.style.display = "block";
+    welcomeScreenEl.style.display = "block"; showSuggestions();
     return;
   }
 
-  welcomeScreenEl.style.display = "none";
+  welcomeScreenEl.style.display = "none"; hideSuggestions();
   conv.messages.forEach((m) => renderMessage(m.role, m.content));
 }
 
@@ -255,7 +277,7 @@ async function sendMessage(text) {
 
   if (!conv.title) conv.title = makeTitle(text);
 
-  welcomeScreenEl.style.display = "none";
+  welcomeScreenEl.style.display = "none"; hideSuggestions();
 
   conv.messages.push({ role: "user", content: text });
   saveConversations();
@@ -302,6 +324,28 @@ async function sendMessage(text) {
   } finally {
     loading = false;
   }
+}
+
+// --- Home screen quick suggestions (ChatGPT-style) ---
+const suggestGovernmentBtn = document.getElementById("suggestGovernment");
+const suggestImageBtn = document.getElementById("suggestImage");
+const suggestSearchBtn = document.getElementById("suggestSearch");
+
+if (suggestGovernmentBtn) {
+  suggestGovernmentBtn.addEventListener("click", () => {
+    document.getElementById("governmentModal").classList.add("open");
+  });
+}
+if (suggestImageBtn) {
+  suggestImageBtn.addEventListener("click", () => {
+    const genBtn = document.getElementById("generateImageBtn");
+    if (genBtn) genBtn.click();
+  });
+}
+if (suggestSearchBtn) {
+  suggestSearchBtn.addEventListener("click", () => {
+    inputEl.focus();
+  });
 }
 
 formEl.addEventListener("submit", (e) => {
@@ -924,8 +968,8 @@ function updateAccountButton() {
 // users, regardless of who else logs in. Set OWNER_EMAIL to the exact email
 // your account logs in with, and FOUNDER_NAME to your real name. Everyone
 // else, including guests, only ever sees the bell.
-const OWNER_EMAIL = "maninpeace919@gmail.com";
-const FOUNDER_NAME = "OJ BOSS BTC";
+const OWNER_EMAIL = "";
+const FOUNDER_NAME = "";
 
 function applyOwnerVisibility() {
   const user = getStoredUser();
@@ -1265,7 +1309,7 @@ const navAiStudioBtn = document.getElementById("navAiStudio");
 const navTemplatesBtn = document.getElementById("navTemplates");
 const navCommunityBtn = document.getElementById("navCommunity");
 const navSavedPromptsBtn = document.getElementById("navSavedPrompts");
-const proBannerBtn = document.getElementById("proBanner");
+const proBannerBtn = document.getElementById("sidebarProBanner");
 
 function setActiveNavItem(activeBtn) {
   document.querySelectorAll(".nav-item").forEach((el) => el.classList.remove("active"));
@@ -1275,7 +1319,9 @@ function setActiveNavItem(activeBtn) {
 if (navHomeBtn) {
   navHomeBtn.addEventListener("click", () => {
     setActiveNavItem(navHomeBtn);
-    welcomeScreenEl.style.display = "block";
+    showPinnedOnly = false;
+    renderSidebar();
+    welcomeScreenEl.style.display = "block"; showSuggestions();
     messagesEl.innerHTML = "";
     sidebarEl.classList.remove("open");
   });
@@ -1284,6 +1330,7 @@ if (navHomeBtn) {
 if (navChatLinkBtn) {
   navChatLinkBtn.addEventListener("click", () => {
     setActiveNavItem(navChatLinkBtn);
+    showPinnedOnly = false;
     if (!currentId || !getCurrentConversation()) {
       if (conversations.length > 0) {
         currentId = conversations[0].id;
@@ -1371,8 +1418,9 @@ if (navSearchLinkBtn) {
 if (navPinnedBtn) {
   navPinnedBtn.addEventListener("click", () => {
     setActiveNavItem(navPinnedBtn);
+    showPinnedOnly = true;
     renderSidebar();
-    sidebarEl.classList.remove("open");
+    sidebarEl.classList.add("open");
   });
 }
 
@@ -1384,10 +1432,83 @@ if (navHistoryBtn) {
   });
 }
 
+const aiStudioModal = document.getElementById("aiStudioModal");
+const closeAiStudioBtn = document.getElementById("closeAiStudioBtn");
+
+function renderStudioProjects() {
+  const grid = document.getElementById("studioProjectsGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  const recent = conversations.slice(0, 5);
+  recent.forEach((conv) => {
+    const card = document.createElement("button");
+    card.className = "studio-project-card";
+    const lastMsg = conv.messages.length ? conv.messages[conv.messages.length - 1].content.slice(0, 40) : "No messages yet";
+    card.innerHTML = `
+      <span class="icon">💬</span>
+      <div class="studio-project-title">${conv.title || "New chat"}</div>
+      <div class="studio-project-meta">${lastMsg}</div>
+    `;
+    card.addEventListener("click", () => {
+      currentId = conv.id;
+      renderSidebar();
+      renderActiveConversation();
+      aiStudioModal.classList.remove("open");
+    });
+    grid.appendChild(card);
+  });
+
+  const newCard = document.createElement("button");
+  newCard.className = "studio-project-card new-project";
+  newCard.textContent = "+ New Project";
+  newCard.addEventListener("click", () => {
+    startNewChat();
+    aiStudioModal.classList.remove("open");
+  });
+  grid.appendChild(newCard);
+}
+
+function openAiStudioModal() {
+  const user = getStoredUser();
+  const nameEl = document.getElementById("studioWelcomeName");
+  if (nameEl) nameEl.textContent = user ? `Welcome back, ${user.name} 👋` : "Welcome back 👋";
+  renderStudioProjects();
+  aiStudioModal.classList.add("open");
+}
+
 if (navAiStudioBtn) {
   navAiStudioBtn.addEventListener("click", () => {
-    alert("AI Studio is coming soon!");
+    openAiStudioModal();
     sidebarEl.classList.remove("open");
+  });
+}
+if (closeAiStudioBtn) {
+  closeAiStudioBtn.addEventListener("click", () => aiStudioModal.classList.remove("open"));
+}
+
+document.querySelectorAll(".studio-create-card[data-text], .studio-popular-card[data-text]").forEach((card) => {
+  card.addEventListener("click", () => {
+    aiStudioModal.classList.remove("open");
+    sendMessage(card.dataset.text);
+  });
+});
+
+const studioImageCard = document.getElementById("studioImageCard");
+const studioImageCard2 = document.getElementById("studioImageCard2");
+[studioImageCard, studioImageCard2].forEach((btn) => {
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    aiStudioModal.classList.remove("open");
+    if (generateImageBtn) generateImageBtn.click();
+  });
+});
+
+const studioMoreToolsCard = document.getElementById("studioMoreToolsCard");
+if (studioMoreToolsCard) {
+  studioMoreToolsCard.addEventListener("click", () => {
+    aiStudioModal.classList.remove("open");
+    sidebarEl.classList.add("open");
   });
 }
 
@@ -1672,7 +1793,7 @@ function stopRecordingAndSend() {
     const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
     if (audioBlob.size < 800) return; // too short — probably an accidental tap
 
-    welcomeScreenEl.style.display = "none";
+    welcomeScreenEl.style.display = "none"; hideSuggestions();
     renderTyping();
 
     try {
@@ -1854,7 +1975,7 @@ async function appendExchangeToCurrentChat(userText, assistantText) {
   }
   if (!conv.title) conv.title = makeTitle(userText);
 
-  welcomeScreenEl.style.display = "none";
+  welcomeScreenEl.style.display = "none"; hideSuggestions();
   conv.messages.push({ role: "user", content: userText });
   conv.messages.push({ role: "assistant", content: assistantText });
   saveConversations();
@@ -2040,7 +2161,7 @@ if (generateImageBtn) {
     const description = prompt("Describe the image you'd like FormGuide AI to generate:");
     if (!description || !description.trim()) return;
 
-    welcomeScreenEl.style.display = "none";
+    welcomeScreenEl.style.display = "none"; hideSuggestions();
     renderTyping();
 
     try {
