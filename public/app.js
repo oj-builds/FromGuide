@@ -1767,6 +1767,143 @@ if (plannerGenerateBtn) {
   });
 }
 
+// ---------- Notes & Flashcards ----------
+// Scan (photo -> OCR via vision), upload (doc -> text extraction), or type notes
+// into a scratch textarea, then turn that into a summary or a flashcard set.
+const notesFlashcardsModal = document.getElementById("notesFlashcardsModal");
+const closeNotesFlashcardsBtn = document.getElementById("closeNotesFlashcardsBtn");
+const navNotesFlashcardsBtn = document.getElementById("navNotesFlashcards");
+const notesTextarea = document.getElementById("notesTextarea");
+
+function openNotesFlashcardsModal() {
+  notesTextarea.value = "";
+  notesFlashcardsModal.classList.add("open");
+}
+
+if (navNotesFlashcardsBtn) {
+  navNotesFlashcardsBtn.addEventListener("click", () => {
+    openNotesFlashcardsModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+if (closeNotesFlashcardsBtn) {
+  closeNotesFlashcardsBtn.addEventListener("click", () => notesFlashcardsModal.classList.remove("open"));
+}
+
+const notesScanBtn = document.getElementById("notesScanBtn");
+const notesPhotoInput = document.getElementById("notesPhotoInput");
+if (notesScanBtn && notesPhotoInput) {
+  notesScanBtn.addEventListener("click", () => notesPhotoInput.click());
+  notesPhotoInput.addEventListener("change", async () => {
+    const file = notesPhotoInput.files[0];
+    if (!file) return;
+    notesPhotoInput.value = "";
+
+    const originalPlaceholder = notesTextarea.placeholder;
+    notesTextarea.disabled = true;
+    notesTextarea.placeholder = "Reading your notes…";
+
+    try {
+      const base64 = await fileToBase64(file);
+      const res = await fetch("/api/chat/vision", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          imageBase64: base64,
+          mediaType: file.type,
+          question:
+            "Please read all the handwritten or printed text in this image and transcribe it exactly as clean, typed text. Only return the transcribed text itself, with no extra commentary.",
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Sorry, I couldn't read that image.");
+      } else {
+        const existing = notesTextarea.value.trim();
+        notesTextarea.value = existing ? `${existing}\n\n${data.reply}` : data.reply;
+      }
+    } catch (err) {
+      alert("Could not reach the server to scan this image.");
+    } finally {
+      notesTextarea.disabled = false;
+      notesTextarea.placeholder = originalPlaceholder;
+    }
+  });
+}
+
+const notesUploadBtn = document.getElementById("notesUploadBtn");
+const notesDocInput = document.getElementById("notesDocInput");
+if (notesUploadBtn && notesDocInput) {
+  notesUploadBtn.addEventListener("click", () => notesDocInput.click());
+  notesDocInput.addEventListener("change", async () => {
+    const file = notesDocInput.files[0];
+    if (!file) return;
+    notesDocInput.value = "";
+
+    const originalPlaceholder = notesTextarea.placeholder;
+    notesTextarea.disabled = true;
+    notesTextarea.placeholder = "Reading your document…";
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Sorry, I couldn't read that file.");
+      } else {
+        const existing = notesTextarea.value.trim();
+        notesTextarea.value = existing ? `${existing}\n\n${data.text}` : data.text;
+      }
+    } catch (err) {
+      alert("Could not reach the server to process this file.");
+    } finally {
+      notesTextarea.disabled = false;
+      notesTextarea.placeholder = originalPlaceholder;
+    }
+  });
+}
+
+const notesSummarizeBtn = document.getElementById("notesSummarizeBtn");
+if (notesSummarizeBtn) {
+  notesSummarizeBtn.addEventListener("click", () => {
+    const notes = notesTextarea.value.trim();
+    if (!notes) {
+      alert("Please scan, upload, or type some notes first.");
+      return;
+    }
+    notesFlashcardsModal.classList.remove("open");
+    sendMessage(
+      `Please summarize the following notes clearly, breaking them into key points I can revise from quickly:\n\n${notes}`
+    );
+  });
+}
+
+const notesFlashcardsBtn = document.getElementById("notesFlashcardsBtn");
+if (notesFlashcardsBtn) {
+  notesFlashcardsBtn.addEventListener("click", () => {
+    const notes = notesTextarea.value.trim();
+    if (!notes) {
+      alert("Please scan, upload, or type some notes first.");
+      return;
+    }
+    notesFlashcardsModal.classList.remove("open");
+    sendMessage(
+      `Please turn the following notes into a set of flashcards. Format each one clearly as "Q:" and "A:", covering the most important facts and concepts:\n\n${notes}`
+    );
+  });
+}
+
 // ---------- AI Homework Helper ----------
 // Reuses the existing photo-upload (vision) and voice-note (Whisper) pipelines,
 // just framed specifically to get step-by-step explanations instead of bare answers.
@@ -1884,7 +2021,6 @@ const comingSoonItems = [
   { id: "navSubjects", label: "Subjects" },
   { id: "navExamCentre", label: "Exam Centre" },
   { id: "navDigitalLibrary", label: "Digital Library" },
-  { id: "navNotesFlashcards", label: "Notes & Flashcards" },
   { id: "navSchoolDirectory", label: "School Directory" },
   { id: "navWallet", label: "Payments & Wallet" },
   { id: "navParentDashboard", label: "Parent Dashboard" },
