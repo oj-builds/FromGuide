@@ -59,7 +59,7 @@
         <button class="nav-item" id="navDigitalLibrary">📖 Digital Library <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navHomeworkHelper">📷 AI Homework Helper</button>
         <button class="nav-item" id="navNotesFlashcards">🗒️ Notes & Flashcards <span class="soon-badge">Soon</span></button>
-        <button class="nav-item" id="navStudyPlanner">📅 Study Planner <span class="soon-badge">Soon</span></button>
+        <button class="nav-item" id="navStudyPlanner">📅 Study Planner</button>
         <button class="nav-item" id="navSchoolDirectory">🏫 School Directory <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navWallet">💳 Payments & Wallet <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navParentDashboard">👨‍👩‍👧 Parent Dashboard <span class="soon-badge">Soon</span></button>
@@ -254,6 +254,31 @@
       <div id="homeworkTypeBox" style="display:none;margin-top:16px;">
         <textarea id="homeworkTypeInput" class="modal-content-textarea" placeholder="Type your homework question here…" style="width:100%;min-height:110px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box;resize:vertical;"></textarea>
         <button id="homeworkTypeSubmitBtn" class="add-memory-btn" style="margin-top:10px;">Get Step-by-Step Help</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Study Planner -->
+  <div id="studyPlannerModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeStudyPlannerBtn" class="dark-back-btn">←</button>
+      <h2>📅 Study Planner</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Tell FormGuide AI your subjects and timeframe, and it'll build you a practical study timetable.</p>
+
+      <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+        <label class="field-label" style="margin-top:0;">Subjects</label>
+        <input id="plannerSubjects" type="text" placeholder="e.g. Maths, English, Physics, Chemistry" class="ai-search-input">
+
+        <label class="field-label">How many days until your exam?</label>
+        <input id="plannerDays" type="number" min="1" placeholder="e.g. 30" class="ai-search-input">
+
+        <label class="field-label">How many hours can you study per day?</label>
+        <input id="plannerHours" type="number" min="1" max="16" placeholder="e.g. 3" class="ai-search-input">
+
+        <button id="plannerGenerateBtn" class="add-memory-btn" style="margin-top:14px;">📋 Generate My Study Timetable</button>
       </div>
     </div>
   </div>
