@@ -58,7 +58,7 @@
         <button class="nav-item" id="navExamCentre">🎯 Exam Centre <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navDigitalLibrary">📖 Digital Library <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navHomeworkHelper">📷 AI Homework Helper</button>
-        <button class="nav-item" id="navNotesFlashcards">🗒️ Notes & Flashcards <span class="soon-badge">Soon</span></button>
+        <button class="nav-item" id="navNotesFlashcards">🗒️ Notes & Flashcards</button>
         <button class="nav-item" id="navStudyPlanner">📅 Study Planner</button>
         <button class="nav-item" id="navSchoolDirectory">🏫 School Directory <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navWallet">💳 Payments & Wallet <span class="soon-badge">Soon</span></button>
@@ -255,6 +255,44 @@
         <textarea id="homeworkTypeInput" class="modal-content-textarea" placeholder="Type your homework question here…" style="width:100%;min-height:110px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box;resize:vertical;"></textarea>
         <button id="homeworkTypeSubmitBtn" class="add-memory-btn" style="margin-top:10px;">Get Step-by-Step Help</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Notes & Flashcards -->
+  <div id="notesFlashcardsModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeNotesFlashcardsBtn" class="dark-back-btn">←</button>
+      <h2>🗒️ Notes & Flashcards</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Scan handwritten notes, upload a document, or type/paste directly — then summarize or turn it into flashcards.</p>
+
+      <div id="notesActionCards" class="studio-create-grid" style="grid-template-columns:repeat(2,1fr);">
+        <button class="studio-create-card" id="notesScanBtn">
+          <span class="studio-create-icon">📷</span>
+          <span>Scan Notes</span>
+          <small>Photo of handwritten/printed notes</small>
+        </button>
+        <button class="studio-create-card" id="notesUploadBtn">
+          <span class="studio-create-icon">📄</span>
+          <span>Upload Document</span>
+          <small>PDF, DOCX, or TXT</small>
+        </button>
+      </div>
+
+      <div style="margin-top:16px;">
+        <label class="field-label" style="margin-top:0;">Your Notes</label>
+        <textarea id="notesTextarea" placeholder="Scan, upload, or type/paste your notes here…" style="width:100%;min-height:180px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:13.5px;font-family:inherit;box-sizing:border-box;resize:vertical;"></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button id="notesSummarizeBtn" class="add-memory-btn" style="margin-top:0;flex:1;">📝 Summarize</button>
+        <button id="notesFlashcardsBtn" class="add-memory-btn" style="margin-top:0;flex:1;background:#5b3df5;">🗂️ Make Flashcards</button>
+      </div>
+
+      <input type="file" id="notesPhotoInput" accept="image/*" style="display:none;">
+      <input type="file" id="notesDocInput" accept=".pdf,.docx,.txt" style="display:none;">
     </div>
   </div>
 
