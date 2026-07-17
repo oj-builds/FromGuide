@@ -52,7 +52,7 @@
 
       <div class="nav-section">
         <button class="nav-item" id="navAiStudio">🧠 AI Studio <span style="margin-left:auto;font-size:10px;color:var(--accent);">New</span></button>
-        <button class="nav-item" id="navAiTutor">👨‍🏫 AI Tutor <span class="soon-badge">Soon</span></button>
+        <button class="nav-item" id="navAiTutor">🎓 AI Study Companion</button>
         <button class="nav-item" id="navStudyTools">🛠️ Study Tools <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navSubjects">📚 Subjects <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navExamCentre">🎯 Exam Centre <span class="soon-badge">Soon</span></button>
@@ -220,6 +220,61 @@
         <button class="hub-card" data-text="Help me generate study notes on a topic."><span class="hub-icon">📝</span><h4>Note Generator</h4><p>Create Notes</p></button>
         <button class="hub-card" data-text="Find scholarships I can apply for."><span class="hub-icon">🔖</span><h4>Scholarships</h4><p>Find & Apply</p></button>
       </div>
+    </div>
+  </div>
+
+  <!-- AI Study Companion -->
+  <div id="studyCompanionModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeStudyCompanionBtn" class="dark-back-btn">←</button>
+      <h2>🎓 AI Study Companion</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+
+      <!-- Guests -->
+      <div id="companionGuestNotice" style="display:none;">
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+          <h3 style="color:var(--text);">Log in to set up your Study Companion</h3>
+          <p class="about-text">Your personal learning profile and daily plans are saved to your account, so log in or create an account first to get a companion that remembers your class, subjects, and goals.</p>
+        </div>
+      </div>
+
+      <!-- First-time onboarding -->
+      <div id="companionOnboarding" style="display:none;">
+        <p class="templates-sub">Answer a few quick questions so FormGuide AI can build a learning plan made for you.</p>
+
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+          <label class="field-label" style="margin-top:0;">What class/level are you in?</label>
+          <input id="companionClassLevel" type="text" placeholder="e.g. SS2, JAMB candidate, 200 Level" class="ai-search-input">
+
+          <label class="field-label">What curriculum do you follow?</label>
+          <input id="companionCurriculum" type="text" placeholder="e.g. WAEC/NECO, Cambridge, University" class="ai-search-input">
+
+          <label class="field-label">What subjects are you taking?</label>
+          <input id="companionSubjects" type="text" placeholder="e.g. Maths, English, Physics, Chemistry" class="ai-search-input">
+
+          <label class="field-label">When is your next big exam?</label>
+          <input id="companionExamDate" type="text" placeholder="e.g. WAEC, June 2026" class="ai-search-input">
+
+          <label class="field-label">What career do you want?</label>
+          <input id="companionCareerGoal" type="text" placeholder="e.g. Medicine, Software Engineering" class="ai-search-input">
+
+          <button id="companionSaveBtn" class="add-memory-btn" style="margin-top:14px;">Save & Build My Plan</button>
+        </div>
+      </div>
+
+      <!-- Returning users -->
+      <div id="companionDashboard" style="display:none;">
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+          <h3 id="companionGreeting" style="color:var(--text);">Good to see you 👋</h3>
+          <div id="companionProfileSummary" style="font-size:12.5px;color:var(--text-dim);line-height:1.7;"></div>
+        </div>
+
+        <button id="companionPlanBtn" class="add-memory-btn" style="margin-top:6px;">📋 Build Today's Plan</button>
+        <button id="companionEditBtn" class="secondary-btn" style="margin-top:10px;">✎ Edit My Profile</button>
+      </div>
+
     </div>
   </div>
 
