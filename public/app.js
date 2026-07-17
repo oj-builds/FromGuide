@@ -1525,6 +1525,193 @@ if (closeTemplatesBtn) {
   closeTemplatesBtn.addEventListener("click", () => templatesModal.classList.remove("open"));
 }
 
+// ---------- AI Study Companion ----------
+// Uses the real backend Memory system (not localStorage) so the profile
+// follows the user's account, and generates plans through the normal chat
+// pipeline so replies are personalized and saved in chat history like anything else.
+const studyCompanionModal = document.getElementById("studyCompanionModal");
+const closeStudyCompanionBtn = document.getElementById("closeStudyCompanionBtn");
+const navAiTutorBtn = document.getElementById("navAiTutor");
+
+const COMPANION_KEYS = {
+  classLevel: "study_class_level",
+  curriculum: "study_curriculum",
+  subjects: "study_subjects",
+  examDate: "study_exam_date",
+  careerGoal: "study_career_goal",
+};
+
+async function fetchCompanionProfile() {
+  if (!getToken()) return null;
+  try {
+    const res = await fetch("/api/memories", {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.memories || [];
+  } catch (err) {
+    console.error("Could not load study profile:", err);
+    return null;
+  }
+}
+
+function getMemoryValue(memories, key) {
+  const found = memories.find((m) => m.key === key);
+  return found ? found.value : "";
+}
+
+async function saveCompanionField(key, value) {
+  return fetch("/api/memories", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: JSON.stringify({ key, value }),
+  });
+}
+
+function renderCompanionDashboard(memories) {
+  const user = getStoredUser();
+  const greetingEl = document.getElementById("companionGreeting");
+  if (greetingEl) greetingEl.textContent = user ? `Good to see you, ${user.name} 👋` : "Good to see you 👋";
+
+  const classLevel = getMemoryValue(memories, COMPANION_KEYS.classLevel);
+  const curriculum = getMemoryValue(memories, COMPANION_KEYS.curriculum);
+  const subjects = getMemoryValue(memories, COMPANION_KEYS.subjects);
+  const examDate = getMemoryValue(memories, COMPANION_KEYS.examDate);
+  const careerGoal = getMemoryValue(memories, COMPANION_KEYS.careerGoal);
+
+  const summaryEl = document.getElementById("companionProfileSummary");
+  if (summaryEl) {
+    summaryEl.innerHTML = `
+      <div>🎓 <strong>Class:</strong> ${classLevel}</div>
+      <div>📘 <strong>Curriculum:</strong> ${curriculum}</div>
+      <div>📚 <strong>Subjects:</strong> ${subjects}</div>
+      <div>🗓️ <strong>Next exam:</strong> ${examDate}</div>
+      <div>🎯 <strong>Career goal:</strong> ${careerGoal}</div>
+    `;
+  }
+}
+
+async function openStudyCompanionModal() {
+  const guestNotice = document.getElementById("companionGuestNotice");
+  const onboarding = document.getElementById("companionOnboarding");
+  const dashboard = document.getElementById("companionDashboard");
+  if (!guestNotice || !onboarding || !dashboard) return;
+
+  guestNotice.style.display = "none";
+  onboarding.style.display = "none";
+  dashboard.style.display = "none";
+  studyCompanionModal.classList.add("open");
+
+  if (!getToken()) {
+    guestNotice.style.display = "block";
+    return;
+  }
+
+  const memories = await fetchCompanionProfile();
+  if (memories === null) {
+    guestNotice.style.display = "block";
+    return;
+  }
+
+  const classLevel = getMemoryValue(memories, COMPANION_KEYS.classLevel);
+  if (!classLevel) {
+    onboarding.style.display = "block";
+  } else {
+    renderCompanionDashboard(memories);
+    dashboard.style.display = "block";
+  }
+}
+
+if (navAiTutorBtn) {
+  navAiTutorBtn.addEventListener("click", () => {
+    openStudyCompanionModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+if (closeStudyCompanionBtn) {
+  closeStudyCompanionBtn.addEventListener("click", () => studyCompanionModal.classList.remove("open"));
+}
+
+const companionSaveBtn = document.getElementById("companionSaveBtn");
+if (companionSaveBtn) {
+  companionSaveBtn.addEventListener("click", async () => {
+    const classLevel = document.getElementById("companionClassLevel").value.trim();
+    const curriculum = document.getElementById("companionCurriculum").value.trim();
+    const subjects = document.getElementById("companionSubjects").value.trim();
+    const examDate = document.getElementById("companionExamDate").value.trim();
+    const careerGoal = document.getElementById("companionCareerGoal").value.trim();
+
+    if (!classLevel || !subjects) {
+      alert("Please fill in at least your class level and subjects.");
+      return;
+    }
+
+    companionSaveBtn.disabled = true;
+    const originalText = companionSaveBtn.textContent;
+    companionSaveBtn.textContent = "Saving…";
+
+    try {
+      await Promise.all([
+        saveCompanionField(COMPANION_KEYS.classLevel, classLevel),
+        saveCompanionField(COMPANION_KEYS.curriculum, curriculum || "Not specified"),
+        saveCompanionField(COMPANION_KEYS.subjects, subjects),
+        saveCompanionField(COMPANION_KEYS.examDate, examDate || "Not specified"),
+        saveCompanionField(COMPANION_KEYS.careerGoal, careerGoal || "Not specified"),
+      ]);
+
+      studyCompanionModal.classList.remove("open");
+      sendMessage(
+        `Here's my learning profile — Class: ${classLevel}. Curriculum: ${curriculum || "Not specified"}. Subjects: ${subjects}. Next exam: ${examDate || "Not specified"}. Career goal: ${careerGoal || "Not specified"}. Please create a focused, personalized study plan for today based on this, and briefly tell me how you'll help me as my study companion going forward.`
+      );
+    } catch (err) {
+      alert("Could not save your profile. Please check your connection and try again.");
+    } finally {
+      companionSaveBtn.disabled = false;
+      companionSaveBtn.textContent = originalText;
+    }
+  });
+}
+
+const companionPlanBtn = document.getElementById("companionPlanBtn");
+if (companionPlanBtn) {
+  companionPlanBtn.addEventListener("click", async () => {
+    const memories = await fetchCompanionProfile();
+    if (!memories) return;
+
+    const classLevel = getMemoryValue(memories, COMPANION_KEYS.classLevel);
+    const curriculum = getMemoryValue(memories, COMPANION_KEYS.curriculum);
+    const subjects = getMemoryValue(memories, COMPANION_KEYS.subjects);
+    const examDate = getMemoryValue(memories, COMPANION_KEYS.examDate);
+    const careerGoal = getMemoryValue(memories, COMPANION_KEYS.careerGoal);
+
+    studyCompanionModal.classList.remove("open");
+    sendMessage(
+      `Based on my learning profile — Class: ${classLevel}. Curriculum: ${curriculum}. Subjects: ${subjects}. Next exam: ${examDate}. Career goal: ${careerGoal} — please build me a focused study plan for today. Prioritize weaker topics if you already know them from our past conversations, and keep it practical and specific to today.`
+    );
+  });
+}
+
+const companionEditBtn = document.getElementById("companionEditBtn");
+if (companionEditBtn) {
+  companionEditBtn.addEventListener("click", async () => {
+    const memories = await fetchCompanionProfile();
+    if (!memories) return;
+
+    document.getElementById("companionClassLevel").value = getMemoryValue(memories, COMPANION_KEYS.classLevel);
+    document.getElementById("companionCurriculum").value = getMemoryValue(memories, COMPANION_KEYS.curriculum);
+    document.getElementById("companionSubjects").value = getMemoryValue(memories, COMPANION_KEYS.subjects);
+    document.getElementById("companionExamDate").value = getMemoryValue(memories, COMPANION_KEYS.examDate);
+    document.getElementById("companionCareerGoal").value = getMemoryValue(memories, COMPANION_KEYS.careerGoal);
+
+    document.getElementById("companionDashboard").style.display = "none";
+    document.getElementById("companionOnboarding").style.display = "block";
+  });
+}
+
 document.querySelectorAll(".templates-tab").forEach((tab) => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".templates-tab").forEach((t) => t.classList.remove("active"));
@@ -1566,7 +1753,6 @@ if (navSavedPromptsBtn) {
 }
 
 const comingSoonItems = [
-  { id: "navAiTutor", label: "AI Tutor" },
   { id: "navStudyTools", label: "Study Tools" },
   { id: "navSubjects", label: "Subjects" },
   { id: "navExamCentre", label: "Exam Centre" },
