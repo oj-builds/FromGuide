@@ -387,6 +387,10 @@ document.querySelectorAll(".hub-card").forEach((card) => {
       openInterviewModal();
       return;
     }
+    if (card.id === "hubHomeworkHelperBtn") {
+      openHomeworkHelperModal();
+      return;
+    }
     sendMessage(card.dataset.text);
   });
 });
@@ -1712,6 +1716,78 @@ if (companionEditBtn) {
   });
 }
 
+// ---------- AI Homework Helper ----------
+// Reuses the existing photo-upload (vision) and voice-note (Whisper) pipelines,
+// just framed specifically to get step-by-step explanations instead of bare answers.
+const homeworkHelperModal = document.getElementById("homeworkHelperModal");
+const closeHomeworkHelperBtn = document.getElementById("closeHomeworkHelperBtn");
+const navHomeworkHelperBtn = document.getElementById("navHomeworkHelper");
+
+function openHomeworkHelperModal() {
+  document.getElementById("homeworkActionCards").style.display = "grid";
+  document.getElementById("homeworkTypeBox").style.display = "none";
+  document.getElementById("homeworkTypeInput").value = "";
+  homeworkHelperModal.classList.add("open");
+}
+
+if (navHomeworkHelperBtn) {
+  navHomeworkHelperBtn.addEventListener("click", () => {
+    openHomeworkHelperModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+if (closeHomeworkHelperBtn) {
+  closeHomeworkHelperBtn.addEventListener("click", () => homeworkHelperModal.classList.remove("open"));
+}
+
+const homeworkPhotoBtn = document.getElementById("homeworkPhotoBtn");
+if (homeworkPhotoBtn) {
+  homeworkPhotoBtn.addEventListener("click", () => {
+    uploadContext = "homework";
+    homeworkHelperModal.classList.remove("open");
+    if (photoFileInput) photoFileInput.click();
+  });
+}
+
+const homeworkTypeBtn = document.getElementById("homeworkTypeBtn");
+if (homeworkTypeBtn) {
+  homeworkTypeBtn.addEventListener("click", () => {
+    document.getElementById("homeworkActionCards").style.display = "none";
+    document.getElementById("homeworkTypeBox").style.display = "block";
+    document.getElementById("homeworkTypeInput").focus();
+  });
+}
+
+const homeworkTypeSubmitBtn = document.getElementById("homeworkTypeSubmitBtn");
+if (homeworkTypeSubmitBtn) {
+  homeworkTypeSubmitBtn.addEventListener("click", () => {
+    const question = document.getElementById("homeworkTypeInput").value.trim();
+    if (!question) {
+      alert("Please type your question first.");
+      return;
+    }
+    homeworkHelperModal.classList.remove("open");
+    sendMessage(
+      `Please help me with this homework question, explaining step by step rather than just giving the answer: ${question}`
+    );
+  });
+}
+
+const homeworkSpeakBtn = document.getElementById("homeworkSpeakBtn");
+if (homeworkSpeakBtn) {
+  wireVoiceNoteButton(homeworkSpeakBtn);
+  // Mark that the next voice note came from Homework Helper so it gets framed
+  // for step-by-step explanation instead of being sent as a plain message.
+  homeworkSpeakBtn.addEventListener("mousedown", () => {
+    recordingContext = "homework";
+    homeworkHelperModal.classList.remove("open");
+  });
+  homeworkSpeakBtn.addEventListener("touchstart", () => {
+    recordingContext = "homework";
+    homeworkHelperModal.classList.remove("open");
+  });
+}
+
 document.querySelectorAll(".templates-tab").forEach((tab) => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".templates-tab").forEach((t) => t.classList.remove("active"));
@@ -1757,7 +1833,6 @@ const comingSoonItems = [
   { id: "navSubjects", label: "Subjects" },
   { id: "navExamCentre", label: "Exam Centre" },
   { id: "navDigitalLibrary", label: "Digital Library" },
-  { id: "navHomeworkHelper", label: "AI Homework Helper" },
   { id: "navNotesFlashcards", label: "Notes & Flashcards" },
   { id: "navStudyPlanner", label: "Study Planner" },
   { id: "navSchoolDirectory", label: "School Directory" },
@@ -1989,6 +2064,7 @@ let recordingStream = null;
 let recordingTimerInterval = null;
 let recordingSeconds = 0;
 let isRecording = false;
+let recordingContext = "voice_note"; // "voice_note" or "homework" — changes how the transcript is framed
 
 function showRecordingIndicator() {
   recordingSeconds = 0;
@@ -2056,7 +2132,14 @@ function stopRecordingAndSend() {
         return;
       }
       if (data.text && data.text.trim()) {
-        sendMessage(data.text.trim());
+        if (recordingContext === "homework") {
+          recordingContext = "voice_note";
+          sendMessage(
+            `Please help me with this homework question, explaining step by step rather than just giving the answer: ${data.text.trim()}`
+          );
+        } else {
+          sendMessage(data.text.trim());
+        }
       } else {
         renderMessage("assistant", "I couldn't hear anything clearly in that voice note. Please try again.");
       }
@@ -2104,6 +2187,7 @@ function wireVoiceNoteButton(el) {
 
 // --- Upload & Analyze ---
 const RECENT_FILES_KEY = "formguide_recent_files";
+let uploadContext = "general"; // "general" or "homework" — changes how photo uploads are framed
 
 function loadRecentFiles() {
   try {
@@ -2266,11 +2350,18 @@ async function handleUploadedFile(file, options = {}) {
 
   closeUploadModal();
 
+  const isHomeworkPhoto = uploadContext === "homework";
+  if (isHomeworkPhoto) uploadContext = "general";
+
   if (isImage) {
     // Images go straight to Claude's vision — no text extraction needed.
     renderTyping();
     try {
       const base64 = await fileToBase64(file);
+      const question = isHomeworkPhoto
+        ? `This is a homework question. Please read it from the image and explain how to solve it step by step, not just the final answer.`
+        : `Please look at this image ("${file.name}") and help me with it.`;
+
       const res = await fetch("/api/chat/vision", {
         method: "POST",
         headers: {
@@ -2280,7 +2371,7 @@ async function handleUploadedFile(file, options = {}) {
         body: JSON.stringify({
           imageBase64: base64,
           mediaType: file.type,
-          question: `Please look at this image ("${file.name}") and help me with it.`,
+          question: question,
         }),
       });
       const data = await res.json();
