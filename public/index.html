@@ -57,7 +57,7 @@
         <button class="nav-item" id="navSubjects">📚 Subjects <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navExamCentre">🎯 Exam Centre <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navDigitalLibrary">📖 Digital Library <span class="soon-badge">Soon</span></button>
-        <button class="nav-item" id="navHomeworkHelper">📷 AI Homework Helper <span class="soon-badge">Soon</span></button>
+        <button class="nav-item" id="navHomeworkHelper">📷 AI Homework Helper</button>
         <button class="nav-item" id="navNotesFlashcards">🗒️ Notes & Flashcards <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navStudyPlanner">📅 Study Planner <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navSchoolDirectory">🏫 School Directory <span class="soon-badge">Soon</span></button>
@@ -213,12 +213,47 @@
         <button class="hub-card" data-text="Help me practice WAEC past questions."><span class="hub-icon">📘</span><h4>WAEC Practice</h4><p>Past Questions</p></button>
         <button class="hub-card" data-text="Help me practice JAMB CBT questions."><span class="hub-icon">📝</span><h4>JAMB CBT</h4><p>Practice</p></button>
         <button class="hub-card" data-text="Help me with Post-UTME preparation."><span class="hub-icon">🎯</span><h4>Post-UTME</h4><p>Practice</p></button>
-        <button class="hub-card" data-text="Act as my AI homework helper and tutor."><span class="hub-icon">📖</span><h4>Homework Helper</h4><p>AI Tutor</p></button>
+        <button class="hub-card" id="hubHomeworkHelperBtn"><span class="hub-icon">📖</span><h4>Homework Helper</h4><p>AI Tutor</p></button>
         <button class="hub-card" data-text="Help me summarize a document I'll describe to you."><span class="hub-icon">📄</span><h4>Summarize PDF</h4><p>Instant Summary</p></button>
         <button class="hub-card" data-text="Create smart flashcards to help me study a topic."><span class="hub-icon">🗂️</span><h4>Flashcards</h4><p>Smart Flashcards</p></button>
         <button class="hub-card" data-text="Quiz me to test my knowledge on a topic."><span class="hub-icon">❓</span><h4>Quiz Mode</h4><p>Test Yourself</p></button>
         <button class="hub-card" data-text="Help me generate study notes on a topic."><span class="hub-icon">📝</span><h4>Note Generator</h4><p>Create Notes</p></button>
         <button class="hub-card" data-text="Find scholarships I can apply for."><span class="hub-icon">🔖</span><h4>Scholarships</h4><p>Find & Apply</p></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Homework Helper -->
+  <div id="homeworkHelperModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeHomeworkHelperBtn" class="dark-back-btn">←</button>
+      <h2>📷 AI Homework Helper</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Get step-by-step help with any question — not just the final answer. Take a photo, type it, or speak it.</p>
+
+      <div id="homeworkActionCards" class="studio-create-grid" style="grid-template-columns:repeat(3,1fr);">
+        <button class="studio-create-card" id="homeworkPhotoBtn">
+          <span class="studio-create-icon">📷</span>
+          <span>Take a Photo</span>
+          <small>Snap your question</small>
+        </button>
+        <button class="studio-create-card" id="homeworkTypeBtn">
+          <span class="studio-create-icon">⌨️</span>
+          <span>Type It</span>
+          <small>Write your question</small>
+        </button>
+        <button class="studio-create-card" id="homeworkSpeakBtn">
+          <span class="studio-create-icon">🎙️</span>
+          <span>Speak It</span>
+          <small>Hold to record</small>
+        </button>
+      </div>
+
+      <div id="homeworkTypeBox" style="display:none;margin-top:16px;">
+        <textarea id="homeworkTypeInput" class="modal-content-textarea" placeholder="Type your homework question here…" style="width:100%;min-height:110px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box;resize:vertical;"></textarea>
+        <button id="homeworkTypeSubmitBtn" class="add-memory-btn" style="margin-top:10px;">Get Step-by-Step Help</button>
       </div>
     </div>
   </div>
