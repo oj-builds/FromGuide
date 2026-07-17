@@ -968,8 +968,8 @@ function updateAccountButton() {
 // users, regardless of who else logs in. Set OWNER_EMAIL to the exact email
 // your account logs in with, and FOUNDER_NAME to your real name. Everyone
 // else, including guests, only ever sees the bell.
-const OWNER_EMAIL = "maninpeace919@gmail.com";
-const FOUNDER_NAME = "OJ BOSS BTC";
+const OWNER_EMAIL = "";
+const FOUNDER_NAME = "";
 
 function applyOwnerVisibility() {
   const user = getStoredUser();
@@ -1564,6 +1564,31 @@ if (navSavedPromptsBtn) {
     sidebarEl.classList.remove("open");
   });
 }
+
+const comingSoonItems = [
+  { id: "navAiTutor", label: "AI Tutor" },
+  { id: "navStudyTools", label: "Study Tools" },
+  { id: "navSubjects", label: "Subjects" },
+  { id: "navExamCentre", label: "Exam Centre" },
+  { id: "navDigitalLibrary", label: "Digital Library" },
+  { id: "navHomeworkHelper", label: "AI Homework Helper" },
+  { id: "navNotesFlashcards", label: "Notes & Flashcards" },
+  { id: "navStudyPlanner", label: "Study Planner" },
+  { id: "navSchoolDirectory", label: "School Directory" },
+  { id: "navWallet", label: "Payments & Wallet" },
+  { id: "navParentDashboard", label: "Parent Dashboard" },
+  { id: "navAchievements", label: "Achievements" },
+];
+
+comingSoonItems.forEach(({ id, label }) => {
+  const btn = document.getElementById(id);
+  if (btn) {
+    btn.addEventListener("click", () => {
+      alert(`${label} is coming soon!`);
+      sidebarEl.classList.remove("open");
+    });
+  }
+});
 
 if (proBannerBtn) {
   proBannerBtn.addEventListener("click", () => {
