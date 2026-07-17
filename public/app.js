@@ -1716,6 +1716,57 @@ if (companionEditBtn) {
   });
 }
 
+// ---------- Study Planner ----------
+// If the user already has a Study Companion profile, pull subjects/exam info
+// from it automatically so they don't have to type the same thing twice.
+const studyPlannerModal = document.getElementById("studyPlannerModal");
+const closeStudyPlannerBtn = document.getElementById("closeStudyPlannerBtn");
+const navStudyPlannerBtn = document.getElementById("navStudyPlanner");
+
+async function openStudyPlannerModal() {
+  const subjectsInput = document.getElementById("plannerSubjects");
+  subjectsInput.value = "";
+
+  if (getToken()) {
+    const memories = await fetchCompanionProfile();
+    if (memories) {
+      const savedSubjects = getMemoryValue(memories, COMPANION_KEYS.subjects);
+      if (savedSubjects) subjectsInput.value = savedSubjects;
+    }
+  }
+
+  studyPlannerModal.classList.add("open");
+}
+
+if (navStudyPlannerBtn) {
+  navStudyPlannerBtn.addEventListener("click", () => {
+    openStudyPlannerModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+if (closeStudyPlannerBtn) {
+  closeStudyPlannerBtn.addEventListener("click", () => studyPlannerModal.classList.remove("open"));
+}
+
+const plannerGenerateBtn = document.getElementById("plannerGenerateBtn");
+if (plannerGenerateBtn) {
+  plannerGenerateBtn.addEventListener("click", () => {
+    const subjects = document.getElementById("plannerSubjects").value.trim();
+    const days = document.getElementById("plannerDays").value.trim();
+    const hours = document.getElementById("plannerHours").value.trim();
+
+    if (!subjects || !days) {
+      alert("Please fill in your subjects and how many days you have until your exam.");
+      return;
+    }
+
+    studyPlannerModal.classList.remove("open");
+    sendMessage(
+      `Please create a detailed study timetable for me. Subjects: ${subjects}. I have ${days} day${days === "1" ? "" : "s"} until my exam${hours ? `, and I can study about ${hours} hours per day` : ""}. Break it down day by day (or week by week if the timeframe is long), cover all subjects with a good balance, prioritize weaker topics if you already know them from our past conversations, and include short breaks. Keep it practical and easy to follow.`
+    );
+  });
+}
+
 // ---------- AI Homework Helper ----------
 // Reuses the existing photo-upload (vision) and voice-note (Whisper) pipelines,
 // just framed specifically to get step-by-step explanations instead of bare answers.
@@ -1834,7 +1885,6 @@ const comingSoonItems = [
   { id: "navExamCentre", label: "Exam Centre" },
   { id: "navDigitalLibrary", label: "Digital Library" },
   { id: "navNotesFlashcards", label: "Notes & Flashcards" },
-  { id: "navStudyPlanner", label: "Study Planner" },
   { id: "navSchoolDirectory", label: "School Directory" },
   { id: "navWallet", label: "Payments & Wallet" },
   { id: "navParentDashboard", label: "Parent Dashboard" },
