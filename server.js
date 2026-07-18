@@ -543,6 +543,76 @@ function todayString() {
 
 const EXAM_TYPES = ["WAEC", "NECO", "JAMB", "Post-UTME", "BECE"];
 
+// ---------- ACHIEVEMENTS / GAMIFICATION ----------
+// XP is only ever awarded from specific real actions in the app (completing an
+// exam, setting up Study Companion, etc.) — never just for opening a page.
+
+function computeLevel(xp) {
+  return Math.floor(xp / 50) + 1;
+}
+
+function computeBadges(xp, examsTaken) {
+  const badges = [];
+  if (xp >= 10) badges.push({ id: "first_steps", icon: "🌱", label: "First Steps" });
+  if (xp >= 50) badges.push({ id: "rising_star", icon: "⭐", label: "Rising Star" });
+  if (xp >= 150) badges.push({ id: "dedicated_learner", icon: "🔥", label: "Dedicated Learner" });
+  if (xp >= 300) badges.push({ id: "master_scholar", icon: "👑", label: "Master Scholar" });
+  if (examsTaken >= 1) badges.push({ id: "exam_ace", icon: "🎯", label: "Exam Ace" });
+  if (examsTaken >= 5) badges.push({ id: "exam_champion", icon: "🏆", label: "Exam Champion" });
+  return badges;
+}
+
+app.get("/api/achievements", authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select("xp examsTaken");
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    res.json({
+      xp: user.xp,
+      level: computeLevel(user.xp),
+      examsTaken: user.examsTaken,
+      badges: computeBadges(user.xp, user.examsTaken),
+    });
+  } catch (err) {
+    console.error("Load achievements error:", err);
+    res.status(500).json({ error: "Could not load achievements." });
+  }
+});
+
+app.post("/api/achievements/award", authenticate, async (req, res) => {
+  try {
+    let { amount, reason, examCompleted } = req.body;
+
+    // Clamp to sane bounds so this endpoint can't be abused to inflate XP
+    amount = Math.max(0, Math.min(parseInt(amount, 10) || 0, 50));
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    const badgesBefore = computeBadges(user.xp, user.examsTaken);
+
+    user.xp += amount;
+    if (examCompleted) user.examsTaken += 1;
+    await user.save();
+
+    const badgesAfter = computeBadges(user.xp, user.examsTaken);
+    const newBadges = badgesAfter.filter((b) => !badgesBefore.some((ob) => ob.id === b.id));
+
+    res.json({
+      xp: user.xp,
+      level: computeLevel(user.xp),
+      examsTaken: user.examsTaken,
+      badges: badgesAfter,
+      newBadges,
+      awarded: amount,
+      reason: reason || null,
+    });
+  } catch (err) {
+    console.error("Award achievement error:", err);
+    res.status(500).json({ error: "Could not update achievements." });
+  }
+});
+
 app.post("/api/exam/generate", authenticate, async (req, res) => {
   try {
     const { examType, subject, numQuestions } = req.body;
