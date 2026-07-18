@@ -1668,6 +1668,7 @@ if (companionSaveBtn) {
       ]);
 
       studyCompanionModal.classList.remove("open");
+      awardXP(20, "Set up Study Companion");
       sendMessage(
         `Here's my learning profile — Class: ${classLevel}. Curriculum: ${curriculum || "Not specified"}. Subjects: ${subjects}. Next exam: ${examDate || "Not specified"}. Career goal: ${careerGoal || "Not specified"}. Please create a focused, personalized study plan for today based on this, and briefly tell me how you'll help me as my study companion going forward.`
       );
@@ -1761,6 +1762,7 @@ if (plannerGenerateBtn) {
     }
 
     studyPlannerModal.classList.remove("open");
+    awardXP(10, "Generated a study plan");
     sendMessage(
       `Please create a detailed study timetable for me. Subjects: ${subjects}. I have ${days} day${days === "1" ? "" : "s"} until my exam${hours ? `, and I can study about ${hours} hours per day` : ""}. Break it down day by day (or week by week if the timeframe is long), cover all subjects with a good balance, prioritize weaker topics if you already know them from our past conversations, and include short breaks. Keep it practical and easy to follow.`
     );
@@ -1883,6 +1885,7 @@ if (notesSummarizeBtn) {
       return;
     }
     notesFlashcardsModal.classList.remove("open");
+    awardXP(5, "Summarized notes");
     sendMessage(
       `Please summarize the following notes clearly, breaking them into key points I can revise from quickly:\n\n${notes}`
     );
@@ -1898,6 +1901,7 @@ if (notesFlashcardsBtn) {
       return;
     }
     notesFlashcardsModal.classList.remove("open");
+    awardXP(5, "Created flashcards");
     sendMessage(
       `Please turn the following notes into a set of flashcards. Format each one clearly as "Q:" and "A:", covering the most important facts and concepts:\n\n${notes}`
     );
@@ -2098,6 +2102,9 @@ function submitExam() {
   const total = examQuestions.length;
   const percent = Math.round((correctCount / total) * 100);
 
+  // Award XP scaled by performance (up to 20 XP), and count this as a completed exam
+  awardXP(Math.round((percent / 100) * 20), `Completed ${examSubjectLabel} mock exam`, true);
+
   document.getElementById("examScoreText").textContent = `${correctCount}/${total}`;
   document.getElementById("examPercentText").textContent = `${percent}% — ${examSubjectLabel}`;
 
@@ -2211,6 +2218,135 @@ if (librarySearchBtn) {
   });
 }
 
+// ---------- Achievements / Gamification ----------
+// XP is awarded server-side by awardXP(), called after real actions elsewhere
+// in the app (completing an exam, setting up Study Companion, etc.) — never
+// just for opening a page.
+const achievementsModal = document.getElementById("achievementsModal");
+const closeAchievementsBtn = document.getElementById("closeAchievementsBtn");
+const navAchievementsBtn = document.getElementById("navAchievements");
+
+const BADGE_ICON_FALLBACK = "🔒";
+
+async function awardXP(amount, reason, examCompleted = false) {
+  if (!getToken()) return null;
+  try {
+    const res = await fetch("/api/achievements/award", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ amount, reason, examCompleted }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    updateSidebarLevelBadge(data.level);
+
+    if (data.newBadges && data.newBadges.length > 0) {
+      const names = data.newBadges.map((b) => `${b.icon} ${b.label}`).join(", ");
+      setTimeout(() => alert(`🎉 New badge unlocked: ${names}!`), 400);
+    }
+    return data;
+  } catch (err) {
+    console.error("Could not award XP:", err);
+    return null;
+  }
+}
+
+function updateSidebarLevelBadge(level) {
+  const el = document.getElementById("achievementsLevelBadge");
+  if (el && level) el.textContent = `Lv.${level}`;
+}
+
+async function loadAndSyncAchievements() {
+  if (!getToken()) return;
+  try {
+    const res = await fetch("/api/achievements", {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    updateSidebarLevelBadge(data.level);
+  } catch (err) {
+    console.error("Could not load achievements:", err);
+  }
+}
+loadAndSyncAchievements();
+
+const ALL_POSSIBLE_BADGES = [
+  { id: "first_steps", icon: "🌱", label: "First Steps" },
+  { id: "rising_star", icon: "⭐", label: "Rising Star" },
+  { id: "dedicated_learner", icon: "🔥", label: "Dedicated Learner" },
+  { id: "master_scholar", icon: "👑", label: "Master Scholar" },
+  { id: "exam_ace", icon: "🎯", label: "Exam Ace" },
+  { id: "exam_champion", icon: "🏆", label: "Exam Champion" },
+];
+
+async function openAchievementsModal() {
+  const guestNotice = document.getElementById("achievementsGuestNotice");
+  const content = document.getElementById("achievementsContent");
+  achievementsModal.classList.add("open");
+
+  if (!getToken()) {
+    guestNotice.style.display = "block";
+    content.style.display = "none";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/achievements", {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!res.ok) {
+      guestNotice.style.display = "block";
+      content.style.display = "none";
+      return;
+    }
+    const data = await res.json();
+    guestNotice.style.display = "none";
+    content.style.display = "block";
+
+    document.getElementById("achievementsLevel").textContent = data.level;
+    document.getElementById("achievementsXpText").textContent = `${data.xp} XP`;
+
+    const xpIntoLevel = data.xp % 50;
+    const xpNeeded = 50 - xpIntoLevel;
+    document.getElementById("achievementsXpBar").style.width = `${(xpIntoLevel / 50) * 100}%`;
+    document.getElementById("achievementsNextLevelText").textContent = `${xpNeeded} XP to Level ${data.level + 1}`;
+
+    const badgesGrid = document.getElementById("achievementsBadgesGrid");
+    badgesGrid.innerHTML = "";
+    ALL_POSSIBLE_BADGES.forEach((badge) => {
+      const unlocked = data.badges.some((b) => b.id === badge.id);
+      const card = document.createElement("div");
+      card.className = "studio-create-card";
+      card.style.cursor = "default";
+      card.style.opacity = unlocked ? "1" : "0.4";
+      card.innerHTML = `
+        <span class="studio-create-icon">${unlocked ? badge.icon : BADGE_ICON_FALLBACK}</span>
+        <span>${badge.label}</span>
+      `;
+      badgesGrid.appendChild(card);
+    });
+
+    updateSidebarLevelBadge(data.level);
+  } catch (err) {
+    guestNotice.style.display = "block";
+    content.style.display = "none";
+  }
+}
+
+if (navAchievementsBtn) {
+  navAchievementsBtn.addEventListener("click", () => {
+    openAchievementsModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+if (closeAchievementsBtn) {
+  closeAchievementsBtn.addEventListener("click", () => achievementsModal.classList.remove("open"));
+}
+
 // ---------- AI Homework Helper ----------
 // Reuses the existing photo-upload (vision) and voice-note (Whisper) pipelines,
 // just framed specifically to get step-by-step explanations instead of bare answers.
@@ -2262,6 +2398,7 @@ if (homeworkTypeSubmitBtn) {
       return;
     }
     homeworkHelperModal.classList.remove("open");
+    awardXP(5, "Used Homework Helper (typed)");
     sendMessage(
       `Please help me with this homework question, explaining step by step rather than just giving the answer: ${question}`
     );
@@ -2625,6 +2762,7 @@ function stopRecordingAndSend() {
       if (data.text && data.text.trim()) {
         if (recordingContext === "homework") {
           recordingContext = "voice_note";
+          awardXP(5, "Used Homework Helper (voice)");
           sendMessage(
             `Please help me with this homework question, explaining step by step rather than just giving the answer: ${data.text.trim()}`
           );
@@ -2874,6 +3012,7 @@ async function handleUploadedFile(file, options = {}) {
       }
 
       await appendExchangeToCurrentChat(`[Uploaded image: ${file.name}]`, data.reply);
+      if (isHomeworkPhoto) awardXP(5, "Used Homework Helper (photo)");
     } catch (err) {
       removeTyping();
       renderMessage("assistant", "Could not reach the server to analyze this image.");
