@@ -63,7 +63,6 @@
         <button class="nav-item" id="navSchoolDirectory">🏫 School Directory <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navWallet">💳 Payments & Wallet <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navParentDashboard">👨‍👩‍👧 Parent Dashboard <span class="soon-badge">Soon</span></button>
-        <button class="nav-item" id="navAchievements">🏆 Achievements <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navTemplates">📑 Templates</button>
       </div>
 
@@ -79,6 +78,10 @@
       <div id="chatList" class="chat-list"></div>
 
       <div class="sidebar-footer">
+        <button id="navAchievements" class="upgrade-btn">
+          🏆 Achievements
+          <span id="achievementsLevelBadge" style="font-size:10px;color:var(--accent);font-weight:700;"></span>
+        </button>
         <div class="pro-banner" id="sidebarProBanner">
           <div class="pro-banner-title">⚡ FormGuide AI Pro</div>
           <div class="pro-banner-sub">Unlock all premium features</div>
@@ -255,6 +258,53 @@
         <textarea id="homeworkTypeInput" class="modal-content-textarea" placeholder="Type your homework question here…" style="width:100%;min-height:110px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box;resize:vertical;"></textarea>
         <button id="homeworkTypeSubmitBtn" class="add-memory-btn" style="margin-top:10px;">Get Step-by-Step Help</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Achievements -->
+  <div id="achievementsModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeAchievementsBtn" class="dark-back-btn">←</button>
+      <h2>🏆 Achievements</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+
+      <div id="achievementsGuestNotice" style="display:none;">
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+          <h3 style="color:var(--text);">Log in to start earning XP</h3>
+          <p class="about-text">Your level, XP, and badges are saved to your account — log in or create one to start tracking your progress.</p>
+        </div>
+      </div>
+
+      <div id="achievementsContent" style="display:none;">
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);text-align:center;">
+          <div style="font-size:13px;color:var(--text-dim);">Level</div>
+          <div id="achievementsLevel" style="font-size:32px;font-weight:800;color:var(--accent);margin:4px 0;">1</div>
+          <div id="achievementsXpText" style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">0 XP</div>
+          <div style="background:var(--panel-light);border-radius:8px;height:10px;overflow:hidden;">
+            <div id="achievementsXpBar" style="background:var(--accent);height:100%;width:0%;transition:width 0.3s;"></div>
+          </div>
+          <div id="achievementsNextLevelText" style="font-size:10.5px;color:var(--text-dim);margin-top:6px;"></div>
+        </div>
+
+        <div class="studio-section-header">
+          <h4>Badges</h4>
+        </div>
+        <div id="achievementsBadgesGrid" class="studio-create-grid" style="grid-template-columns:repeat(3,1fr);"></div>
+
+        <div class="studio-section-header">
+          <h4>How to earn XP</h4>
+        </div>
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);font-size:12px;color:var(--text-dim);line-height:2;">
+          <div>🎯 Complete a mock exam — up to 20 XP</div>
+          <div>🎓 Set up your Study Companion — 20 XP</div>
+          <div>📅 Generate a study plan — 10 XP</div>
+          <div>📷 Use Homework Helper — 5 XP</div>
+          <div>🗒️ Summarize notes or make flashcards — 5 XP</div>
+        </div>
+      </div>
+
     </div>
   </div>
 
