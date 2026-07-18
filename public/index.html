@@ -56,7 +56,7 @@
         <button class="nav-item" id="navStudyTools">🛠️ Study Tools <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navSubjects">📚 Subjects <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navExamCentre">🎯 Exam Centre</button>
-        <button class="nav-item" id="navDigitalLibrary">📖 Digital Library <span class="soon-badge">Soon</span></button>
+        <button class="nav-item" id="navDigitalLibrary">📖 Digital Library</button>
         <button class="nav-item" id="navHomeworkHelper">📷 AI Homework Helper</button>
         <button class="nav-item" id="navNotesFlashcards">🗒️ Notes & Flashcards</button>
         <button class="nav-item" id="navStudyPlanner">📅 Study Planner</button>
@@ -255,6 +255,33 @@
         <textarea id="homeworkTypeInput" class="modal-content-textarea" placeholder="Type your homework question here…" style="width:100%;min-height:110px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box;resize:vertical;"></textarea>
         <button id="homeworkTypeSubmitBtn" class="add-memory-btn" style="margin-top:10px;">Get Step-by-Step Help</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Digital Library -->
+  <div id="digitalLibraryModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeDigitalLibraryBtn" class="dark-back-btn">←</button>
+      <h2>📖 Digital Library</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Search any topic and FormGuide AI will generate clear explanations, notes, or practice questions for it.</p>
+
+      <input id="libraryQueryInput" type="text" placeholder="Search anything… e.g. Photosynthesis, WAEC 2024, JAMB 2025" class="ai-search-input">
+
+      <div class="templates-tabs" style="margin-top:12px;">
+        <button class="templates-tab library-cat-btn active" data-cat="notes">Study Notes</button>
+        <button class="templates-tab library-cat-btn" data-cat="explain">Explain Topic</button>
+        <button class="templates-tab library-cat-btn" data-cat="pastquestions">Practice Questions</button>
+        <button class="templates-tab library-cat-btn" data-cat="curriculum">Curriculum Guide</button>
+      </div>
+
+      <button id="librarySearchBtn" class="add-memory-btn" style="margin-top:14px;">🔍 Search</button>
+
+      <p style="font-size:11px;color:var(--text-dim);margin-top:16px;line-height:1.6;">
+        Note: results are generated fresh by AI, not scanned from real textbooks or official past papers — great for learning and practice, but always double-check against your official school materials before an exam.
+      </p>
     </div>
   </div>
 
