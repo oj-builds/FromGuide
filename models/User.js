@@ -62,6 +62,14 @@ const userSchema = new mongoose.Schema({
     type: String, // stored as YYYY-MM-DD so we can compare "is this still today"
     default: null,
   },
+  xp: {
+    type: Number,
+    default: 0,
+  },
+  examsTaken: {
+    type: Number,
+    default: 0,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
