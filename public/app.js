@@ -2156,6 +2156,61 @@ if (examRetakeBtn) {
   });
 }
 
+// ---------- Digital Library ----------
+// Generates original AI explanations, notes, and practice questions on demand.
+// Deliberately does NOT store or serve real textbook pages or official past
+// papers, since those are copyrighted material this app has no license to
+// distribute — everything here is freshly generated per search.
+const digitalLibraryModal = document.getElementById("digitalLibraryModal");
+const closeDigitalLibraryBtn = document.getElementById("closeDigitalLibraryBtn");
+const navDigitalLibraryBtn = document.getElementById("navDigitalLibrary");
+
+let librarySelectedCategory = "notes";
+
+function openDigitalLibraryModal() {
+  document.getElementById("libraryQueryInput").value = "";
+  digitalLibraryModal.classList.add("open");
+}
+
+if (navDigitalLibraryBtn) {
+  navDigitalLibraryBtn.addEventListener("click", () => {
+    openDigitalLibraryModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+if (closeDigitalLibraryBtn) {
+  closeDigitalLibraryBtn.addEventListener("click", () => digitalLibraryModal.classList.remove("open"));
+}
+
+document.querySelectorAll(".library-cat-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".library-cat-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    librarySelectedCategory = btn.dataset.cat;
+  });
+});
+
+const librarySearchBtn = document.getElementById("librarySearchBtn");
+if (librarySearchBtn) {
+  librarySearchBtn.addEventListener("click", () => {
+    const query = document.getElementById("libraryQueryInput").value.trim();
+    if (!query) {
+      alert("Please enter something to search for.");
+      return;
+    }
+
+    const prompts = {
+      notes: `Give me clear, well-organized study notes on "${query}" suitable for a Nigerian student, with headings and key points.`,
+      explain: `Please explain "${query}" the way a good textbook chapter would — clear, step-by-step, with examples, suitable for someone learning it for the first time.`,
+      pastquestions: `Generate a set of original practice questions in the style of "${query}", with answers and brief explanations. Make clear these are AI-generated practice questions, not real past exam questions.`,
+      curriculum: `Summarize what is typically covered under "${query}" in the Nigerian school curriculum, including the main topics a student should know.`,
+    };
+
+    digitalLibraryModal.classList.remove("open");
+    sendMessage(prompts[librarySelectedCategory] || prompts.notes);
+  });
+}
+
 // ---------- AI Homework Helper ----------
 // Reuses the existing photo-upload (vision) and voice-note (Whisper) pipelines,
 // just framed specifically to get step-by-step explanations instead of bare answers.
@@ -2271,7 +2326,6 @@ if (navSavedPromptsBtn) {
 const comingSoonItems = [
   { id: "navStudyTools", label: "Study Tools" },
   { id: "navSubjects", label: "Subjects" },
-  { id: "navDigitalLibrary", label: "Digital Library" },
   { id: "navSchoolDirectory", label: "School Directory" },
   { id: "navWallet", label: "Payments & Wallet" },
   { id: "navParentDashboard", label: "Parent Dashboard" },
