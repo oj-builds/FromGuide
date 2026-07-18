@@ -1904,6 +1904,258 @@ if (notesFlashcardsBtn) {
   });
 }
 
+// ---------- Exam Centre ----------
+const examCentreModal = document.getElementById("examCentreModal");
+const closeExamCentreBtn = document.getElementById("closeExamCentreBtn");
+const navExamCentreBtn = document.getElementById("navExamCentre");
+
+const examSetupView = document.getElementById("examSetupView");
+const examLoadingView = document.getElementById("examLoadingView");
+const examTakingView = document.getElementById("examTakingView");
+const examResultsView = document.getElementById("examResultsView");
+
+let examSelectedType = "WAEC";
+let examQuestions = [];
+let examAnswers = [];
+let examCurrentIndex = 0;
+let examTimerInterval = null;
+let examSecondsLeft = 0;
+let examSubjectLabel = "";
+
+function showExamView(view) {
+  [examSetupView, examLoadingView, examTakingView, examResultsView].forEach((v) => {
+    v.style.display = v === view ? "block" : "none";
+  });
+}
+
+function openExamCentreModal() {
+  showExamView(examSetupView);
+  examCentreModal.classList.add("open");
+}
+
+if (navExamCentreBtn) {
+  navExamCentreBtn.addEventListener("click", () => {
+    openExamCentreModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+if (closeExamCentreBtn) {
+  closeExamCentreBtn.addEventListener("click", () => {
+    if (examTimerInterval) {
+      const confirmed = confirm("Leave this exam? Your progress will be lost.");
+      if (!confirmed) return;
+      clearInterval(examTimerInterval);
+    }
+    examCentreModal.classList.remove("open");
+  });
+}
+
+document.querySelectorAll(".exam-type-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".exam-type-btn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    examSelectedType = btn.dataset.exam;
+  });
+});
+
+const examStartBtn = document.getElementById("examStartBtn");
+if (examStartBtn) {
+  examStartBtn.addEventListener("click", async () => {
+    const subject = document.getElementById("examSubjectInput").value.trim();
+    const count = document.getElementById("examCountSelect").value;
+
+    if (!subject) {
+      alert("Please enter a subject.");
+      return;
+    }
+    if (!getToken()) {
+      alert("Please log in to take a mock exam.");
+      return;
+    }
+
+    showExamView(examLoadingView);
+
+    try {
+      const res = await fetch("/api/exam/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ examType: examSelectedType, subject, numQuestions: count }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Could not generate this exam. Please try again.");
+        showExamView(examSetupView);
+        return;
+      }
+
+      examQuestions = data.questions;
+      examSubjectLabel = `${data.examType} ${data.subject}`;
+      examAnswers = new Array(examQuestions.length).fill(null);
+      examCurrentIndex = 0;
+      examSecondsLeft = examQuestions.length * 72; // ~1.2 min per question
+
+      startExamTimer();
+      renderExamQuestion();
+      showExamView(examTakingView);
+    } catch (err) {
+      alert("Could not reach the server. Please try again.");
+      showExamView(examSetupView);
+    }
+  });
+}
+
+function startExamTimer() {
+  updateExamTimerText();
+  examTimerInterval = setInterval(() => {
+    examSecondsLeft -= 1;
+    updateExamTimerText();
+    if (examSecondsLeft <= 0) {
+      clearInterval(examTimerInterval);
+      submitExam();
+    }
+  }, 1000);
+}
+
+function updateExamTimerText() {
+  const mins = Math.max(0, Math.floor(examSecondsLeft / 60));
+  const secs = Math.max(0, examSecondsLeft % 60);
+  const el = document.getElementById("examTimerText");
+  if (el) el.textContent = `${mins}:${String(secs).padStart(2, "0")}`;
+}
+
+function renderExamQuestion() {
+  const q = examQuestions[examCurrentIndex];
+  document.getElementById("examProgressText").textContent = `Question ${examCurrentIndex + 1} of ${examQuestions.length}`;
+  document.getElementById("examQuestionText").textContent = q.question;
+
+  const optionsList = document.getElementById("examOptionsList");
+  optionsList.innerHTML = "";
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement("button");
+    btn.className = "exam-option-btn" + (examAnswers[examCurrentIndex] === i ? " selected" : "");
+    btn.textContent = `${String.fromCharCode(65 + i)}. ${opt}`;
+    btn.addEventListener("click", () => {
+      examAnswers[examCurrentIndex] = i;
+      renderExamQuestion();
+    });
+    optionsList.appendChild(btn);
+  });
+
+  document.getElementById("examPrevBtn").disabled = examCurrentIndex === 0;
+  document.getElementById("examNextBtn").disabled = examCurrentIndex === examQuestions.length - 1;
+}
+
+const examPrevBtn = document.getElementById("examPrevBtn");
+if (examPrevBtn) {
+  examPrevBtn.addEventListener("click", () => {
+    if (examCurrentIndex > 0) {
+      examCurrentIndex -= 1;
+      renderExamQuestion();
+    }
+  });
+}
+const examNextBtn = document.getElementById("examNextBtn");
+if (examNextBtn) {
+  examNextBtn.addEventListener("click", () => {
+    if (examCurrentIndex < examQuestions.length - 1) {
+      examCurrentIndex += 1;
+      renderExamQuestion();
+    }
+  });
+}
+
+const examSubmitBtn = document.getElementById("examSubmitBtn");
+if (examSubmitBtn) {
+  examSubmitBtn.addEventListener("click", () => {
+    const unanswered = examAnswers.filter((a) => a === null).length;
+    if (unanswered > 0) {
+      const confirmed = confirm(`You have ${unanswered} unanswered question${unanswered === 1 ? "" : "s"}. Submit anyway?`);
+      if (!confirmed) return;
+    }
+    submitExam();
+  });
+}
+
+function submitExam() {
+  clearInterval(examTimerInterval);
+
+  let correctCount = 0;
+  const weakTopics = {};
+
+  examQuestions.forEach((q, i) => {
+    const isCorrect = examAnswers[i] === q.correctIndex;
+    if (isCorrect) {
+      correctCount += 1;
+    } else if (q.topic) {
+      weakTopics[q.topic] = (weakTopics[q.topic] || 0) + 1;
+    }
+  });
+
+  const total = examQuestions.length;
+  const percent = Math.round((correctCount / total) * 100);
+
+  document.getElementById("examScoreText").textContent = `${correctCount}/${total}`;
+  document.getElementById("examPercentText").textContent = `${percent}% — ${examSubjectLabel}`;
+
+  const weakTopicsCard = document.getElementById("examWeakTopicsCard");
+  const weakTopicsList = document.getElementById("examWeakTopicsList");
+  const topicNames = Object.keys(weakTopics).sort((a, b) => weakTopics[b] - weakTopics[a]);
+
+  if (topicNames.length > 0) {
+    weakTopicsCard.style.display = "block";
+    weakTopicsList.innerHTML = topicNames
+      .map((t) => `<div>• ${t} (${weakTopics[t]} question${weakTopics[t] === 1 ? "" : "s"} missed)</div>`)
+      .join("");
+  } else {
+    weakTopicsCard.style.display = "none";
+  }
+
+  const reviewList = document.getElementById("examReviewList");
+  reviewList.innerHTML = "";
+  examQuestions.forEach((q, i) => {
+    const userAnswerIndex = examAnswers[i];
+    const isCorrect = userAnswerIndex === q.correctIndex;
+    const item = document.createElement("div");
+    item.className = "exam-review-item " + (isCorrect ? "correct" : "incorrect");
+    const userAnswerText = userAnswerIndex === null ? "No answer" : q.options[userAnswerIndex];
+    item.innerHTML = `
+      <div class="exam-review-q">${i + 1}. ${q.question}</div>
+      <div class="exam-review-answer ${isCorrect ? "correct-text" : "incorrect-text"}">Your answer: ${userAnswerText}</div>
+      ${!isCorrect ? `<div class="exam-review-answer correct-text">Correct answer: ${q.options[q.correctIndex]}</div>` : ""}
+      <div class="exam-review-explanation">${q.explanation || ""}</div>
+    `;
+    reviewList.appendChild(item);
+  });
+
+  showExamView(examResultsView);
+}
+
+const examRevisionPlanBtn = document.getElementById("examRevisionPlanBtn");
+if (examRevisionPlanBtn) {
+  examRevisionPlanBtn.addEventListener("click", () => {
+    const weakTopicsList = document.getElementById("examWeakTopicsList");
+    const topics = Array.from(weakTopicsList.querySelectorAll("div"))
+      .map((el) => el.textContent.replace(/^•\s*/, ""))
+      .join(", ");
+
+    examCentreModal.classList.remove("open");
+    sendMessage(
+      `Based on my recent ${examSubjectLabel} mock exam, I struggled with these topics: ${topics}. Please build me a focused revision plan targeting these weak areas first.`
+    );
+  });
+}
+
+const examRetakeBtn = document.getElementById("examRetakeBtn");
+if (examRetakeBtn) {
+  examRetakeBtn.addEventListener("click", () => {
+    showExamView(examSetupView);
+  });
+}
+
 // ---------- AI Homework Helper ----------
 // Reuses the existing photo-upload (vision) and voice-note (Whisper) pipelines,
 // just framed specifically to get step-by-step explanations instead of bare answers.
@@ -2019,7 +2271,6 @@ if (navSavedPromptsBtn) {
 const comingSoonItems = [
   { id: "navStudyTools", label: "Study Tools" },
   { id: "navSubjects", label: "Subjects" },
-  { id: "navExamCentre", label: "Exam Centre" },
   { id: "navDigitalLibrary", label: "Digital Library" },
   { id: "navSchoolDirectory", label: "School Directory" },
   { id: "navWallet", label: "Payments & Wallet" },
