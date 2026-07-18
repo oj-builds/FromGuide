@@ -539,6 +539,95 @@ function todayString() {
   return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
 }
 
+// ---------- EXAM CENTRE (mock exam question generation) ----------
+
+const EXAM_TYPES = ["WAEC", "NECO", "JAMB", "Post-UTME", "BECE"];
+
+app.post("/api/exam/generate", authenticate, async (req, res) => {
+  try {
+    const { examType, subject, numQuestions } = req.body;
+
+    if (!examType || !EXAM_TYPES.includes(examType)) {
+      return res.status(400).json({ error: "Please choose a valid exam type." });
+    }
+    if (!subject || !subject.trim()) {
+      return res.status(400).json({ error: "Please enter a subject." });
+    }
+    const count = Math.min(Math.max(parseInt(numQuestions, 10) || 10, 5), 30);
+
+    if (!API_KEY) {
+      return res.status(500).json({ error: "No API key configured on the server." });
+    }
+
+    const examPrompt = `Generate ${count} multiple-choice practice questions for ${examType} ${subject.trim()}, matching the real difficulty, style and topic coverage of that exam.
+
+Reply ONLY with a JSON array, nothing else — no markdown fences, no commentary. Each item must have this exact shape:
+{"topic": "short topic name", "question": "the question text", "options": ["option A", "option B", "option C", "option D"], "correctIndex": 0, "explanation": "brief explanation of the correct answer"}
+
+correctIndex is the 0-based index of the correct option in the "options" array. Make sure questions cover a good spread of topics within the subject, not just one topic repeated.`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-5",
+        max_tokens: 4000,
+        messages: [{ role: "user", content: examPrompt }],
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Exam generation API error:", data);
+      return res.status(response.status).json({ error: "Could not generate exam questions." });
+    }
+
+    const textBlock = data.content?.find((block) => block.type === "text");
+    if (!textBlock) {
+      return res.status(500).json({ error: "No response received." });
+    }
+
+    let questions;
+    try {
+      const clean = textBlock.text.replace(/```json|```/g, "").trim();
+      questions = JSON.parse(clean);
+    } catch (err) {
+      console.error("Exam question parse error:", err, textBlock.text);
+      return res.status(500).json({ error: "Could not read the generated questions. Please try again." });
+    }
+
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(500).json({ error: "No valid questions were generated. Please try again." });
+    }
+
+    // Basic shape validation — drop anything malformed rather than failing the whole exam
+    questions = questions.filter(
+      (q) =>
+        q &&
+        typeof q.question === "string" &&
+        Array.isArray(q.options) &&
+        q.options.length === 4 &&
+        Number.isInteger(q.correctIndex) &&
+        q.correctIndex >= 0 &&
+        q.correctIndex < 4
+    );
+
+    if (questions.length === 0) {
+      return res.status(500).json({ error: "No valid questions were generated. Please try again." });
+    }
+
+    res.json({ questions, examType, subject: subject.trim() });
+  } catch (err) {
+    console.error("Exam generation error:", err);
+    res.status(500).json({ error: "Could not generate this exam. Please try again." });
+  }
+});
+
 app.post("/api/generate-image", authenticate, async (req, res) => {
   try {
     const { prompt } = req.body;
