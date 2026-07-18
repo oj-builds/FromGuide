@@ -55,7 +55,7 @@
         <button class="nav-item" id="navAiTutor">🎓 AI Study Companion</button>
         <button class="nav-item" id="navStudyTools">🛠️ Study Tools <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navSubjects">📚 Subjects <span class="soon-badge">Soon</span></button>
-        <button class="nav-item" id="navExamCentre">🎯 Exam Centre <span class="soon-badge">Soon</span></button>
+        <button class="nav-item" id="navExamCentre">🎯 Exam Centre</button>
         <button class="nav-item" id="navDigitalLibrary">📖 Digital Library <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navHomeworkHelper">📷 AI Homework Helper</button>
         <button class="nav-item" id="navNotesFlashcards">🗒️ Notes & Flashcards</button>
@@ -255,6 +255,90 @@
         <textarea id="homeworkTypeInput" class="modal-content-textarea" placeholder="Type your homework question here…" style="width:100%;min-height:110px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box;resize:vertical;"></textarea>
         <button id="homeworkTypeSubmitBtn" class="add-memory-btn" style="margin-top:10px;">Get Step-by-Step Help</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Exam Centre -->
+  <div id="examCentreModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeExamCentreBtn" class="dark-back-btn">←</button>
+      <h2>🎯 Exam Centre</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+
+      <!-- Setup -->
+      <div id="examSetupView">
+        <p class="templates-sub">Choose your exam and subject — FormGuide AI will generate a fresh timed mock exam for you.</p>
+
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+          <label class="field-label" style="margin-top:0;">Exam Type</label>
+          <div id="examTypeTabs" class="templates-tabs" style="border-bottom:none;padding-bottom:0;margin-bottom:10px;">
+            <button class="templates-tab exam-type-btn active" data-exam="WAEC">WAEC</button>
+            <button class="templates-tab exam-type-btn" data-exam="NECO">NECO</button>
+            <button class="templates-tab exam-type-btn" data-exam="JAMB">JAMB</button>
+            <button class="templates-tab exam-type-btn" data-exam="Post-UTME">Post-UTME</button>
+            <button class="templates-tab exam-type-btn" data-exam="BECE">BECE</button>
+          </div>
+
+          <label class="field-label">Subject</label>
+          <input id="examSubjectInput" type="text" placeholder="e.g. Mathematics, English, Biology" class="ai-search-input">
+
+          <label class="field-label">Number of Questions</label>
+          <select id="examCountSelect" class="ai-search-input" style="appearance:auto;">
+            <option value="10">10 questions</option>
+            <option value="20">20 questions</option>
+            <option value="30">30 questions</option>
+          </select>
+
+          <button id="examStartBtn" class="add-memory-btn" style="margin-top:14px;">▶ Start Mock Exam</button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div id="examLoadingView" style="display:none;text-align:center;padding:60px 0;">
+        <div style="font-size:32px;margin-bottom:12px;">⏳</div>
+        <p style="color:var(--text-dim);font-size:13px;">Generating your questions…</p>
+      </div>
+
+      <!-- Taking exam -->
+      <div id="examTakingView" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <span id="examProgressText" style="font-size:12.5px;color:var(--text-dim);">Question 1 of 10</span>
+          <span id="examTimerText" style="font-size:14px;font-weight:700;color:var(--accent);">10:00</span>
+        </div>
+
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+          <p id="examQuestionText" style="font-size:14.5px;color:var(--text);margin:0 0 14px;line-height:1.5;"></p>
+          <div id="examOptionsList" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:14px;">
+          <button id="examPrevBtn" class="secondary-btn" style="flex:1;">← Previous</button>
+          <button id="examNextBtn" class="secondary-btn" style="flex:1;">Next →</button>
+        </div>
+        <button id="examSubmitBtn" class="add-memory-btn" style="margin-top:10px;background:#dc2626;">✔ Submit Exam</button>
+      </div>
+
+      <!-- Results -->
+      <div id="examResultsView" style="display:none;">
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);text-align:center;">
+          <div style="font-size:13px;color:var(--text-dim);">Your Score</div>
+          <div id="examScoreText" style="font-size:32px;font-weight:800;color:var(--accent);margin:6px 0;">0/0</div>
+          <div id="examPercentText" style="font-size:13px;color:var(--text-dim);"></div>
+        </div>
+
+        <div id="examWeakTopicsCard" class="settings-card" style="background:var(--panel);border-color:var(--border);display:none;">
+          <h3 style="color:var(--text);margin:0 0 8px;">Topics to revise</h3>
+          <div id="examWeakTopicsList" style="font-size:12.5px;color:var(--text-dim);line-height:1.8;"></div>
+          <button id="examRevisionPlanBtn" class="add-memory-btn" style="margin-top:10px;">📅 Build a revision plan for these</button>
+        </div>
+
+        <div id="examReviewList" style="margin-top:16px;"></div>
+
+        <button id="examRetakeBtn" class="secondary-btn" style="margin-top:16px;">↻ Take Another Exam</button>
+      </div>
+
     </div>
   </div>
 
