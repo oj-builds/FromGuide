@@ -965,7 +965,25 @@ function updateAccountButton() {
     accountBtn.innerHTML = `👤 Guest User <span class="chevron">⌄</span>`;
   }
 
+  updateDashboardGreeting();
   applyOwnerVisibility();
+}
+
+function updateDashboardGreeting() {
+  const user = getStoredUser();
+  const hour = new Date().getHours();
+  const timeGreeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const firstName = user ? user.name.split(" ")[0] : null;
+
+  const greetingEl = document.getElementById("dashGreetingText");
+  if (greetingEl) {
+    greetingEl.textContent = firstName ? `${timeGreeting}, ${firstName}! 👋` : `${timeGreeting}! 👋`;
+  }
+
+  const userChipEl = document.getElementById("userGreetingName");
+  if (userChipEl) {
+    userChipEl.textContent = user ? `Hello, ${firstName}` : "Hello, Guest";
+  }
 }
 
 // The name chip in the top bar is ONLY ever visible to you — never to regular
@@ -1312,7 +1330,11 @@ const navHistoryBtn = document.getElementById("navHistory");
 const navAiStudioBtn = document.getElementById("navAiStudio");
 const navTemplatesBtn = document.getElementById("navTemplates");
 const navCommunityBtn = document.getElementById("navCommunity");
-const navSavedPromptsBtn = document.getElementById("navSavedPrompts");
+const navFavoritesBtn = document.getElementById("navFavorites");
+const navSupportBtn = document.getElementById("navSupport");
+const navNewsBtn = document.getElementById("navNews");
+const navFormGuideTvBtn = document.getElementById("navFormGuideTv");
+const navPaymentsBtn = document.getElementById("navPayments");
 const proBannerBtn = document.getElementById("sidebarProBanner");
 
 function setActiveNavItem(activeBtn) {
@@ -2260,19 +2282,145 @@ function updateSidebarLevelBadge(level) {
 }
 
 async function loadAndSyncAchievements() {
-  if (!getToken()) return;
+  if (!getToken()) {
+    populateDashboardStats(null);
+    return;
+  }
   try {
     const res = await fetch("/api/achievements", {
       headers: { Authorization: `Bearer ${getToken()}` },
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      populateDashboardStats(null);
+      return;
+    }
     const data = await res.json();
     updateSidebarLevelBadge(data.level);
+    populateDashboardStats(data);
   } catch (err) {
     console.error("Could not load achievements:", err);
+    populateDashboardStats(null);
   }
 }
 loadAndSyncAchievements();
+
+function populateDashboardStats(achievementsData) {
+  const streakEl = document.getElementById("dashStatStreak");
+  const xpEl = document.getElementById("dashStatXp");
+  const examsEl = document.getElementById("dashStatExams");
+  const chatsEl = document.getElementById("dashStatChats");
+  if (!streakEl) return;
+
+  if (achievementsData) {
+    streakEl.textContent = achievementsData.streakCount ?? "—";
+    xpEl.textContent = achievementsData.xp;
+    examsEl.textContent = achievementsData.examsTaken;
+  } else {
+    streakEl.textContent = "—";
+    xpEl.textContent = "—";
+    examsEl.textContent = "—";
+  }
+  chatsEl.textContent = conversations.length;
+}
+
+function populateContinueLearning() {
+  const section = document.getElementById("dashContinueSection");
+  if (!section) return;
+
+  const recent = conversations.find((c) => c.messages && c.messages.length > 0);
+  if (!recent) {
+    section.style.display = "none";
+    return;
+  }
+
+  section.style.display = "block";
+  document.getElementById("dashContinueTitle").textContent = recent.title || "New chat";
+  const lastMsg = recent.messages[recent.messages.length - 1];
+  document.getElementById("dashContinueSub").textContent = lastMsg ? lastMsg.content.slice(0, 50) : "";
+
+  const btn = document.getElementById("dashContinueBtn");
+  btn.onclick = () => {
+    currentId = recent.id;
+    renderSidebar();
+    renderActiveConversation();
+  };
+}
+
+// ---------- Home dashboard: Quick Access, chips, popular services, pro banner ----------
+const dashQuickChat = document.getElementById("dashQuickChat");
+if (dashQuickChat) {
+  dashQuickChat.addEventListener("click", () => {
+    inputEl && inputEl.focus();
+    document.getElementById("dashQuickInput")?.focus();
+  });
+}
+const dashQuickGov = document.getElementById("dashQuickGov");
+if (dashQuickGov) {
+  dashQuickGov.addEventListener("click", () => governmentModal.classList.add("open"));
+}
+const dashQuickEdu = document.getElementById("dashQuickEdu");
+if (dashQuickEdu) {
+  dashQuickEdu.addEventListener("click", () => educationModal.classList.add("open"));
+}
+const dashQuickCareer = document.getElementById("dashQuickCareer");
+if (dashQuickCareer) {
+  dashQuickCareer.addEventListener("click", () => careerModal.classList.add("open"));
+}
+const dashQuickTv = document.getElementById("dashQuickTv");
+if (dashQuickTv) {
+  dashQuickTv.addEventListener("click", () => alert("FormGuide TV is coming soon!"));
+}
+const dashQuickWallet = document.getElementById("dashQuickWallet");
+if (dashQuickWallet) {
+  dashQuickWallet.addEventListener("click", () => alert("Wallet & Payments is coming soon!"));
+}
+
+document.querySelectorAll(".dash-chip[data-text]").forEach((chip) => {
+  chip.addEventListener("click", () => sendMessage(chip.dataset.text));
+});
+const dashWriteCvChip = document.getElementById("dashWriteCvChip");
+if (dashWriteCvChip) {
+  dashWriteCvChip.addEventListener("click", () => openCvModal());
+}
+
+document.querySelectorAll(".dash-popular-item[data-text]").forEach((item) => {
+  item.addEventListener("click", () => sendMessage(item.dataset.text));
+});
+
+const dashProBanner = document.getElementById("dashProBanner");
+if (dashProBanner) {
+  dashProBanner.addEventListener("click", () => {
+    alert("FormGuide AI Pro is coming soon!");
+  });
+}
+
+// Hero search bar (type / photo / voice / send) — same underlying pipelines as
+// the main chat input bar, just a second entry point on the home screen.
+const dashQuickInput = document.getElementById("dashQuickInput");
+const dashQuickSendBtn = document.getElementById("dashQuickSendBtn");
+const dashQuickPhotoBtn = document.getElementById("dashQuickPhotoBtn");
+const dashQuickMicBtn = document.getElementById("dashQuickMicBtn");
+
+function sendFromDashInput() {
+  const text = dashQuickInput.value.trim();
+  if (!text) return;
+  dashQuickInput.value = "";
+  sendMessage(text);
+}
+if (dashQuickSendBtn) dashQuickSendBtn.addEventListener("click", sendFromDashInput);
+if (dashQuickInput) {
+  dashQuickInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendFromDashInput();
+  });
+}
+if (dashQuickPhotoBtn) {
+  dashQuickPhotoBtn.addEventListener("click", () => {
+    if (photoFileInput) photoFileInput.click();
+  });
+}
+if (dashQuickMicBtn) {
+  wireVoiceNoteButton(dashQuickMicBtn);
+}
 
 const ALL_POSSIBLE_BADGES = [
   { id: "first_steps", icon: "🌱", label: "First Steps" },
@@ -2453,10 +2601,76 @@ if (navCommunityBtn) {
   });
 }
 
-if (navSavedPromptsBtn) {
-  navSavedPromptsBtn.addEventListener("click", () => {
-    alert("Saved Prompts are coming soon!");
+if (navFavoritesBtn) {
+  navFavoritesBtn.addEventListener("click", () => {
+    alert("Favorites are coming soon!");
     sidebarEl.classList.remove("open");
+  });
+}
+if (navSupportBtn) {
+  navSupportBtn.addEventListener("click", () => {
+    alert("Support is coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+if (navNewsBtn) {
+  navNewsBtn.addEventListener("click", () => {
+    alert("News is coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+if (navFormGuideTvBtn) {
+  navFormGuideTvBtn.addEventListener("click", () => {
+    alert("FormGuide TV is coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+if (navPaymentsBtn) {
+  navPaymentsBtn.addEventListener("click", () => {
+    alert("Payments is coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+const navWalletBtn = document.getElementById("navWallet");
+if (navWalletBtn) {
+  navWalletBtn.addEventListener("click", () => {
+    alert("Wallet is coming soon!");
+    sidebarEl.classList.remove("open");
+  });
+}
+
+// ---------- Bottom navigation (mobile) ----------
+function setActiveBottomNav(activeId) {
+  document.querySelectorAll(".bottom-nav-item").forEach((el) => el.classList.remove("active"));
+  const el = document.getElementById(activeId);
+  if (el) el.classList.add("active");
+}
+const bottomNavHome = document.getElementById("bottomNavHome");
+if (bottomNavHome) {
+  bottomNavHome.addEventListener("click", () => {
+    setActiveBottomNav("bottomNavHome");
+    if (navHomeBtn) navHomeBtn.click();
+  });
+}
+const bottomNavChat = document.getElementById("bottomNavChat");
+if (bottomNavChat) {
+  bottomNavChat.addEventListener("click", () => {
+    setActiveBottomNav("bottomNavChat");
+    if (navChatLinkBtn) navChatLinkBtn.click();
+  });
+}
+const bottomNavWallet = document.getElementById("bottomNavWallet");
+if (bottomNavWallet) {
+  bottomNavWallet.addEventListener("click", () => {
+    setActiveBottomNav("bottomNavWallet");
+    alert("Wallet is coming soon!");
+  });
+}
+const bottomNavProfile = document.getElementById("bottomNavProfile");
+if (bottomNavProfile) {
+  bottomNavProfile.addEventListener("click", () => {
+    setActiveBottomNav("bottomNavProfile");
+    if (settingsBtn) settingsBtn.click();
   });
 }
 
