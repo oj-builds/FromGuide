@@ -4,10 +4,14 @@ const welcomeScreenEl = document.getElementById("welcomeScreen");
 function hideSuggestions() {
   const el = document.getElementById("chatgptSuggestions");
   if (el) el.style.display = "none";
+  const composer = document.getElementById("chatComposerArea");
+  if (composer) composer.style.display = "block";
 }
 function showSuggestions() {
   const el = document.getElementById("chatgptSuggestions");
   if (el) el.style.display = "flex";
+  const composer = document.getElementById("chatComposerArea");
+  if (composer) composer.style.display = "none";
 }
 const messagesEl = document.getElementById("messages");
 const formEl = document.getElementById("chat-form");
@@ -408,14 +412,20 @@ document.getElementById("navEducation").addEventListener("click", () => {
   educationModal.classList.add("open");
   sidebarEl.classList.remove("open");
 });
-document.getElementById("navInterview").addEventListener("click", () => {
-  openInterviewModal();
-  sidebarEl.classList.remove("open");
-});
-document.getElementById("navJourney").addEventListener("click", () => {
-  sendMessage("Create a step-by-step learning/career roadmap for me and help me track my progress.");
-  sidebarEl.classList.remove("open");
-});
+const navInterviewBtn = document.getElementById("navInterview");
+if (navInterviewBtn) {
+  navInterviewBtn.addEventListener("click", () => {
+    openInterviewModal();
+    sidebarEl.classList.remove("open");
+  });
+}
+const navJourneyBtn = document.getElementById("navJourney");
+if (navJourneyBtn) {
+  navJourneyBtn.addEventListener("click", () => {
+    sendMessage("Create a step-by-step learning/career roadmap for me and help me track my progress.");
+    sidebarEl.classList.remove("open");
+  });
+}
 
 // CV Builder modal
 function openCvModal() {
@@ -606,6 +616,15 @@ settingsBtn.addEventListener("click", () => {
   openSettingsModal();
   sidebarEl.classList.remove("open");
 });
+
+const navProfileBtn = document.getElementById("navProfile");
+if (navProfileBtn) {
+  navProfileBtn.addEventListener("click", () => {
+    openSettingsModal();
+    showSettingsPanel("profile", "Profile");
+    sidebarEl.classList.remove("open");
+  });
+}
 
 settingsBackBtn.addEventListener("click", () => {
   if (settingsCurrentPanel === "main") {
