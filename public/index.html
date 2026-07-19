@@ -20,19 +20,20 @@
 
       <div class="nav-section">
         <button class="nav-item active" id="navHome">🏠 Home</button>
-        <button class="nav-item" id="navChatLink">💬 Chat</button>
+        <button class="nav-item" id="navChatLink">🤖 AI Chat</button>
         <button class="nav-item" id="navSearchLink">🔍 Search</button>
-        <button class="nav-item" id="navPinned">📌 Pinned</button>
-        <button class="nav-item" id="navHistory">🕘 History</button>
+        <button class="nav-item" id="navGovernment">🏛 Government Hub</button>
+        <button class="nav-item" id="navEducation">🎓 Education Hub</button>
+        <button class="nav-item" id="navCareer">💼 Career Hub</button>
+        <button class="nav-item" id="navFormGuideTv">📺 FormGuide TV <span class="soon-badge">Soon</span></button>
+        <button class="nav-item" id="navWallet">👛 Wallet <span class="soon-badge">Soon</span></button>
+        <button class="nav-item" id="navPayments">💳 Payments <span class="soon-badge">Soon</span></button>
       </div>
 
       <div class="nav-divider"></div>
       <div class="sidebar-section-label">AI Tools</div>
 
       <div class="nav-section">
-        <button class="nav-item" id="navEducation">🎓 Education</button>
-        <button class="nav-item" id="navCareer">💼 Career</button>
-        <button class="nav-item" id="navGovernment">🏛 Government</button>
         <button class="nav-item" id="navInterview">🎙️ Interview Practice</button>
         <button class="nav-item" id="navJourney">🎯 My Journey</button>
       </div>
@@ -48,8 +49,6 @@
         </div>
       </div>
 
-      <div class="nav-divider"></div>
-
       <div class="nav-section">
         <button class="nav-item" id="navAiStudio">🧠 AI Studio <span style="margin-left:auto;font-size:10px;color:var(--accent);">New</span></button>
         <button class="nav-item" id="navAiTutor">🎓 AI Study Companion</button>
@@ -61,7 +60,6 @@
         <button class="nav-item" id="navNotesFlashcards">🗒️ Notes & Flashcards</button>
         <button class="nav-item" id="navStudyPlanner">📅 Study Planner</button>
         <button class="nav-item" id="navSchoolDirectory">🏫 School Directory <span class="soon-badge">Soon</span></button>
-        <button class="nav-item" id="navWallet">💳 Payments & Wallet <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navParentDashboard">👨‍👩‍👧 Parent Dashboard <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navTemplates">📑 Templates</button>
       </div>
@@ -70,8 +68,12 @@
       <div class="sidebar-section-label">More</div>
 
       <div class="nav-section">
+        <button class="nav-item" id="navFavorites">⭐ Favorites</button>
         <button class="nav-item" id="navCommunity">👥 Community</button>
-        <button class="nav-item" id="navSavedPrompts">🔖 Saved Prompts</button>
+        <button class="nav-item" id="navSupport">📞 Support <span class="soon-badge">Soon</span></button>
+        <button class="nav-item" id="navNews">📰 News <span class="soon-badge">Soon</span></button>
+        <button class="nav-item" id="navPinned">📌 Pinned</button>
+        <button class="nav-item" id="navHistory">🕘 History</button>
       </div>
 
       <div class="sidebar-section-label">Recent conversations</div>
@@ -99,33 +101,116 @@
     <div class="main-area">
       <header class="topbar">
         <button id="openSidebar" class="icon-btn mobile-only">☰</button>
-        <span class="topbar-logo">🏛️</span>
+        <span class="topbar-logo">💎</span>
         <div>
           <div class="topbar-title">FormGuide <span class="accent">AI</span></div>
-          <div class="topbar-tag">AI for Government • Careers • Education</div>
+          <div class="topbar-tag">Your AI Companion</div>
         </div>
         <button id="topNotifBtn" class="icon-btn notif-btn" style="margin-left:auto;">
           🔔
           <span id="topNotifBadge" class="notif-badge" style="display:none;">0</span>
         </button>
-        <div id="ownerChip" class="owner-chip" style="display:none;">
-          <span id="ownerName" class="owner-name">Founder &amp; CEO</span>
+        <div id="userChip" class="user-chip">
+          <span class="user-avatar">👤</span>
+          <span id="userGreetingName" class="user-greeting">Hello, Guest</span>
         </div>
       </header>
 
       <main id="chat" class="chat">
         <div id="welcomeScreen" class="welcome-screen">
-          <div class="welcome-card">
-            <div class="welcome-text">
-              <h2>👋 Welcome to FormGuide AI</h2>
-              <p>Your personal AI assistant for government services, careers and education.</p>
-            </div>
-            <div class="welcome-illustration">🏛️</div>
+
+          <div class="dash-greeting">
+            <h2 id="dashGreetingText">Good morning! 👋</h2>
+            <p>How can I help you today?</p>
           </div>
+
+          <div class="dash-input-row">
+            <input id="dashQuickInput" type="text" placeholder="Ask FormGuide AI anything…" autocomplete="off">
+            <button type="button" id="dashQuickPhotoBtn" class="dash-icon-btn" title="Attach photo">📷</button>
+            <button type="button" id="dashQuickMicBtn" class="dash-icon-btn" title="Hold to record a voice note">🎤</button>
+            <button id="dashQuickSendBtn" class="dash-quick-send" title="Send">➤</button>
+          </div>
+          <div class="dash-suggestion-row">
+            <button class="dash-chip" data-text="How do I get a passport?">🛂 How do I get a passport?</button>
+            <button class="dash-chip" data-text="Help me with my JAMB registration.">🎓 JAMB registration guide</button>
+            <button class="dash-chip" id="dashWriteCvChip">📄 Write my CV</button>
+            <button class="dash-chip" data-text="Help me check my WAEC result.">🔎 Check WAEC result</button>
+          </div>
+
+          <div class="dash-section">
+            <div class="dash-section-header">
+              <h3>Quick Access</h3>
+            </div>
+            <div class="dash-quick-grid">
+              <button class="dash-quick-card" id="dashQuickChat"><span class="dash-quick-icon purple">💬</span><strong>AI Chat</strong><small>Ask anything</small></button>
+              <button class="dash-quick-card" id="dashQuickGov"><span class="dash-quick-icon green">🏛</span><strong>Government Hub</strong><small>Services & Info</small></button>
+              <button class="dash-quick-card" id="dashQuickEdu"><span class="dash-quick-icon blue">🎓</span><strong>Education Hub</strong><small>Learn & Grow</small></button>
+              <button class="dash-quick-card" id="dashQuickCareer"><span class="dash-quick-icon orange">💼</span><strong>Career Hub</strong><small>Build your future</small></button>
+              <button class="dash-quick-card" id="dashQuickTv"><span class="dash-quick-icon red">📺</span><strong>FormGuide TV</strong><small>Watch & Learn</small></button>
+              <button class="dash-quick-card" id="dashQuickWallet"><span class="dash-quick-icon teal">👛</span><strong>Wallet & Payments</strong><small>Pay & Manage</small></button>
+            </div>
+          </div>
+
+          <div id="dashContinueSection" class="dash-section" style="display:none;">
+            <div class="dash-section-header">
+              <h3>Continue Learning</h3>
+            </div>
+            <div class="dash-continue-card">
+              <span class="dash-continue-icon">📖</span>
+              <div class="dash-continue-info">
+                <strong id="dashContinueTitle">—</strong>
+                <small id="dashContinueSub">—</small>
+              </div>
+              <button id="dashContinueBtn" class="dash-continue-btn">▶ Continue</button>
+            </div>
+          </div>
+
+          <div class="dash-section">
+            <div class="dash-section-header">
+              <h3>Today's Overview</h3>
+            </div>
+            <div class="dash-stats-row">
+              <div class="dash-stat"><span>🔥</span><strong id="dashStatStreak">—</strong><small>Day Streak</small></div>
+              <div class="dash-stat"><span>💬</span><strong id="dashStatChats">—</strong><small>Conversations</small></div>
+              <div class="dash-stat"><span>🎯</span><strong id="dashStatExams">—</strong><small>Exams Taken</small></div>
+              <div class="dash-stat"><span>⚡</span><strong id="dashStatXp">—</strong><small>XP Earned</small></div>
+            </div>
+          </div>
+
+          <div class="dash-section">
+            <div class="dash-section-header">
+              <h3>Popular Services</h3>
+            </div>
+            <div class="dash-popular-row">
+              <button class="dash-popular-item" data-text="Help me apply for or renew my NIN and print my slip."><span class="dash-popular-icon">🆔</span><small>NIN</small></button>
+              <button class="dash-popular-item" data-text="Help me apply for or renew my international passport."><span class="dash-popular-icon">🛂</span><small>Passport</small></button>
+              <button class="dash-popular-item" data-text="Help me with my JAMB registration."><span class="dash-popular-icon">🎓</span><small>JAMB</small></button>
+              <button class="dash-popular-item" data-text="Help me check my WAEC result."><span class="dash-popular-icon">☀️</span><small>WAEC</small></button>
+              <button class="dash-popular-item" data-text="Give me information about NYSC."><span class="dash-popular-icon">🧭</span><small>NYSC</small></button>
+              <button class="dash-popular-item" data-text="Help me apply for or renew my driver's licence."><span class="dash-popular-icon">🚗</span><small>Driver's Licence</small></button>
+            </div>
+          </div>
+
+          <button id="dashProBanner" class="dash-pro-banner">
+            <div>
+              <strong>Upgrade to FormGuide Pro</strong>
+              <p>Unlock premium features and get more from your AI companion.</p>
+              <span class="dash-pro-cta">Upgrade Now</span>
+            </div>
+            <span class="dash-pro-icon">👑</span>
+          </button>
+
         </div>
 
         <div id="messages" class="messages"></div>
       </main>
+
+      <nav id="bottomNav" class="bottom-nav mobile-only">
+        <button class="bottom-nav-item active" id="bottomNavHome"><span>🏠</span><small>Home</small></button>
+        <button class="bottom-nav-item" id="bottomNavChat"><span>🤖</span><small>AI Chat</small></button>
+        <button class="bottom-nav-item" id="bottomNavWallet"><span>👛</span><small>Wallet</small></button>
+        <button class="bottom-nav-item" id="bottomNavProfile"><span>👤</span><small>Profile</small></button>
+      </nav>
 
       <div id="recordingIndicator" class="recording-indicator">
         <span class="recording-cancel-hint">🗑️</span>
