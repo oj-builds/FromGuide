@@ -20,79 +20,30 @@
 
       <div class="nav-section">
         <button class="nav-item active" id="navHome">🏠 Home</button>
-        <button class="nav-item" id="navChatLink">🤖 AI Chat</button>
-        <button class="nav-item" id="navSearchLink">🔍 Search</button>
+        <button class="nav-item" id="navChatLink">💬 AI Chat</button>
         <button class="nav-item" id="navGovernment">🏛 Government Hub</button>
         <button class="nav-item" id="navEducation">🎓 Education Hub</button>
         <button class="nav-item" id="navCareer">💼 Career Hub</button>
         <button class="nav-item" id="navFormGuideTv">📺 FormGuide TV <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navWallet">👛 Wallet <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navPayments">💳 Payments <span class="soon-badge">Soon</span></button>
-      </div>
-
-      <div class="nav-divider"></div>
-      <div class="sidebar-section-label">AI Tools</div>
-
-      <div class="nav-section">
-        <button class="nav-item" id="navInterview">🎙️ Interview Practice</button>
-        <button class="nav-item" id="navJourney">🎯 My Journey</button>
-      </div>
-
-      <div class="nav-group" id="groupDocuments">
-        <button class="nav-group-header">
-          <span class="nav-item-left">📄 Documents</span>
-          <span class="nav-group-arrow">▶</span>
-        </button>
-        <div class="nav-subitems">
-          <button class="nav-subitem" data-text="Help me understand an official document.">Upload & Analyze</button>
-          <button class="nav-subitem" data-text="Summarize this document for me.">Summarize PDF</button>
-        </div>
-      </div>
-
-      <div class="nav-section">
-        <button class="nav-item" id="navAiStudio">🧠 AI Studio <span style="margin-left:auto;font-size:10px;color:var(--accent);">New</span></button>
-        <button class="nav-item" id="navAiTutor">🎓 AI Study Companion</button>
-        <button class="nav-item" id="navStudyTools">🛠️ Study Tools <span class="soon-badge">Soon</span></button>
-        <button class="nav-item" id="navSubjects">📚 Subjects <span class="soon-badge">Soon</span></button>
-        <button class="nav-item" id="navExamCentre">🎯 Exam Centre</button>
-        <button class="nav-item" id="navDigitalLibrary">📖 Digital Library</button>
-        <button class="nav-item" id="navHomeworkHelper">📷 AI Homework Helper</button>
-        <button class="nav-item" id="navNotesFlashcards">🗒️ Notes & Flashcards</button>
-        <button class="nav-item" id="navStudyPlanner">📅 Study Planner</button>
-        <button class="nav-item" id="navSchoolDirectory">🏫 School Directory <span class="soon-badge">Soon</span></button>
-        <button class="nav-item" id="navParentDashboard">👨‍👩‍👧 Parent Dashboard <span class="soon-badge">Soon</span></button>
-        <button class="nav-item" id="navTemplates">📑 Templates</button>
-      </div>
-
-      <div class="nav-divider"></div>
-      <div class="sidebar-section-label">More</div>
-
-      <div class="nav-section">
-        <button class="nav-item" id="navFavorites">⭐ Favorites</button>
-        <button class="nav-item" id="navCommunity">👥 Community</button>
+        <button class="nav-item" id="navAchievements">🏆 Achievements <span id="achievementsLevelBadge" style="margin-left:auto;font-size:10px;color:var(--accent);font-weight:700;"></span></button>
+        <button class="nav-item" id="notificationsBtn">🔔 Notifications <span id="notifBadge" class="notif-badge" style="display:none;margin-left:auto;">0</span></button>
+        <button class="nav-item" id="navProfile">👤 Profile</button>
+        <button class="nav-item" id="settingsBtn">⚙️ Settings</button>
         <button class="nav-item" id="navSupport">📞 Support <span class="soon-badge">Soon</span></button>
         <button class="nav-item" id="navNews">📰 News <span class="soon-badge">Soon</span></button>
-        <button class="nav-item" id="navPinned">📌 Pinned</button>
-        <button class="nav-item" id="navHistory">🕘 History</button>
+        <button class="nav-item" id="navFavorites">⭐ Favorites <span class="soon-badge">Soon</span></button>
       </div>
 
       <div class="sidebar-section-label">Recent conversations</div>
       <div id="chatList" class="chat-list"></div>
 
       <div class="sidebar-footer">
-        <button id="navAchievements" class="upgrade-btn">
-          🏆 Achievements
-          <span id="achievementsLevelBadge" style="font-size:10px;color:var(--accent);font-weight:700;"></span>
-        </button>
         <div class="pro-banner" id="sidebarProBanner">
           <div class="pro-banner-title">⚡ FormGuide AI Pro</div>
           <div class="pro-banner-sub">Unlock all premium features</div>
         </div>
-        <button id="notificationsBtn" class="upgrade-btn notif-btn">
-          🔔 Notifications
-          <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
-        </button>
-        <button id="settingsBtn" class="upgrade-btn">⚙️ Settings</button>
         <button id="accountBtn" class="guest-btn">👤 Guest User <span class="chevron">⌄</span></button>
       </div>
     </aside>
@@ -222,28 +173,30 @@
         <span class="recording-hint">Slide away to cancel</span>
       </div>
 
-      <form id="chat-form" class="input-bar">
-        <button type="button" id="inlineAttachBtn" class="input-icon-btn" title="Attach photo">📎</button>
-        <input id="chat-input" type="text" placeholder="Ask about any form…" autocomplete="off" />
-        <button type="button" id="inlineMicBtn" class="input-icon-btn" title="Hold to record a voice note">🎙️</button>
-        <button type="submit" class="input-send-btn" title="Send">↑</button>
-      </form>
+      <div id="chatComposerArea" style="display:none;">
+        <form id="chat-form" class="input-bar">
+          <button type="button" id="inlineAttachBtn" class="input-icon-btn" title="Attach photo">📎</button>
+          <input id="chat-input" type="text" placeholder="Ask about any form…" autocomplete="off" />
+          <button type="button" id="inlineMicBtn" class="input-icon-btn" title="Hold to record a voice note">🎙️</button>
+          <button type="submit" class="input-send-btn" title="Send">↑</button>
+        </form>
 
-      <div class="chatgpt-suggestions" id="chatgptSuggestions">
-        <button class="suggestion-row" id="suggestGovernment"><span>🏛️</span> Explore government services</button>
-        <button class="suggestion-row" id="suggestImage"><span>🖼️</span> Create an image</button>
-        <button class="suggestion-row" id="suggestSearch"><span>🔍</span> Ask me anything</button>
+        <div class="chatgpt-suggestions" id="chatgptSuggestions">
+          <button class="suggestion-row" id="suggestGovernment"><span>🏛️</span> Explore government services</button>
+          <button class="suggestion-row" id="suggestImage"><span>🖼️</span> Create an image</button>
+          <button class="suggestion-row" id="suggestSearch"><span>🔍</span> Ask me anything</button>
+        </div>
+
+        <div class="action-buttons-row">
+          <button class="action-pill" id="voiceChatBtn"><span>🎙️</span> Voice Chat</button>
+          <button class="action-pill" id="uploadFileBtn"><span>📄</span> Upload File</button>
+          <button class="action-pill" id="aiSearchBtn"><span>🔍</span> AI Search</button>
+          <button class="action-pill" id="generateImageBtn"><span>🖼️</span> Generate Image</button>
+          <button class="action-pill" id="moreToolsBtn"><span>➕</span> More Tools</button>
+        </div>
+
+        <div class="disclaimer">FormGuide AI can make mistakes. Please verify important information.</div>
       </div>
-
-      <div class="action-buttons-row">
-        <button class="action-pill" id="voiceChatBtn"><span>🎙️</span> Voice Chat</button>
-        <button class="action-pill" id="uploadFileBtn"><span>📄</span> Upload File</button>
-        <button class="action-pill" id="aiSearchBtn"><span>🔍</span> AI Search</button>
-        <button class="action-pill" id="generateImageBtn"><span>🖼️</span> Generate Image</button>
-        <button class="action-pill" id="moreToolsBtn"><span>➕</span> More Tools</button>
-      </div>
-
-      <div class="disclaimer">FormGuide AI can make mistakes. Please verify important information.</div>
     </div>
   </div>
 
