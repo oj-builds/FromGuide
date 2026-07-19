@@ -1,14 +1,14 @@
 * { box-sizing: border-box; }
 
 :root {
-  --bg: #F9FAFB;
-  --panel: #FFFFFF;
-  --panel-light: #F3F4F6;
-  --border: #E5E7EB;
+  --bg: #0B0F1A;
+  --panel: #141B2D;
+  --panel-light: #1E273C;
+  --border: #2A3349;
   --accent: #7C3AED;
   --accent-dim: #6D28D9;
-  --text: #111827;
-  --text-dim: #6B7280;
+  --text: #FFFFFF;
+  --text-dim: #9CA3AF;
 }
 
 body {
