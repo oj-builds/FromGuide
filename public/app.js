@@ -965,6 +965,9 @@ function setSession(token, user, remember) {
   store.setItem(USER_KEY, JSON.stringify(user));
   updateAccountButton();
   loadPreferencesFromAccount();
+  loadChatsFromServer();
+  loadNotifications();
+  closeAuthModal();
 }
 
 function clearSession() {
@@ -1076,7 +1079,6 @@ authSwitchLink.addEventListener("click", (e) => {
   openAuthModal(authMode === "login" ? "signup" : "login");
 });
 
-continueGuestBtn.addEventListener("click", closeAuthModal);
 
 togglePasswordBtn.addEventListener("click", () => {
   const isHidden = authPassword.type === "password";
@@ -1206,13 +1208,8 @@ if (getToken()) {
   loadChatsFromServer();
   loadPreferencesFromAccount();
 } else {
-  if (conversations.length === 0) {
-    startNewChat();
-  } else {
-    currentId = conversations[0].id;
-    renderSidebar();
-    renderActiveConversation();
-  }
+  // Login is required — show the auth screen and hold here until they sign in.
+  openAuthModal("login");
 }
 
 // Notifications
