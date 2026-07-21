@@ -3410,3 +3410,11 @@ if (aiChatButton) {
         window.location.href = "chat.html";
     });
 }
+const navChatLink = document.getElementById("navChatLink");
+
+if (navChatLink) {
+    navChatLink.addEventListener("click", function () {
+        window.location.href = "chat.html";
+    });
+}
+
