@@ -1672,6 +1672,122 @@ body.accent-orange .accent { color: #e0862f !important; }
 }
 .recent-file-meta { font-size: 10.5px; color: var(--text-dim); }
 
+/* ---------- Dedicated AI Chat screen ---------- */
+.chat-mode-header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.chat-mode-title { font-size: 15px; font-weight: 700; color: var(--text); }
+
+.chat-empty-state {
+  max-width: 420px;
+  margin: 40px auto;
+  text-align: center;
+}
+.chat-empty-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(124,58,237,0.15);
+  border: 2px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin: 0 auto 14px;
+}
+.chat-empty-state h3 { margin: 0 0 4px; font-size: 18px; color: var(--text); }
+.chat-empty-state p { margin: 0; font-size: 13px; color: var(--text-dim); }
+
+.more-tools-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 auto 8px;
+  padding: 8px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  max-width: 900px;
+  width: fit-content;
+}
+.more-tools-btn:hover { border-color: var(--accent); }
+
+/* ---------- Bottom sheet ---------- */
+.bottom-sheet {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+}
+.bottom-sheet.open { display: block; }
+.bottom-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+}
+.bottom-sheet-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--panel);
+  border-radius: 18px 18px 0 0;
+  padding: 10px 18px 24px;
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-bottom: none;
+}
+.bottom-sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 6px auto 14px;
+}
+.bottom-sheet-title { margin: 0 0 12px; font-size: 15px; color: var(--text); text-align: center; }
+
+.tool-list { display: flex; flex-direction: column; gap: 4px; }
+.tool-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 6px;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--text);
+}
+.tool-row:hover { background: var(--panel-light); }
+.tool-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(124,58,237,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.tool-row strong { display: block; font-size: 13px; }
+.tool-row small { display: block; font-size: 10.5px; color: var(--text-dim); margin-top: 1px; }
+
 .bottom-nav {
   display: none;
   position: fixed;
@@ -1960,3 +2076,22 @@ body.accent-orange .accent { color: #e0862f !important; }
   margin-top: 8px;
   display: block;
 }
+
+/* ---------- More Tools tool pages: toggle switch (AI Settings) ---------- */
+.ai-toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+.ai-toggle-switch input { opacity: 0; width: 0; height: 0; }
+.ai-toggle-slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background-color: var(--border); transition: 0.2s; border-radius: 22px;
+}
+.ai-toggle-slider:before {
+  content: ""; position: absolute; height: 16px; width: 16px;
+  left: 3px; bottom: 3px; background-color: #fff; transition: 0.2s; border-radius: 50%;
+}
+.ai-toggle-switch input:checked + .ai-toggle-slider { background-color: var(--accent); }
+.ai-toggle-switch input:checked + .ai-toggle-slider:before { transform: translateX(18px); }
+
+/* AI Settings / Chat History rows sit on dark backgrounds, unlike account Settings */
+#chatHistoryModal .settings-fs-panels { background: var(--bg); }
+#chatHistoryModal .search-page-input { background: var(--panel); color: var(--text); border-color: var(--border); }
+#aiSettingsModal .settings-row-item { border-bottom: 1px solid var(--border); }
