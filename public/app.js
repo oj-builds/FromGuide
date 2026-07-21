@@ -3402,3 +3402,11 @@ if (moreToolsBtn) {
     if (label) label.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 }
+
+const aiChatButton = document.getElementById("dashQuickChat");
+
+if (aiChatButton) {
+    aiChatButton.addEventListener("click", function () {
+        window.location.href = "chat.html";
+    });
+}
