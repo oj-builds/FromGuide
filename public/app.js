@@ -168,7 +168,34 @@ function renderSidebar() {
         }
       });
 
+      const favBtn = document.createElement("button");
+      favBtn.className = "chat-pin-btn";
+      favBtn.innerHTML = conv.favorite ? "⭐" : "☆";
+      favBtn.title = "Favorite chat";
+
+      favBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+
+        conv.favorite = !conv.favorite;
+
+        renderSidebar();
+
+        if (getToken()) {
+          await fetch(`/api/chats/${conv.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getToken()}`,
+            },
+            body: JSON.stringify({
+              favorite: conv.favorite,
+            }),
+          });
+        }
+      });
+
       item.appendChild(label);
+      item.appendChild(favBtn);
       item.appendChild(pinBtn);
       item.appendChild(deleteBtn);
       chatListEl.appendChild(item);
@@ -281,12 +308,13 @@ async function sendMessage(text) {
 
   if (!conv.title) conv.title = makeTitle(text);
 
-  welcomeScreenEl.style.display = "none"; hideSuggestions();
+  switchToChatMode();
 
   conv.messages.push({ role: "user", content: text });
   saveConversations();
   renderSidebar();
   renderMessage("user", text);
+  updateChatEmptyState();
   renderTyping();
 
   try {
@@ -1358,13 +1386,45 @@ function setActiveNavItem(activeBtn) {
   if (activeBtn) activeBtn.classList.add("active");
 }
 
+const chatModeHeader = document.getElementById("chatModeHeader");
+const chatEmptyState = document.getElementById("chatEmptyState");
+const topbarEl = document.querySelector(".topbar");
+
+function updateChatEmptyState() {
+  const conv = getCurrentConversation();
+  const hasMessages = conv && conv.messages && conv.messages.length > 0;
+  if (chatEmptyState) chatEmptyState.style.display = hasMessages ? "none" : "block";
+
+  const greetingEl = document.getElementById("chatEmptyGreeting");
+  if (greetingEl) {
+    const user = getStoredUser();
+    greetingEl.textContent = user ? `Hello ${user.name}! 👋` : "Hello! 👋";
+  }
+}
+
+function switchToDashboardMode() {
+  if (topbarEl) topbarEl.style.display = "flex";
+  if (chatModeHeader) chatModeHeader.style.display = "none";
+  if (chatEmptyState) chatEmptyState.style.display = "none";
+  welcomeScreenEl.style.display = "block";
+  showSuggestions();
+  messagesEl.innerHTML = "";
+}
+
+function switchToChatMode() {
+  if (topbarEl) topbarEl.style.display = "none";
+  if (chatModeHeader) chatModeHeader.style.display = "flex";
+  welcomeScreenEl.style.display = "none";
+  hideSuggestions();
+  updateChatEmptyState();
+}
+
 if (navHomeBtn) {
   navHomeBtn.addEventListener("click", () => {
     setActiveNavItem(navHomeBtn);
     showPinnedOnly = false;
     renderSidebar();
-    welcomeScreenEl.style.display = "block"; showSuggestions();
-    messagesEl.innerHTML = "";
+    switchToDashboardMode();
     sidebarEl.classList.remove("open");
   });
 }
@@ -1382,9 +1442,21 @@ if (navChatLinkBtn) {
     }
     renderSidebar();
     renderActiveConversation();
+    switchToChatMode();
     inputEl.focus();
     sidebarEl.classList.remove("open");
   });
+}
+
+const chatBackBtn = document.getElementById("chatBackBtn");
+if (chatBackBtn) {
+  chatBackBtn.addEventListener("click", () => {
+    if (navHomeBtn) navHomeBtn.click();
+  });
+}
+const chatSettingsBtn = document.getElementById("chatSettingsBtn");
+if (chatSettingsBtn) {
+  chatSettingsBtn.addEventListener("click", () => openSettingsModal());
 }
 
 // ---------- Full-page Search ----------
@@ -3349,72 +3421,437 @@ if (topNotifBtn) {
 }
 
 // --- Generate Image (OpenAI, via your backend) ---
-if (generateImageBtn) {
-  generateImageBtn.addEventListener("click", async () => {
-    sidebarEl.classList.remove("open");
-    const description = prompt("Describe the image you'd like FormGuide AI to generate:");
-    if (!description || !description.trim()) return;
+async function generateImageFlow() {
+  sidebarEl.classList.remove("open");
+  const description = prompt("Describe the image you'd like FormGuide AI to generate:");
+  if (!description || !description.trim()) return;
 
-    welcomeScreenEl.style.display = "none"; hideSuggestions();
-    renderTyping();
+  switchToChatMode();
+  renderTyping();
 
-    try {
-      const res = await fetch("/api/generate-image", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({ prompt: description.trim() }),
-      });
-      const data = await res.json();
-      removeTyping();
+  try {
+    const res = await fetch("/api/generate-image", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ prompt: description.trim() }),
+    });
+    const data = await res.json();
+    removeTyping();
 
-      if (!res.ok) {
-        renderMessage("assistant", data.error || "Sorry, I couldn't generate that image.");
-        return;
-      }
-
-      await appendExchangeToCurrentChat(`Generate an image: ${description.trim()}`, data.image);
-
-      if (typeof data.remaining === "number") {
-        renderMessage(
-          "assistant",
-          data.remaining > 0
-            ? `You have ${data.remaining} image generation${data.remaining === 1 ? "" : "s"} left today.`
-            : "That was your last image generation for today. You can generate more tomorrow."
-        );
-      }
-    } catch (err) {
-      removeTyping();
-      renderMessage("assistant", "Could not reach the server to generate this image.");
+    if (!res.ok) {
+      renderMessage("assistant", data.error || "Sorry, I couldn't generate that image.");
+      return;
     }
-  });
+
+    await appendExchangeToCurrentChat(`Generate an image: ${description.trim()}`, data.image);
+    updateChatEmptyState();
+
+    if (typeof data.remaining === "number") {
+      renderMessage(
+        "assistant",
+        data.remaining > 0
+          ? `You have ${data.remaining} image generation${data.remaining === 1 ? "" : "s"} left today.`
+          : "That was your last image generation for today. You can generate more tomorrow."
+      );
+    }
+  } catch (err) {
+    removeTyping();
+    renderMessage("assistant", "Could not reach the server to generate this image.");
+  }
+}
+if (generateImageBtn) {
+  generateImageBtn.addEventListener("click", generateImageFlow);
 }
 
-// --- More Tools (opens sidebar's AI Tools section) ---
+// --- More Tools bottom sheet -->
+const moreToolsSheet = document.getElementById("moreToolsSheet");
+const moreToolsBackdrop = document.getElementById("moreToolsBackdrop");
+
+function openMoreToolsSheet() {
+  moreToolsSheet.classList.add("open");
+}
+function closeMoreToolsSheet() {
+  moreToolsSheet.classList.remove("open");
+}
+
 if (moreToolsBtn) {
-  moreToolsBtn.addEventListener("click", () => {
-    sidebarEl.classList.add("open");
-    const label = Array.from(document.querySelectorAll(".sidebar-section-label")).find(
-      (el) => el.textContent.trim() === "AI Tools"
-    );
-    if (label) label.scrollIntoView({ behavior: "smooth", block: "center" });
+  moreToolsBtn.addEventListener("click", openMoreToolsSheet);
+}
+if (moreToolsBackdrop) {
+  moreToolsBackdrop.addEventListener("click", closeMoreToolsSheet);
+}
+
+// Chat History — dedicated full page with All/Today/Yesterday/This Week filters,
+// matching the mockup. Falls back to the plain search page if the dedicated
+// #chatHistoryModal markup hasn't been added to index.html yet.
+const toolChatHistory = document.getElementById("toolChatHistory");
+const chatHistoryModal = document.getElementById("chatHistoryModal");
+let chatHistoryFilter = "all";
+
+function getConvTimestamp(conv) {
+  const ts = parseInt(String(conv.id || "").replace(/^c/, ""), 10);
+  return isNaN(ts) ? 0 : ts;
+}
+
+function renderChatHistoryModal() {
+  const searchBox = document.getElementById("chatHistorySearchInput");
+  const search = (searchBox ? searchBox.value : "").toLowerCase();
+  const list = document.getElementById("chatHistoryList");
+  const empty = document.getElementById("chatHistoryEmpty");
+  if (!list || !empty) return;
+  list.innerHTML = "";
+
+  const now = Date.now();
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfYesterday = new Date(startOfToday);
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+  const startOfWeek = new Date(startOfToday);
+  startOfWeek.setDate(startOfWeek.getDate() - 7);
+
+  const filtered = conversations.filter((conv) => {
+    if (search) {
+      const inTitle = (conv.title || "").toLowerCase().includes(search);
+      const inMsgs = conv.messages.some((m) => m.content.toLowerCase().includes(search));
+      if (!inTitle && !inMsgs) return false;
+    }
+    const ts = getConvTimestamp(conv);
+    if (!ts) return true;
+    if (chatHistoryFilter === "today") return ts >= startOfToday.getTime();
+    if (chatHistoryFilter === "yesterday") return ts >= startOfYesterday.getTime() && ts < startOfToday.getTime();
+    if (chatHistoryFilter === "week") return ts >= startOfWeek.getTime();
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  filtered.forEach((conv) => {
+    const item = document.createElement("div");
+    item.className = "notif-item";
+    const ts = getConvTimestamp(conv);
+    const d = ts ? new Date(ts) : null;
+    const sameDay = d && d.toDateString() === new Date(now).toDateString();
+    const timeLabel = d ? (sameDay ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : d.toLocaleDateString()) : "";
+    const lastMsg = conv.messages.length ? conv.messages[conv.messages.length - 1].content.slice(0, 60) : "No messages yet";
+    item.innerHTML = `
+      <div class="notif-icon">💬</div>
+      <div class="notif-content">
+        <div class="notif-title">${conv.title || "New chat"}</div>
+        <div class="notif-message">${lastMsg}</div>
+        <div class="notif-time">${timeLabel}</div>
+      </div>
+    `;
+    item.addEventListener("click", () => {
+      currentId = conv.id;
+      renderSidebar();
+      renderActiveConversation();
+      switchToChatMode();
+      chatHistoryModal.classList.remove("open");
+    });
+    list.appendChild(item);
   });
 }
 
-const aiChatButton = document.getElementById("dashQuickChat");
-
-if (aiChatButton) {
-    aiChatButton.addEventListener("click", function () {
-        window.location.href = "chat.html";
-    });
+if (toolChatHistory) {
+  toolChatHistory.addEventListener("click", () => {
+    closeMoreToolsSheet();
+    if (!chatHistoryModal) {
+      // Dedicated page not in index.html yet — fall back to the search page.
+      openSearchModal();
+      return;
+    }
+    chatHistoryFilter = "all";
+    document.querySelectorAll(".chat-history-filter").forEach((b) => b.classList.toggle("active", b.dataset.filter === "all"));
+    const searchBox = document.getElementById("chatHistorySearchInput");
+    if (searchBox) searchBox.value = "";
+    renderChatHistoryModal();
+    chatHistoryModal.classList.add("open");
+  });
 }
-const navChatLink = document.getElementById("navChatLink");
 
-if (navChatLink) {
-    navChatLink.addEventListener("click", function () {
-        window.location.href = "chat.html";
+const closeChatHistoryBtn = document.getElementById("closeChatHistoryBtn");
+if (closeChatHistoryBtn) {
+  closeChatHistoryBtn.addEventListener("click", () => chatHistoryModal.classList.remove("open"));
+}
+const chatHistorySearchInput = document.getElementById("chatHistorySearchInput");
+if (chatHistorySearchInput) {
+  chatHistorySearchInput.addEventListener("input", renderChatHistoryModal);
+}
+document.querySelectorAll(".chat-history-filter").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".chat-history-filter").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    chatHistoryFilter = btn.dataset.filter;
+    renderChatHistoryModal();
+  });
+});
+
+// Pinned Chats — dedicated slide-over listing only pinned conversations
+const toolPinnedChats = document.getElementById("toolPinnedChats");
+const pinnedChatsModal = document.getElementById("pinnedChatsModal");
+const closePinnedChatsBtn = document.getElementById("closePinnedChatsBtn");
+function renderPinnedChatsList() {
+  const list = document.getElementById("pinnedChatsList");
+  if (!list) return;
+  const pinned = conversations.filter((c) => c.pinned);
+  list.innerHTML = "";
+  if (pinned.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:30px 0;font-size:12.5px;">No pinned chats yet. Tap the 📍 icon next to any chat in your history to pin it.</div>';
+    return;
+  }
+  pinned.forEach((conv) => {
+    const item = document.createElement("div");
+    item.className = "notif-item";
+    const lastMsg = conv.messages.length ? conv.messages[conv.messages.length - 1].content.slice(0, 60) : "No messages yet";
+    item.innerHTML = `<div class="notif-icon">📌</div><div class="notif-content"><div class="notif-title">${conv.title || "New chat"}</div><div class="notif-message">${lastMsg}</div></div>`;
+    item.addEventListener("click", () => {
+      currentId = conv.id;
+      renderSidebar();
+      renderActiveConversation();
+      switchToChatMode();
+      pinnedChatsModal.classList.remove("open");
     });
+    list.appendChild(item);
+  });
+}
+if (toolPinnedChats) {
+  toolPinnedChats.addEventListener("click", () => {
+    closeMoreToolsSheet();
+    renderPinnedChatsList();
+    pinnedChatsModal.classList.add("open");
+  });
+}
+if (closePinnedChatsBtn) {
+  closePinnedChatsBtn.addEventListener("click", () => pinnedChatsModal.classList.remove("open"));
 }
 
+// Favorite Chats — same pattern as Pinned, using the "favorite" flag saved to the backend
+const toolFavoriteChats = document.getElementById("toolFavoriteChats");
+const favoriteChatsModal = document.getElementById("favoriteChatsModal");
+const closeFavoriteChatsBtn = document.getElementById("closeFavoriteChatsBtn");
+function renderFavoriteChatsList() {
+  const list = document.getElementById("favoriteChatsList");
+  if (!list) return;
+  const favorites = conversations.filter((c) => c.favorite);
+  list.innerHTML = "";
+  if (favorites.length === 0) {
+    list.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:30px 0;font-size:12.5px;">No favorite chats yet.</div>';
+    return;
+  }
+  favorites.forEach((conv) => {
+    const item = document.createElement("div");
+    item.className = "notif-item";
+    const lastMsg = conv.messages.length ? conv.messages[conv.messages.length - 1].content.slice(0, 60) : "No messages yet";
+    item.innerHTML = `<div class="notif-icon">⭐</div><div class="notif-content"><div class="notif-title">${conv.title || "New chat"}</div><div class="notif-message">${lastMsg}</div></div>`;
+    item.addEventListener("click", () => {
+      currentId = conv.id;
+      renderSidebar();
+      renderActiveConversation();
+      switchToChatMode();
+      favoriteChatsModal.classList.remove("open");
+    });
+    list.appendChild(item);
+  });
+}
+if (toolFavoriteChats) {
+  toolFavoriteChats.addEventListener("click", () => {
+    closeMoreToolsSheet();
+    renderFavoriteChatsList();
+    favoriteChatsModal.classList.add("open");
+  });
+}
+if (closeFavoriteChatsBtn) {
+  closeFavoriteChatsBtn.addEventListener("click", () => favoriteChatsModal.classList.remove("open"));
+}
+
+// AI Memory — opens Settings straight to the Memory panel
+const toolAiMemory = document.getElementById("toolAiMemory");
+if (toolAiMemory) {
+  toolAiMemory.addEventListener("click", () => {
+    closeMoreToolsSheet();
+    openSettingsModal();
+    showSettingsPanel("memory", "Memory Manager");
+  });
+}
+
+// Read PDF — reuses the existing document upload flow
+const toolReadPdf = document.getElementById("toolReadPdf");
+if (toolReadPdf) {
+  toolReadPdf.addEventListener("click", () => {
+    closeMoreToolsSheet();
+    openUploadModal();
+  });
+}
+
+// Upload Image — reuses the existing photo-to-vision flow
+const toolUploadImage = document.getElementById("toolUploadImage");
+if (toolUploadImage) {
+  toolUploadImage.addEventListener("click", () => {
+    closeMoreToolsSheet();
+    if (photoFileInput) photoFileInput.click();
+  });
+}
+
+// Translate
+const toolTranslate = document.getElementById("toolTranslate");
+const translateModal = document.getElementById("translateModal");
+const closeTranslateBtn = document.getElementById("closeTranslateBtn");
+const translateGoBtn = document.getElementById("translateGoBtn");
+if (toolTranslate) {
+  toolTranslate.addEventListener("click", () => {
+    closeMoreToolsSheet();
+    document.getElementById("translateInput").value = "";
+    translateModal.classList.add("open");
+  });
+}
+if (closeTranslateBtn) {
+  closeTranslateBtn.addEventListener("click", () => translateModal.classList.remove("open"));
+}
+if (translateGoBtn) {
+  translateGoBtn.addEventListener("click", () => {
+    const text = document.getElementById("translateInput").value.trim();
+    const from = document.getElementById("translateFrom").value;
+    const to = document.getElementById("translateTo").value;
+    if (!text) {
+      alert("Please enter some text to translate.");
+      return;
+    }
+    translateModal.classList.remove("open");
+    sendMessage(
+      `Please translate the following text from ${from} to ${to}. Only give the translation, then briefly note anything culturally important if relevant:\n\n${text}`
+    );
+  });
+}
+
+// AI Search — reuses the existing full-page search prompt
+const toolAiSearch = document.getElementById("toolAiSearch");
+if (toolAiSearch) {
+  toolAiSearch.addEventListener("click", () => {
+    closeMoreToolsSheet();
+    openAiSearchModal();
+  });
+}
+
+// Generate Image — reuses the existing OpenAI image generation flow
+const toolGenerateImage = document.getElementById("toolGenerateImage");
+if (toolGenerateImage) {
+  toolGenerateImage.addEventListener("click", () => {
+    closeMoreToolsSheet();
+    generateImageFlow();
+  });
+}
+
+// Voice Chat — reuses the existing tap-to-talk modal
+const toolVoiceChat = document.getElementById("toolVoiceChat");
+if (toolVoiceChat) {
+  toolVoiceChat.addEventListener("click", () => {
+    closeMoreToolsSheet();
+    openVoiceChatModal();
+  });
+}
+
+// AI Settings — dedicated page (Model / Response Style / Tone / Language /
+// Memory / Safe Search) matching the mockup. Falls back to the account
+// Settings > Language panel if the dedicated #aiSettingsModal markup hasn't
+// been added to index.html yet.
+const AI_PREFS_KEY = "formguide_ai_prefs";
+const aiSettingsModal = document.getElementById("aiSettingsModal");
+
+function loadAiPrefs() {
+  try {
+    return (
+      JSON.parse(localStorage.getItem(AI_PREFS_KEY)) || {
+        responseStyle: "detailed",
+        tone: "friendly",
+        memory: true,
+        safeSearch: true,
+      }
+    );
+  } catch (e) {
+    return { responseStyle: "detailed", tone: "friendly", memory: true, safeSearch: true };
+  }
+}
+function saveAiPrefs(prefs) {
+  localStorage.setItem(AI_PREFS_KEY, JSON.stringify(prefs));
+}
+
+function openAiSettingsModal() {
+  const prefs = loadAiPrefs();
+  const styleSel = document.getElementById("aiPrefResponseStyle");
+  const toneSel = document.getElementById("aiPrefTone");
+  const memToggle = document.getElementById("aiPrefMemoryToggle");
+  const safeToggle = document.getElementById("aiPrefSafeSearchToggle");
+  const langSub = document.getElementById("aiSettingsLangSub");
+
+  if (styleSel) styleSel.value = prefs.responseStyle;
+  if (toneSel) toneSel.value = prefs.tone;
+  if (memToggle) memToggle.checked = prefs.memory;
+  if (safeToggle) safeToggle.checked = prefs.safeSearch;
+
+  if (langSub) {
+    const langLabels = { auto: "Auto-detect", english: "Always English", pidgin: "Always Pidgin" };
+    langSub.textContent = `${langLabels[languagePref] || "Auto-detect"} ›`;
+  }
+
+  aiSettingsModal.classList.add("open");
+}
+
+const toolAiSettings = document.getElementById("toolAiSettings");
+if (toolAiSettings) {
+  toolAiSettings.addEventListener("click", () => {
+    closeMoreToolsSheet();
+    if (!aiSettingsModal) {
+      // Dedicated page not in index.html yet — fall back to account Settings.
+      openSettingsModal();
+      showSettingsPanel("language", "AI Settings");
+      return;
+    }
+    openAiSettingsModal();
+  });
+}
+
+const closeAiSettingsBtn = document.getElementById("closeAiSettingsBtn");
+if (closeAiSettingsBtn) {
+  closeAiSettingsBtn.addEventListener("click", () => aiSettingsModal.classList.remove("open"));
+}
+
+["aiPrefResponseStyle", "aiPrefTone", "aiPrefMemoryToggle", "aiPrefSafeSearchToggle"].forEach((id) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener("change", () => {
+    saveAiPrefs({
+      responseStyle: document.getElementById("aiPrefResponseStyle").value,
+      tone: document.getElementById("aiPrefTone").value,
+      memory: document.getElementById("aiPrefMemoryToggle").checked,
+      safeSearch: document.getElementById("aiPrefSafeSearchToggle").checked,
+    });
+  });
+});
+
+const aiSettingsLangRow = document.getElementById("aiSettingsLangRow");
+if (aiSettingsLangRow) {
+  aiSettingsLangRow.addEventListener("click", () => {
+    aiSettingsModal.classList.remove("open");
+    openSettingsModal();
+    showSettingsPanel("language", "Language");
+  });
+}
+
+const aiSettingsResetBtn = document.getElementById("aiSettingsResetBtn");
+if (aiSettingsResetBtn) {
+  aiSettingsResetBtn.addEventListener("click", () => {
+    const defaults = { responseStyle: "detailed", tone: "friendly", memory: true, safeSearch: true };
+    saveAiPrefs(defaults);
+    document.getElementById("aiPrefResponseStyle").value = defaults.responseStyle;
+    document.getElementById("aiPrefTone").value = defaults.tone;
+    document.getElementById("aiPrefMemoryToggle").checked = defaults.memory;
+    document.getElementById("aiPrefSafeSearchToggle").checked = defaults.safeSearch;
+  });
+}
