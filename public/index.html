@@ -68,15 +68,17 @@
 
       <header id="chatModeHeader" class="chat-mode-header" style="display:none;">
         <button id="chatBackBtn" class="icon-btn">←</button>
-        <span class="chat-mode-title">🤖 AI Chat</span>
-        <button id="chatSettingsBtn" class="icon-btn" style="margin-left:auto;">⚙️</button>
+        <span class="chat-mode-title" id="chatModeTitleText">🤖 AI Chat</span>
+        <button id="exitGovModeBtn" class="soon-badge" style="display:none;margin-left:auto;cursor:pointer;border:none;">Exit Gov Mode</button>
+        <button id="chatSettingsBtn" class="icon-btn" style="margin-left:8px;">⚙️</button>
       </header>
 
       <main id="chat" class="chat">
         <div id="chatEmptyState" class="chat-empty-state" style="display:none;">
           <div class="chat-empty-avatar">🤖</div>
           <h3 id="chatEmptyGreeting">Hello! 👋</h3>
-          <p>What can I help you with today?</p>
+          <p id="chatEmptySubtitle">What can I help you with today?</p>
+          <div id="chatEmptyChips" class="dash-suggestion-row" style="justify-content:center;margin-top:14px;"></div>
         </div>
 
         <div id="welcomeScreen" class="welcome-screen">
@@ -248,23 +250,106 @@
   <div id="governmentModal" class="dark-fullscreen">
     <div class="dark-fs-header">
       <button id="closeGovernmentBtn" class="dark-back-btn">←</button>
-      <h2>🏛 Government Services</h2>
+      <h2>🏛 Government Hub</h2>
       <span style="width:28px;"></span>
     </div>
     <div class="dark-fs-body">
-      <div class="hub-grid">
-        <button class="hub-card" data-text="Help me apply for or renew my NIN and print my slip."><span class="hub-icon">🆔</span><h4>NIN</h4><p>Enrollment & Slip</p></button>
-        <button class="hub-card" data-text="Help me apply for or renew my international passport."><span class="hub-icon">🛂</span><h4>Passport</h4><p>Apply/Renew</p></button>
-        <button class="hub-card" data-text="Help me apply for or renew my driver's licence."><span class="hub-icon">🚗</span><h4>Driver's Licence</h4><p>Apply/Renew</p></button>
-        <button class="hub-card" data-text="Help me with my JAMB registration."><span class="hub-icon">🎓</span><h4>JAMB</h4><p>Registration Help</p></button>
-        <button class="hub-card" data-text="Help me check my WAEC result."><span class="hub-icon">☀️</span><h4>WAEC</h4><p>Result Checker</p></button>
-        <button class="hub-card" data-text="Give me information about NYSC."><span class="hub-icon">🧭</span><h4>NYSC</h4><p>Information</p></button>
-        <button class="hub-card" data-text="Help me register my business with CAC."><span class="hub-icon">🏢</span><h4>CAC</h4><p>Business Registration</p></button>
-        <button class="hub-card" data-text="Give me information about BVN."><span class="hub-icon">🏦</span><h4>BVN</h4><p>Information</p></button>
-        <button class="hub-card" data-text="Help me with a visa application."><span class="hub-icon">🛃</span><h4>Visa</h4><p>Visa Application</p></button>
-        <button class="hub-card" data-text="Give me tax information for Nigeria."><span class="hub-icon">💰</span><h4>Tax</h4><p>Tax Information</p></button>
-        <button class="hub-card" data-text="How do I file a police report in Nigeria?"><span class="hub-icon">🛡️</span><h4>Police Report</h4><p>How to Report</p></button>
-        <button class="hub-card" data-text="Help me register for my voter's card (PVC)."><span class="hub-icon">🗳️</span><h4>Voter's Card</h4><p>Registration</p></button>
+      <div class="settings-card" style="background:linear-gradient(135deg,#1a1440,#2d1b69);border-color:#4527a0;display:flex;gap:14px;align-items:flex-start;">
+        <span style="font-size:30px;">🏛️</span>
+        <div>
+          <h3 style="color:#fff;margin:0 0 4px;">All Government Services in One Place</h3>
+          <p class="about-text" style="color:rgba(255,255,255,0.75);">Guides, requirements, steps and AI support — all in one hub.</p>
+        </div>
+      </div>
+
+      <input id="govSearchInput" type="text" placeholder="Search government services…" class="ai-search-input" style="margin-top:14px;">
+
+      <div class="hub-grid" id="govHubGrid" style="margin-top:16px;">
+        <button class="hub-card" data-service="nin"><span class="hub-icon">🆔</span><h4>NIN</h4><p>National ID</p></button>
+        <button class="hub-card" data-service="passport"><span class="hub-icon">🛂</span><h4>Passport</h4><p>Apply/Renew</p></button>
+        <button class="hub-card" data-service="drivers-license"><span class="hub-icon">🚗</span><h4>Driver's Licence</h4><p>Apply/Renew</p></button>
+        <button class="hub-card" data-service="voters-card"><span class="hub-icon">🗳️</span><h4>Voter's Card</h4><p>PVC Registration</p></button>
+        <button class="hub-card" data-service="cac"><span class="hub-icon">🏢</span><h4>CAC</h4><p>Business Registration</p></button>
+        <button class="hub-card" data-service="nhia"><span class="hub-icon">🏥</span><h4>NHIA</h4><p>Health Insurance</p></button>
+        <button class="hub-card" data-service="tax"><span class="hub-icon">📑</span><h4>Tax</h4><p>TIN & Filing</p></button>
+        <button class="hub-card" data-service="birth-certificate"><span class="hub-icon">👶</span><h4>Birth Certificate</h4><p>Registration</p></button>
+        <button class="hub-card" data-service="marriage-certificate"><span class="hub-icon">💍</span><h4>Marriage Certificate</h4><p>Registration</p></button>
+        <button class="hub-card" data-service="nysc"><span class="hub-icon">🎖️</span><h4>NYSC</h4><p>Mobilization</p></button>
+        <button class="hub-card" data-service="student-loan"><span class="hub-icon">🎓</span><h4>Student Loan</h4><p>NELFUND</p></button>
+        <button class="hub-card" data-service="certificate-verification"><span class="hub-icon">📄</span><h4>Cert. Verification</h4><p>WAEC/JAMB/NYSC</p></button>
+        <button class="hub-card" id="govPaymentsCard"><span class="hub-icon">💳</span><h4>Gov Payments</h4><p>Coming Soon</p></button>
+        <button class="hub-card" id="govOfficesCard"><span class="hub-icon">📍</span><h4>Gov Offices</h4><p>Find a Location</p></button>
+        <button class="hub-card" id="govNewsCard"><span class="hub-icon">📢</span><h4>Latest News</h4><p>Updates</p></button>
+      </div>
+
+      <button id="askGovernmentAiCard" class="dash-continue-card" style="width:100%;margin-top:16px;cursor:pointer;border:1px solid var(--border);background:var(--panel);">
+        <span class="dash-continue-icon">🤖</span>
+        <div class="dash-continue-info">
+          <strong>Ask Government AI</strong>
+          <small>Ask any question about government services and get instant answers</small>
+        </div>
+        <span style="color:var(--accent);font-size:18px;">›</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Government Service Detail (Overview / Requirements / Steps) -->
+  <div id="serviceDetailModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeServiceDetailBtn" class="dark-back-btn">←</button>
+      <h2 id="serviceDetailTitle">Service</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div class="settings-card" style="background:var(--panel);border-color:var(--border);display:flex;gap:12px;align-items:center;">
+        <span id="serviceDetailIcon" style="font-size:26px;">🆔</span>
+        <div>
+          <strong id="serviceDetailName" style="color:var(--text);font-size:15px;">NIN</strong>
+          <div id="serviceDetailSubtitle" style="color:var(--text-dim);font-size:12px;">National Identification Number</div>
+        </div>
+      </div>
+
+      <div class="templates-tabs" style="margin-top:14px;">
+        <button class="templates-tab service-detail-tab active" data-tab="overview">Overview</button>
+        <button class="templates-tab service-detail-tab" data-tab="requirements">Requirements</button>
+        <button class="templates-tab service-detail-tab" data-tab="steps">Steps</button>
+      </div>
+
+      <div id="serviceDetailBody"></div>
+
+      <button id="serviceDetailAskBtn" class="add-memory-btn" style="margin-top:16px;">🤖 Ask Government AI about this</button>
+      <p style="font-size:11px;color:var(--text-dim);margin-top:4px;line-height:1.6;">
+        Fees, offices, and requirements can change. Always confirm time-sensitive details on the official portal before you travel or pay.
+      </p>
+    </div>
+  </div>
+
+  <!-- Government Offices (honest office-locator: guidance, not a fake fixed address book) -->
+  <div id="govOfficesModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeGovOfficesBtn" class="dark-back-btn">←</button>
+      <h2>📍 Government Offices</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Tell FormGuide AI what you need and where you are, and it'll explain which office to visit and how to find the nearest one.</p>
+      <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+        <label class="field-label" style="margin-top:0;">Service</label>
+        <select id="govOfficeServiceSelect" class="ai-search-input" style="appearance:auto;">
+          <option value="NIN">NIN</option>
+          <option value="Passport">Passport</option>
+          <option value="Driver's Licence">Driver's Licence</option>
+          <option value="Voter's Card (PVC)">Voter's Card (PVC)</option>
+          <option value="CAC Registration">CAC Registration</option>
+          <option value="NHIA">NHIA</option>
+          <option value="Tax / TIN">Tax / TIN</option>
+          <option value="Birth Certificate">Birth Certificate</option>
+          <option value="Marriage Certificate">Marriage Certificate</option>
+          <option value="NYSC">NYSC</option>
+        </select>
+        <label class="field-label">Your State / City</label>
+        <input id="govOfficeLocationInput" type="text" placeholder="e.g. Ikeja, Lagos" class="ai-search-input">
+        <button id="govOfficeFindBtn" class="add-memory-btn" style="margin-top:14px;">🔍 Find the Right Office</button>
       </div>
     </div>
   </div>
