@@ -1,0 +1,51 @@
+body{
+    margin:0;
+    background:#0f172a;
+    color:white;
+    font-family:Arial, sans-serif;
+}
+
+.chat-header{
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    padding:18px;
+
+    background:#111827;
+
+    border-bottom:1px solid #2b2b2b;
+}
+
+.back-btn,
+.menu-btn{
+
+    background:none;
+
+    border:none;
+
+    color:white;
+
+    font-size:24px;
+
+    cursor:pointer;
+}
+
+.title h2{
+
+    margin:0;
+
+    color:#8b5cf6;
+}
+
+.title p{
+
+    margin:2px 0 0;
+
+    color:#9ca3af;
+
+    font-size:13px;
+}
