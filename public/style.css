@@ -2095,3 +2095,47 @@ body.accent-orange .accent { color: #e0862f !important; }
 #chatHistoryModal .settings-fs-panels { background: var(--bg); }
 #chatHistoryModal .search-page-input { background: var(--panel); color: var(--text); border-color: var(--border); }
 #aiSettingsModal .settings-row-item { border-bottom: 1px solid var(--border); }
+
+/* ---------- Government Hub: service detail tabs ---------- */
+.gov-req-list, .gov-steps-list { list-style: none; margin: 14px 0 0; padding: 0; }
+.gov-req-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.gov-req-item:last-child { border-bottom: none; }
+.gov-req-check { color: #4ade80; flex-shrink: 0; font-size: 14px; margin-top: 1px; }
+
+.gov-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.gov-step-number {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.gov-overview-text { font-size: 13.5px; color: var(--text); line-height: 1.6; margin-top: 12px; }
+.gov-overview-row { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; }
+.gov-overview-icon { font-size: 15px; margin-top: 1px; }
+.gov-overview-row strong { display: block; font-size: 12.5px; color: var(--text); }
+.gov-overview-row span { font-size: 12.5px; color: var(--text-dim); }
