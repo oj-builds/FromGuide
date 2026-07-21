@@ -264,25 +264,28 @@
 
       <input id="govSearchInput" type="text" placeholder="Search government services…" class="ai-search-input" style="margin-top:14px;">
 
-      <div class="hub-grid" id="govHubGrid" style="margin-top:16px;">
-        <button class="hub-card" data-service="nin"><span class="hub-icon">🆔</span><h4>NIN</h4><p>National ID</p></button>
-        <button class="hub-card" data-service="passport"><span class="hub-icon">🛂</span><h4>Passport</h4><p>Apply/Renew</p></button>
-        <button class="hub-card" data-service="drivers-license"><span class="hub-icon">🚗</span><h4>Driver's Licence</h4><p>Apply/Renew</p></button>
-        <button class="hub-card" data-service="voters-card"><span class="hub-icon">🗳️</span><h4>Voter's Card</h4><p>PVC Registration</p></button>
-        <button class="hub-card" data-service="cac"><span class="hub-icon">🏢</span><h4>CAC</h4><p>Business Registration</p></button>
-        <button class="hub-card" data-service="nhia"><span class="hub-icon">🏥</span><h4>NHIA</h4><p>Health Insurance</p></button>
-        <button class="hub-card" data-service="tax"><span class="hub-icon">📑</span><h4>Tax</h4><p>TIN & Filing</p></button>
-        <button class="hub-card" data-service="birth-certificate"><span class="hub-icon">👶</span><h4>Birth Certificate</h4><p>Registration</p></button>
-        <button class="hub-card" data-service="marriage-certificate"><span class="hub-icon">💍</span><h4>Marriage Certificate</h4><p>Registration</p></button>
-        <button class="hub-card" data-service="nysc"><span class="hub-icon">🎖️</span><h4>NYSC</h4><p>Mobilization</p></button>
-        <button class="hub-card" data-service="student-loan"><span class="hub-icon">🎓</span><h4>Student Loan</h4><p>NELFUND</p></button>
-        <button class="hub-card" data-service="certificate-verification"><span class="hub-icon">📄</span><h4>Cert. Verification</h4><p>WAEC/JAMB/NYSC</p></button>
-        <button class="hub-card" id="govPaymentsCard"><span class="hub-icon">💳</span><h4>Gov Payments</h4><p>Coming Soon</p></button>
-        <button class="hub-card" id="govOfficesCard"><span class="hub-icon">📍</span><h4>Gov Offices</h4><p>Find a Location</p></button>
-        <button class="hub-card" id="govNewsCard"><span class="hub-icon">📢</span><h4>Latest News</h4><p>Updates</p></button>
+      <div class="dash-section-header" style="margin-top:22px;">
+        <h3>Popular Services</h3>
+      </div>
+      <div class="dash-quick-grid" id="govHubGrid">
+        <button class="dash-quick-card" data-service="nin"><span class="dash-quick-icon green">🆔</span><strong>NIN</strong><small>National ID</small></button>
+        <button class="dash-quick-card" data-service="passport"><span class="dash-quick-icon blue">🛂</span><strong>Passport</strong><small>Apply/Renew</small></button>
+        <button class="dash-quick-card" data-service="drivers-license"><span class="dash-quick-icon orange">🚗</span><strong>Driver's Licence</strong><small>Apply/Renew</small></button>
+        <button class="dash-quick-card" data-service="voters-card"><span class="dash-quick-icon purple">🗳️</span><strong>Voter's Card</strong><small>PVC Registration</small></button>
+        <button class="dash-quick-card" data-service="cac"><span class="dash-quick-icon green">🏢</span><strong>CAC</strong><small>Business Registration</small></button>
+        <button class="dash-quick-card" data-service="nhia"><span class="dash-quick-icon teal">🏥</span><strong>NHIA</strong><small>Health Insurance</small></button>
+        <button class="dash-quick-card" data-service="tax"><span class="dash-quick-icon purple">📑</span><strong>Tax</strong><small>TIN & Filing</small></button>
+        <button class="dash-quick-card" data-service="birth-certificate"><span class="dash-quick-icon red">👶</span><strong>Birth Certificate</strong><small>Registration</small></button>
+        <button class="dash-quick-card" data-service="marriage-certificate"><span class="dash-quick-icon red">💍</span><strong>Marriage Certificate</strong><small>Registration</small></button>
+        <button class="dash-quick-card" data-service="nysc"><span class="dash-quick-icon green">🎖️</span><strong>NYSC</strong><small>Mobilization</small></button>
+        <button class="dash-quick-card" data-service="student-loan"><span class="dash-quick-icon blue">🎓</span><strong>Student Loan</strong><small>NELFUND</small></button>
+        <button class="dash-quick-card" data-service="certificate-verification"><span class="dash-quick-icon teal">📄</span><strong>Cert. Verification</strong><small>WAEC/JAMB/NYSC</small></button>
+        <button class="dash-quick-card" id="govPaymentsCard"><span class="dash-quick-icon green">💳</span><strong>Gov Payments</strong><small>Coming Soon</small></button>
+        <button class="dash-quick-card" id="govOfficesCard"><span class="dash-quick-icon orange">📍</span><strong>Gov Offices</strong><small>Find a Location</small></button>
+        <button class="dash-quick-card" id="govNewsCard"><span class="dash-quick-icon purple">📢</span><strong>Latest News</strong><small>Updates</small></button>
       </div>
 
-      <button id="askGovernmentAiCard" class="dash-continue-card" style="width:100%;margin-top:16px;cursor:pointer;border:1px solid var(--border);background:var(--panel);">
+      <button id="askGovernmentAiCard" class="dash-continue-card" style="width:100%;margin-top:22px;cursor:pointer;border:1px solid var(--border);background:var(--panel);">
         <span class="dash-continue-icon">🤖</span>
         <div class="dash-continue-info">
           <strong>Ask Government AI</strong>
