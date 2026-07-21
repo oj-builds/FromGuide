@@ -324,7 +324,11 @@ async function sendMessage(text) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${getToken()}`,
       },
-      body: JSON.stringify({ messages: conv.messages, language: languagePref }),
+      body: JSON.stringify({
+        messages: conv.messages,
+        language: languagePref,
+        mode: typeof currentChatMode !== "undefined" ? currentChatMode : "general",
+      }),
     });
     const data = await res.json();
     removeTyping();
@@ -1390,15 +1394,54 @@ const chatModeHeader = document.getElementById("chatModeHeader");
 const chatEmptyState = document.getElementById("chatEmptyState");
 const topbarEl = document.querySelector(".topbar");
 
+const GENERAL_CHAT_CHIPS = [
+  { icon: "🛂", text: "How do I apply for a passport?" },
+  { icon: "🆔", text: "What are the requirements for NIN?" },
+  { icon: "🚗", text: "How much is a driver's licence?" },
+  { icon: "🏢", text: "Where can I register my business?" },
+];
+const GOVERNMENT_CHAT_CHIPS = [
+  { icon: "🆔", text: "What are the requirements for NIN?" },
+  { icon: "🛂", text: "How do I apply for a passport?" },
+  { icon: "🚗", text: "How much is a driver's licence?" },
+  { icon: "🏢", text: "Where can I register my business?" },
+];
+
 function updateChatEmptyState() {
   const conv = getCurrentConversation();
   const hasMessages = conv && conv.messages && conv.messages.length > 0;
   if (chatEmptyState) chatEmptyState.style.display = hasMessages ? "none" : "block";
 
   const greetingEl = document.getElementById("chatEmptyGreeting");
+  const subtitleEl = document.getElementById("chatEmptySubtitle");
+  const chipsEl = document.getElementById("chatEmptyChips");
+  const isGov = typeof currentChatMode !== "undefined" && currentChatMode === "government";
+
   if (greetingEl) {
     const user = getStoredUser();
-    greetingEl.textContent = user ? `Hello ${user.name}! 👋` : "Hello! 👋";
+    if (isGov) {
+      greetingEl.textContent = user ? `Hello ${user.name}! 🏛️` : "Hello! 🏛️";
+    } else {
+      greetingEl.textContent = user ? `Hello ${user.name}! 👋` : "Hello! 👋";
+    }
+  }
+  if (subtitleEl) {
+    subtitleEl.textContent = isGov
+      ? "Ask me anything about Nigerian government services."
+      : "What can I help you with today?";
+  }
+  if (chipsEl) {
+    const chips = isGov ? GOVERNMENT_CHAT_CHIPS : GENERAL_CHAT_CHIPS;
+    chipsEl.innerHTML = "";
+    if (!hasMessages) {
+      chips.forEach((c) => {
+        const btn = document.createElement("button");
+        btn.className = "dash-chip";
+        btn.textContent = `${c.icon} ${c.text}`;
+        btn.addEventListener("click", () => sendMessage(c.text));
+        chipsEl.appendChild(btn);
+      });
+    }
   }
 }
 
@@ -1409,6 +1452,7 @@ function switchToDashboardMode() {
   welcomeScreenEl.style.display = "block";
   showSuggestions();
   messagesEl.innerHTML = "";
+  if (typeof setGovernmentMode === "function") setGovernmentMode(false);
 }
 
 function switchToChatMode() {
@@ -3853,5 +3897,495 @@ if (aiSettingsResetBtn) {
     document.getElementById("aiPrefTone").value = defaults.tone;
     document.getElementById("aiPrefMemoryToggle").checked = defaults.memory;
     document.getElementById("aiPrefSafeSearchToggle").checked = defaults.safeSearch;
+  });
+}
+
+
+// =====================================================================
+// GOVERNMENT HUB — service details + "Ask Government AI" chat mode
+// =====================================================================
+
+// ---------- Government AI chat mode (Option 1: one AI, different mode) ----------
+let currentChatMode = "general";
+
+function setGovernmentMode(on) {
+  currentChatMode = on ? "government" : "general";
+
+  const titleEl = document.getElementById("chatModeTitleText");
+  const exitBtn = document.getElementById("exitGovModeBtn");
+  const chatInputEl = document.getElementById("chat-input");
+  const dashInputEl = document.getElementById("dashQuickInput");
+
+  if (titleEl) titleEl.textContent = on ? "🏛️ Government AI" : "🤖 AI Chat";
+  if (exitBtn) exitBtn.style.display = on ? "inline-flex" : "none";
+  if (chatInputEl) chatInputEl.placeholder = on ? "Ask about any government service…" : "Ask FormGuide AI…";
+  if (dashInputEl && on) dashInputEl.placeholder = "Ask about any government service…";
+  if (dashInputEl && !on) dashInputEl.placeholder = "Ask FormGuide AI anything…";
+
+  updateChatEmptyState();
+}
+
+const exitGovModeBtn = document.getElementById("exitGovModeBtn");
+if (exitGovModeBtn) {
+  exitGovModeBtn.addEventListener("click", () => setGovernmentMode(false));
+}
+
+// ---------- Government Hub: search filter on the service grid ----------
+const govSearchInput = document.getElementById("govSearchInput");
+if (govSearchInput) {
+  govSearchInput.addEventListener("input", () => {
+    const q = govSearchInput.value.trim().toLowerCase();
+    document.querySelectorAll("#govHubGrid .hub-card").forEach((card) => {
+      const name = (card.querySelector("h4")?.textContent || "").toLowerCase();
+      card.style.display = !q || name.includes(q) ? "" : "none";
+    });
+  });
+}
+
+// ---------- Government Hub: service data (Overview / Requirements / Steps) ----------
+// General guidance based on how these processes typically work in Nigeria.
+// Fees, office hours, and exact steps can change — the detail page and the
+// AI's own replies both remind the person to confirm on the official portal.
+const GOV_SERVICES = {
+  nin: {
+    icon: "🆔",
+    name: "NIN",
+    subtitle: "National Identification Number",
+    overview: {
+      description: "The NIN is an 11-digit number issued by NIMC to every Nigerian citizen and legal resident, used to verify identity for SIM registration, bank accounts, passports, and more.",
+      who: "Nigerian citizens and legal residents",
+      cost: "Free at NIMC enrollment centres",
+      time: "Same day at enrollment; slip printing can take longer at busy centres",
+    },
+    requirements: [
+      "Any valid means of identification (birth certificate, old ID, etc.) if available",
+      "Proof of address if requested by the centre",
+      "A working phone number to receive your NIN",
+      "Your fingerprints and a photograph will be captured on-site",
+    ],
+    steps: [
+      "Locate an NIMC enrollment centre or an accredited agent near you.",
+      "Fill out the NIN enrollment form correctly with your personal details.",
+      "Submit your details and undergo biometric capture (fingerprints and photo).",
+      "Wait for your NIN — it's typically sent by SMS and can also be checked via the NIMC portal or USSD code.",
+      "Print or save your NIN slip for future use.",
+    ],
+  },
+  passport: {
+    icon: "🛂",
+    name: "Passport",
+    subtitle: "Nigerian International Passport",
+    overview: {
+      description: "Issued by the Nigeria Immigration Service (NIS), the international passport is required for travel outside Nigeria and is available in 32 and 64-page booklets with 5 or 10-year validity.",
+      who: "Nigerian citizens",
+      cost: "Varies by booklet type and page count — check the official NIS portal for current fees",
+      time: "Several weeks depending on demand and whether it's a new application or renewal",
+    },
+    requirements: [
+      "Valid NIN",
+      "Completed online passport application form",
+      "Passport photograph meeting NIS specifications",
+      "Birth certificate or age declaration",
+      "Payment receipt for the passport fee",
+      "For renewals: your previous passport",
+    ],
+    steps: [
+      "Apply online through the official NIS passport portal and fill in your details.",
+      "Pay the applicable fee through the approved payment channel.",
+      "Book an appointment at your preferred passport office.",
+      "Visit the office on your appointment date for biometric capture and document verification.",
+      "Track your application status online and collect your passport when ready.",
+    ],
+  },
+  "drivers-license": {
+    icon: "🚗",
+    name: "Driver's Licence",
+    subtitle: "Nigerian Driver's Licence",
+    overview: {
+      description: "Issued through the Federal Road Safety Corps (FRSC) via the National Vehicle Identification Scheme (nVIS) portal, in partnership with state Vehicle Inspection Offices (VIOs).",
+      who: "Nigerians and legal residents who are old enough to drive and have completed the required training",
+      cost: "Varies by licence duration (e.g. 3-year or 5-year) — check the current nVIS fee schedule",
+      time: "Can take a few weeks depending on your state and the office's backlog",
+    },
+    requirements: [
+      "Valid NIN",
+      "Completion of an approved driving school course (learner's permit)",
+      "Passport photograph",
+      "Age and eligibility requirements met",
+      "Payment of the applicable licence fee",
+    ],
+    steps: [
+      "Register and obtain a learner's permit after driving school training.",
+      "Apply for your driver's licence through the nVIS portal or your state's VIO.",
+      "Pay the required fee through the approved payment channel.",
+      "Visit the VIO for biometric capture and any required practical/eye tests.",
+      "Track your application and collect your licence card when it's ready.",
+    ],
+  },
+  "voters-card": {
+    icon: "🗳️",
+    name: "Voter's Card (PVC)",
+    subtitle: "Permanent Voter's Card",
+    overview: {
+      description: "Issued by INEC, the PVC allows eligible Nigerians to vote in elections. Registration happens during INEC's Continuous Voter Registration (CVR) exercise.",
+      who: "Nigerian citizens aged 18 and above",
+      cost: "Free",
+      time: "Registration is immediate; PVC collection typically follows weeks to months later",
+    },
+    requirements: [
+      "Must be a Nigerian citizen aged 18 or above",
+      "Valid means of identification (NIN slip, national ID, driver's licence, etc.)",
+      "Passport photograph (in some cases)",
+      "Proof of residence in the registration area",
+    ],
+    steps: [
+      "Check whether INEC's Continuous Voter Registration (CVR) is currently open.",
+      "Register online via the INEC portal or visit a designated registration centre in person.",
+      "Provide your personal details and complete biometric capture if registering physically.",
+      "Wait for INEC to process your registration.",
+      "Check your PVC status and collect it at your designated centre once ready.",
+    ],
+  },
+  cac: {
+    icon: "🏢",
+    name: "CAC Registration",
+    subtitle: "Corporate Affairs Commission — Business Registration",
+    overview: {
+      description: "The CAC registers business names, limited liability companies, and incorporated trustees in Nigeria, giving your business a legal identity.",
+      who: "Anyone looking to formally register a business, company, or NGO in Nigeria",
+      cost: "Varies by registration type (business name vs. limited company) — check the current CAC fee schedule",
+      time: "Business name registration can be same-day to a few days; company registration usually takes longer",
+    },
+    requirements: [
+      "Valid means of identification for all proprietors/directors",
+      "At least two proposed business/company names for availability search",
+      "Nature of business and registered address",
+      "Memorandum and Articles of Association (for limited companies)",
+      "Payment of the applicable CAC fee",
+    ],
+    steps: [
+      "Search and reserve your preferred business/company name on the CAC portal.",
+      "Complete the registration form with your business details.",
+      "Upload the required documents and identification.",
+      "Pay the registration fee through the CAC payment portal.",
+      "Receive your Certificate of Registration/Incorporation once approved.",
+    ],
+  },
+  nhia: {
+    icon: "🏥",
+    name: "NHIA",
+    subtitle: "National Health Insurance Authority",
+    overview: {
+      description: "The NHIA (formerly NHIS) coordinates health insurance schemes that give enrollees access to healthcare services at accredited hospitals and clinics.",
+      who: "Employees under formal-sector schemes, and increasingly individuals/families under state and informal-sector schemes",
+      cost: "Varies by scheme — some are employer-funded, others are individual/family contributory plans",
+      time: "Enrollment processing time varies by scheme and provider",
+    },
+    requirements: [
+      "Valid means of identification (NIN recommended)",
+      "Proof of employment (for employer-based schemes) or details of dependents (for family plans)",
+      "Passport photograph",
+      "Completed enrollment form for your chosen scheme",
+    ],
+    steps: [
+      "Identify which NHIA-accredited scheme applies to you (employer-based, state, or individual/family).",
+      "Register through your employer, state scheme portal, or an accredited Health Maintenance Organisation (HMO).",
+      "Submit your documents and complete biometric/photo capture where required.",
+      "Choose your preferred accredited hospital or clinic as your primary provider.",
+      "Receive your NHIA/HMO ID card and start using your benefits.",
+    ],
+  },
+  tax: {
+    icon: "📑",
+    name: "Tax",
+    subtitle: "Tax Identification Number (TIN) & Filing",
+    overview: {
+      description: "Administered by the Federal Inland Revenue Service (FIRS) and state Internal Revenue Services, tax registration gives individuals and businesses a Tax Identification Number (TIN) used for filing and remitting taxes.",
+      who: "Individuals earning taxable income and registered businesses",
+      cost: "TIN registration is free; actual tax payable depends on income/business type",
+      time: "TIN registration is usually quick once documents are submitted",
+    },
+    requirements: [
+      "Valid means of identification (NIN for individuals, CAC certificate for businesses)",
+      "BVN (for individuals, in many cases)",
+      "Proof of address",
+      "Business registration documents (for companies)",
+    ],
+    steps: [
+      "Register for a TIN via the FIRS portal (individuals) or automatically alongside CAC registration (businesses).",
+      "Verify your details and complete any required identity checks.",
+      "Receive your TIN, which you'll use for tax filing and remittance.",
+      "File your applicable returns (e.g. annual income tax, PAYE, or company tax) by the due dates.",
+      "Keep your tax clearance certificate updated as needed.",
+    ],
+  },
+  "birth-certificate": {
+    icon: "👶",
+    name: "Birth Certificate",
+    subtitle: "National Population Commission (NPC)",
+    overview: {
+      description: "Birth registration is handled by the National Population Commission (NPC), and is important for school enrollment, passport applications, and other official processes.",
+      who: "Parents/guardians registering a child's birth, or adults registering a late birth",
+      cost: "Registration within 60 days is typically free; late registration may attract a fee",
+      time: "Same day to a few days depending on the centre",
+    },
+    requirements: [
+      "Hospital-issued notification of birth (if born in a hospital)",
+      "Parents' means of identification",
+      "Parents' marriage certificate (if applicable, in some cases)",
+      "For late registration: additional supporting evidence of the birth date may be required",
+    ],
+    steps: [
+      "Visit an NPC office or a designated registration centre.",
+      "Complete the birth registration form with accurate details.",
+      "Submit the hospital notification and parents' identification.",
+      "Pay any applicable fee (mainly for late registration).",
+      "Collect the birth certificate once processed.",
+    ],
+  },
+  "marriage-certificate": {
+    icon: "💍",
+    name: "Marriage Certificate",
+    subtitle: "Marriage Registry",
+    overview: {
+      description: "Statutory marriages in Nigeria are registered at a Marriage Registry (often under the state or the Federal Ministry of Interior), giving the union legal recognition distinct from customary or religious marriages.",
+      who: "Couples intending a statutory (court/registry) marriage",
+      cost: "Varies by registry — check current fees at your local registry",
+      time: "A statutory notice period (commonly around 21 days) applies before the marriage can be conducted",
+    },
+    requirements: [
+      "Valid means of identification for both parties",
+      "Passport photographs",
+      "Proof of age (birth certificate or age declaration)",
+      "Sworn affidavit of bachelorhood/spinsterhood (where required)",
+      "Witnesses present on the marriage day",
+    ],
+    steps: [
+      "Give notice of intended marriage at your local marriage registry.",
+      "Pay the applicable registry fees.",
+      "Wait out the statutory notice period during which objections can be raised.",
+      "Attend the registry on the scheduled date with your witnesses to conduct the marriage.",
+      "Receive your marriage certificate after the ceremony is registered.",
+    ],
+  },
+  nysc: {
+    icon: "🎖️",
+    name: "NYSC",
+    subtitle: "National Youth Service Corps",
+    overview: {
+      description: "NYSC is a one-year mandatory national service programme for Nigerian graduates under 30, involving orientation camp, primary assignment, and community development service.",
+      who: "Nigerian graduates of tertiary institutions, typically under 30 years old",
+      cost: "Free to register; corps members receive a monthly allowance",
+      time: "The full service year runs 12 months, starting with a 3-week orientation camp",
+    },
+    requirements: [
+      "Statement of result or original certificate from your institution",
+      "Valid means of identification",
+      "Completed online NYSC mobilization registration",
+      "Passport photograph",
+    ],
+    steps: [
+      "Register on the NYSC portal once your institution mobilizes your set.",
+      "Print your call-up letter after successful registration.",
+      "Report to your assigned orientation camp on the specified date.",
+      "Complete the 3-week camp activities and receive your Primary Assignment.",
+      "Serve at your Place of Primary Assignment and complete community development activities until passing out.",
+    ],
+  },
+  "student-loan": {
+    icon: "🎓",
+    name: "Student Loan",
+    subtitle: "Nigerian Education Loan Fund (NELFUND)",
+    overview: {
+      description: "NELFUND provides interest-free loans to eligible Nigerian students in public tertiary institutions to cover tuition and, in some cases, upkeep, under the Student Loan Act.",
+      who: "Nigerian students admitted into accredited public tertiary institutions who meet eligibility criteria",
+      cost: "Interest-free — repayment begins after a set grace period post-graduation/employment",
+      time: "Processing time varies once applications open each academic session",
+    },
+    requirements: [
+      "Admission letter from an accredited public tertiary institution",
+      "Valid NIN and BVN",
+      "Means-testing / proof of financial need (as required)",
+      "Guarantor(s) as specified by NELFUND",
+      "Active bank account details",
+    ],
+    steps: [
+      "Confirm your institution and course are eligible under the scheme.",
+      "Register and apply through the official NELFUND portal.",
+      "Submit your admission documents and guarantor details.",
+      "Await verification and approval of your application.",
+      "Once approved, funds are disbursed directly to your institution and, where applicable, to you.",
+    ],
+  },
+  "certificate-verification": {
+    icon: "📄",
+    name: "Certificate Verification",
+    subtitle: "WAEC / JAMB / NYSC / Institutional Verification",
+    overview: {
+      description: "Certificate verification confirms the authenticity of academic or service certificates (WAEC, JAMB, degree certificates, NYSC certificates) — often required by employers or foreign institutions.",
+      who: "Graduates, job seekers, or anyone needing to prove a certificate is genuine",
+      cost: "Varies by issuing body (WAEC, JAMB, your institution, or NYSC)",
+      time: "Can range from a few days to several weeks depending on the body and verification method",
+    },
+    requirements: [
+      "The certificate or exam number to be verified",
+      "Valid means of identification",
+      "Verification request letter (for institutional or foreign requests)",
+      "Payment of the applicable verification fee",
+    ],
+    steps: [
+      "Identify which body issued the certificate (WAEC, JAMB, your institution, or NYSC).",
+      "Apply for verification through that body's official portal or verification office.",
+      "Submit your certificate details and identification.",
+      "Pay the required verification fee.",
+      "Receive the verification result or confirmation letter once processed.",
+    ],
+  },
+};
+
+// ---------- Render the service detail page ----------
+let currentServiceId = null;
+let currentServiceTab = "overview";
+
+function renderServiceDetailTab() {
+  const svc = GOV_SERVICES[currentServiceId];
+  if (!svc) return;
+  const body = document.getElementById("serviceDetailBody");
+  if (!body) return;
+
+  if (currentServiceTab === "overview") {
+    body.innerHTML = `
+      <p class="gov-overview-text">${svc.overview.description}</p>
+      <div class="gov-overview-row"><span class="gov-overview-icon">👤</span><div><strong>Who can apply?</strong><span>${svc.overview.who}</span></div></div>
+      <div class="gov-overview-row"><span class="gov-overview-icon">💰</span><div><strong>Cost</strong><span>${svc.overview.cost}</span></div></div>
+      <div class="gov-overview-row"><span class="gov-overview-icon">⏱️</span><div><strong>Processing Time</strong><span>${svc.overview.time}</span></div></div>
+    `;
+  } else if (currentServiceTab === "requirements") {
+    body.innerHTML = `<ul class="gov-req-list">${svc.requirements
+      .map((r) => `<li class="gov-req-item"><span class="gov-req-check">✔</span><span>${r}</span></li>`)
+      .join("")}</ul>`;
+  } else if (currentServiceTab === "steps") {
+    body.innerHTML = `<ol class="gov-steps-list">${svc.steps
+      .map((s, i) => `<li class="gov-step-item"><span class="gov-step-number">${i + 1}</span><span>${s}</span></li>`)
+      .join("")}</ol>`;
+  }
+}
+
+function openServiceDetail(id) {
+  const svc = GOV_SERVICES[id];
+  if (!svc) return;
+  currentServiceId = id;
+  currentServiceTab = "overview";
+
+  document.getElementById("serviceDetailTitle").textContent = svc.name;
+  document.getElementById("serviceDetailIcon").textContent = svc.icon;
+  document.getElementById("serviceDetailName").textContent = svc.name;
+  document.getElementById("serviceDetailSubtitle").textContent = svc.subtitle;
+
+  document.querySelectorAll(".service-detail-tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "overview"));
+  renderServiceDetailTab();
+
+  governmentModal.classList.remove("open");
+  document.getElementById("serviceDetailModal").classList.add("open");
+}
+
+document.querySelectorAll("#govHubGrid .hub-card[data-service]").forEach((card) => {
+  card.addEventListener("click", () => openServiceDetail(card.dataset.service));
+});
+
+document.querySelectorAll(".service-detail-tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".service-detail-tab").forEach((t) => t.classList.remove("active"));
+    tab.classList.add("active");
+    currentServiceTab = tab.dataset.tab;
+    renderServiceDetailTab();
+  });
+});
+
+const closeServiceDetailBtn = document.getElementById("closeServiceDetailBtn");
+if (closeServiceDetailBtn) {
+  closeServiceDetailBtn.addEventListener("click", () => {
+    document.getElementById("serviceDetailModal").classList.remove("open");
+  });
+}
+
+const serviceDetailAskBtn = document.getElementById("serviceDetailAskBtn");
+if (serviceDetailAskBtn) {
+  serviceDetailAskBtn.addEventListener("click", () => {
+    const svc = GOV_SERVICES[currentServiceId];
+    if (!svc) return;
+    document.getElementById("serviceDetailModal").classList.remove("open");
+    setGovernmentMode(true);
+    sendMessage(`I have more questions about ${svc.name} (${svc.subtitle}). Can you help?`);
+  });
+}
+
+// ---------- Government Offices (honest locator: AI guidance, not a fixed fake directory) ----------
+const govOfficesModal = document.getElementById("govOfficesModal");
+const govOfficesCard = document.getElementById("govOfficesCard");
+if (govOfficesCard) {
+  govOfficesCard.addEventListener("click", () => {
+    governmentModal.classList.remove("open");
+    govOfficesModal.classList.add("open");
+  });
+}
+const closeGovOfficesBtn = document.getElementById("closeGovOfficesBtn");
+if (closeGovOfficesBtn) {
+  closeGovOfficesBtn.addEventListener("click", () => govOfficesModal.classList.remove("open"));
+}
+const govOfficeFindBtn = document.getElementById("govOfficeFindBtn");
+if (govOfficeFindBtn) {
+  govOfficeFindBtn.addEventListener("click", () => {
+    const service = document.getElementById("govOfficeServiceSelect").value;
+    const location = document.getElementById("govOfficeLocationInput").value.trim();
+    if (!location) {
+      alert("Please enter your state or city first.");
+      return;
+    }
+    govOfficesModal.classList.remove("open");
+    setGovernmentMode(true);
+    sendMessage(
+      `I need to find the right government office for ${service} near ${location}, Nigeria. Please tell me which agency/office handles this, roughly where their offices tend to be in that area, and how I can confirm the exact nearest address (e.g. official portal or office locator).`
+    );
+  });
+}
+
+// ---------- Government Payments (deferred until Paystack integration ships) ----------
+const govPaymentsCard = document.getElementById("govPaymentsCard");
+if (govPaymentsCard) {
+  govPaymentsCard.addEventListener("click", () => {
+    alert("Government Payments is coming soon — secure in-app payments for NIN, Passport, CAC and more.");
+  });
+}
+
+// ---------- Latest Government News (AI summary with an honest disclaimer) ----------
+const govNewsCard = document.getElementById("govNewsCard");
+if (govNewsCard) {
+  govNewsCard.addEventListener("click", () => {
+    governmentModal.classList.remove("open");
+    setGovernmentMode(true);
+    sendMessage(
+      "Please share a summary of major recent Nigerian government/education announcements you're aware of (e.g. NIN, JAMB, WAEC, NYSC, passport, or tax updates). Clearly note that I should verify anything time-sensitive on the relevant official website, since your information may not be fully up to date."
+    );
+  });
+}
+
+// ---------- Ask Government AI (switches the SAME chat into Government mode) ----------
+const askGovernmentAiCard = document.getElementById("askGovernmentAiCard");
+if (askGovernmentAiCard) {
+  askGovernmentAiCard.addEventListener("click", () => {
+    governmentModal.classList.remove("open");
+    setGovernmentMode(true);
+    if (!currentId || !getCurrentConversation()) {
+      if (conversations.length > 0) {
+        currentId = conversations[0].id;
+      } else {
+        startNewChat();
+      }
+    }
+    renderSidebar();
+    renderActiveConversation();
+    switchToChatMode();
+    inputEl.focus();
   });
 }
