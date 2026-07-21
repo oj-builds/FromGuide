@@ -66,7 +66,19 @@
         </div>
       </header>
 
+      <header id="chatModeHeader" class="chat-mode-header" style="display:none;">
+        <button id="chatBackBtn" class="icon-btn">←</button>
+        <span class="chat-mode-title">🤖 AI Chat</span>
+        <button id="chatSettingsBtn" class="icon-btn" style="margin-left:auto;">⚙️</button>
+      </header>
+
       <main id="chat" class="chat">
+        <div id="chatEmptyState" class="chat-empty-state" style="display:none;">
+          <div class="chat-empty-avatar">🤖</div>
+          <h3 id="chatEmptyGreeting">Hello! 👋</h3>
+          <p>What can I help you with today?</p>
+        </div>
+
         <div id="welcomeScreen" class="welcome-screen">
 
           <div class="dash-greeting">
@@ -175,7 +187,7 @@
       <div id="chatComposerArea" style="display:none;">
         <form id="chat-form" class="input-bar">
           <button type="button" id="inlineAttachBtn" class="input-icon-btn" title="Attach photo">📎</button>
-          <input id="chat-input" type="text" placeholder="Ask about any form…" autocomplete="off" />
+          <input id="chat-input" type="text" placeholder="Ask FormGuide AI…" autocomplete="off" />
           <button type="button" id="inlineMicBtn" class="input-icon-btn" title="Hold to record a voice note">🎙️</button>
           <button type="submit" class="input-send-btn" title="Send">↑</button>
         </form>
@@ -186,15 +198,31 @@
           <button class="suggestion-row" id="suggestSearch"><span>🔍</span> Ask me anything</button>
         </div>
 
-        <div class="action-buttons-row">
-          <button class="action-pill" id="voiceChatBtn"><span>🎙️</span> Voice Chat</button>
-          <button class="action-pill" id="uploadFileBtn"><span>📄</span> Upload File</button>
-          <button class="action-pill" id="aiSearchBtn"><span>🔍</span> AI Search</button>
-          <button class="action-pill" id="generateImageBtn"><span>🖼️</span> Generate Image</button>
-          <button class="action-pill" id="moreToolsBtn"><span>➕</span> More Tools</button>
-        </div>
+        <button type="button" id="moreToolsBtn" class="more-tools-btn"><span>➕</span> More Tools</button>
 
         <div class="disclaimer">FormGuide AI can make mistakes. Please verify important information.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- More Tools bottom sheet -->
+  <div id="moreToolsSheet" class="bottom-sheet">
+    <div class="bottom-sheet-backdrop" id="moreToolsBackdrop"></div>
+    <div class="bottom-sheet-panel">
+      <div class="bottom-sheet-handle"></div>
+      <h3 class="bottom-sheet-title">More Tools</h3>
+      <div class="tool-list">
+        <button class="tool-row" id="toolChatHistory"><span class="tool-icon">📂</span><div><strong>Chat History</strong><small>View all your conversations</small></div></button>
+        <button class="tool-row" id="toolPinnedChats"><span class="tool-icon">📌</span><div><strong>Pinned Chats</strong><small>View your pinned conversations</small></div></button>
+        <button class="tool-row" id="toolFavoriteChats"><span class="tool-icon">⭐</span><div><strong>Favorite Chats</strong><small>View your favorite conversations</small></div></button>
+        <button class="tool-row" id="toolAiMemory"><span class="tool-icon">🧠</span><div><strong>AI Memory</strong><small>Manage what FormGuide AI remembers</small></div></button>
+        <button class="tool-row" id="toolReadPdf"><span class="tool-icon">📄</span><div><strong>Read PDF</strong><small>Upload and read PDF/DOCX files</small></div></button>
+        <button class="tool-row" id="toolUploadImage"><span class="tool-icon">📷</span><div><strong>Upload Image</strong><small>Upload an image and ask AI</small></div></button>
+        <button class="tool-row" id="toolTranslate"><span class="tool-icon">🌍</span><div><strong>Translate</strong><small>Translate any text or language</small></div></button>
+        <button class="tool-row" id="toolAiSearch"><span class="tool-icon">🔍</span><div><strong>AI Search</strong><small>Search anything with AI</small></div></button>
+        <button class="tool-row" id="toolGenerateImage"><span class="tool-icon">🖼️</span><div><strong>Generate Image</strong><small>Create an image with AI</small></div></button>
+        <button class="tool-row" id="toolVoiceChat"><span class="tool-icon">🎤</span><div><strong>Voice Chat</strong><small>Talk with AI using your voice</small></div></button>
+        <button class="tool-row" id="toolAiSettings"><span class="tool-icon">⚙️</span><div><strong>AI Settings</strong><small>Customize AI behavior</small></div></button>
       </div>
     </div>
   </div>
@@ -732,6 +760,62 @@
     </div>
   </div>
 
+  <!-- Translate -->
+  <div id="translateModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeTranslateBtn" class="dark-back-btn">←</button>
+      <h2>🌍 Translate</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div style="display:flex;gap:10px;margin-bottom:12px;">
+        <select id="translateFrom" class="ai-search-input" style="appearance:auto;">
+          <option value="Auto-detect">Auto-detect</option>
+          <option value="English">English</option>
+          <option value="Pidgin">Pidgin</option>
+          <option value="Yoruba">Yoruba</option>
+          <option value="Igbo">Igbo</option>
+          <option value="Hausa">Hausa</option>
+          <option value="French">French</option>
+        </select>
+        <select id="translateTo" class="ai-search-input" style="appearance:auto;">
+          <option value="English">English</option>
+          <option value="Pidgin">Pidgin</option>
+          <option value="Yoruba">Yoruba</option>
+          <option value="Igbo">Igbo</option>
+          <option value="Hausa">Hausa</option>
+          <option value="French">French</option>
+        </select>
+      </div>
+      <textarea id="translateInput" placeholder="Type or paste text to translate…" style="width:100%;min-height:140px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:13.5px;font-family:inherit;box-sizing:border-box;resize:vertical;"></textarea>
+      <button id="translateGoBtn" class="add-memory-btn" style="margin-top:12px;">✨ Translate</button>
+    </div>
+  </div>
+
+  <!-- Favorite Chats -->
+  <div id="favoriteChatsModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeFavoriteChatsBtn" class="dark-back-btn">←</button>
+      <h2>⭐ Favorite Chats</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div id="favoriteChatsList"></div>
+    </div>
+  </div>
+
+  <!-- Pinned Chats -->
+  <div id="pinnedChatsModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closePinnedChatsBtn" class="dark-back-btn">←</button>
+      <h2>📌 Pinned Chats</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div id="pinnedChatsList"></div>
+    </div>
+  </div>
+
   <!-- AI Search -->
   <div id="aiSearchModal" class="dark-fullscreen">
     <div class="dark-fs-header">
@@ -1115,6 +1199,74 @@
 
 
       </div>
+    </div>
+  </div>
+
+  <!-- Chat History (dedicated full page) -->
+  <div id="chatHistoryModal" class="settings-fullscreen">
+    <div class="settings-fs-header" style="background:var(--panel);border-color:var(--border);">
+      <button id="closeChatHistoryBtn" class="settings-back-btn" style="color:var(--text);">←</button>
+      <h2 style="color:var(--text);">Chat History</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="settings-fs-panels" style="background:var(--bg);">
+      <input id="chatHistorySearchInput" type="text" placeholder="Search conversations..."
+        class="search-page-input" style="background:var(--panel);color:var(--text);border-color:var(--border);">
+      <div class="templates-tabs">
+        <button class="templates-tab chat-history-filter active" data-filter="all">All</button>
+        <button class="templates-tab chat-history-filter" data-filter="today">Today</button>
+        <button class="templates-tab chat-history-filter" data-filter="yesterday">Yesterday</button>
+        <button class="templates-tab chat-history-filter" data-filter="week">This Week</button>
+      </div>
+      <div id="chatHistoryList" style="margin-top:14px;"></div>
+      <div id="chatHistoryEmpty" style="display:none;text-align:center;color:var(--text-dim);padding:40px 0;">
+        No conversations found.
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Settings (dedicated page, matches mockup) -->
+  <div id="aiSettingsModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeAiSettingsBtn" class="dark-back-btn">←</button>
+      <h2>AI Settings</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+        <div class="settings-row-item" style="border-color:var(--border);">
+          <div class="settings-row-label" style="color:var(--text);">AI Model</div>
+          <span style="color:var(--text-dim);font-size:12px;">GPT-4o</span>
+        </div>
+        <div class="settings-row-item" style="border-color:var(--border);">
+          <div class="settings-row-label" style="color:var(--text);">Response Style</div>
+          <select id="aiPrefResponseStyle" style="background:var(--panel-light);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12.5px;">
+            <option value="concise">Concise</option>
+            <option value="detailed">Detailed</option>
+          </select>
+        </div>
+        <div class="settings-row-item" style="border-color:var(--border);">
+          <div class="settings-row-label" style="color:var(--text);">Tone of Voice</div>
+          <select id="aiPrefTone" style="background:var(--panel-light);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12.5px;">
+            <option value="friendly">Friendly</option>
+            <option value="professional">Professional</option>
+            <option value="casual">Casual</option>
+          </select>
+        </div>
+        <div class="settings-row-item" id="aiSettingsLangRow" style="border-color:var(--border);cursor:pointer;">
+          <div class="settings-row-label" style="color:var(--text);">Language</div>
+          <span id="aiSettingsLangSub" style="color:var(--text-dim);font-size:12px;">Auto-detect ›</span>
+        </div>
+        <div class="settings-row-item" style="border-color:var(--border);">
+          <div class="settings-row-label" style="color:var(--text);">Memory</div>
+          <label class="ai-toggle-switch"><input type="checkbox" id="aiPrefMemoryToggle" checked><span class="ai-toggle-slider"></span></label>
+        </div>
+        <div class="settings-row-item" style="border-color:var(--border);">
+          <div class="settings-row-label" style="color:var(--text);">Safe Search</div>
+          <label class="ai-toggle-switch"><input type="checkbox" id="aiPrefSafeSearchToggle" checked><span class="ai-toggle-slider"></span></label>
+        </div>
+      </div>
+      <button id="aiSettingsResetBtn" class="secondary-btn danger" style="margin-top:16px;">Reset to Default</button>
     </div>
   </div>
 
