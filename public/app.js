@@ -1410,7 +1410,11 @@ const GOVERNMENT_CHAT_CHIPS = [
 function updateChatEmptyState() {
   const conv = getCurrentConversation();
   const hasMessages = conv && conv.messages && conv.messages.length > 0;
-  if (chatEmptyState) chatEmptyState.style.display = hasMessages ? "none" : "block";
+  const inChatMode = chatModeHeader && chatModeHeader.style.display !== "none";
+  // Only touch this element's own visibility while we're actually on the AI
+  // Chat screen. Calling this while on the Home dashboard (e.g. as part of
+  // resetting Government mode) must never re-show the chat greeting there.
+  if (chatEmptyState && inChatMode) chatEmptyState.style.display = hasMessages ? "none" : "block";
 
   const greetingEl = document.getElementById("chatEmptyGreeting");
   const subtitleEl = document.getElementById("chatEmptySubtitle");
@@ -3935,8 +3939,8 @@ const govSearchInput = document.getElementById("govSearchInput");
 if (govSearchInput) {
   govSearchInput.addEventListener("input", () => {
     const q = govSearchInput.value.trim().toLowerCase();
-    document.querySelectorAll("#govHubGrid .hub-card").forEach((card) => {
-      const name = (card.querySelector("h4")?.textContent || "").toLowerCase();
+    document.querySelectorAll("#govHubGrid .dash-quick-card").forEach((card) => {
+      const name = (card.querySelector("strong")?.textContent || "").toLowerCase();
       card.style.display = !q || name.includes(q) ? "" : "none";
     });
   });
@@ -4289,7 +4293,7 @@ function openServiceDetail(id) {
   document.getElementById("serviceDetailModal").classList.add("open");
 }
 
-document.querySelectorAll("#govHubGrid .hub-card[data-service]").forEach((card) => {
+document.querySelectorAll("#govHubGrid .dash-quick-card[data-service]").forEach((card) => {
   card.addEventListener("click", () => openServiceDetail(card.dataset.service));
 });
 
