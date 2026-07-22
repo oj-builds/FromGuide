@@ -779,10 +779,63 @@
           <div class="dash-stat"><span>🎯</span><strong id="progressExamsTaken">—</strong><small>Exams Taken</small></div>
           <div class="dash-stat"><span>🏆</span><strong id="progressBadgeCount">—</strong><small>Badges Earned</small></div>
         </div>
-        <p style="font-size:11px;color:var(--text-dim);margin-top:14px;line-height:1.6;">
-          Per-subject progress percentages aren't tracked yet — this shows your real overall activity (level, XP, exams, badges) from Achievements. Ask if you'd like per-subject tracking added.
+
+        <div class="dash-section-header" style="margin-top:20px;">
+          <h3>Subject Progress</h3>
+        </div>
+        <div id="progressSubjectsList"></div>
+        <p id="progressSubjectsEmpty" style="display:none;font-size:11.5px;color:var(--text-dim);line-height:1.6;">
+          No practice quizzes taken yet. Open a subject in AI Tutor and try the 📝 Practice Quiz quick action to start tracking real progress here.
         </p>
       </div>
+    </div>
+  </div>
+
+  <!-- Subject Practice Quiz — launched from AI Tutor's Quick Actions, results feed real Progress data -->
+  <div id="subjectQuizModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeSubjectQuizBtn" class="dark-back-btn">←</button>
+      <h2 id="subjectQuizTitle">Practice Quiz</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+
+      <div id="subjectQuizSetupView">
+        <p class="templates-sub" id="subjectQuizSetupText">FormGuide AI will generate a fresh 5-question practice quiz for this subject.</p>
+        <button id="subjectQuizStartBtn" class="add-memory-btn" style="margin-top:14px;">▶ Start Practice Quiz</button>
+      </div>
+
+      <div id="subjectQuizLoadingView" style="display:none;text-align:center;padding:60px 0;">
+        <div style="font-size:32px;margin-bottom:12px;">⏳</div>
+        <p style="color:var(--text-dim);font-size:13px;">Generating your questions…</p>
+      </div>
+
+      <div id="subjectQuizTakingView" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <span id="subjectQuizProgressText" style="font-size:12.5px;color:var(--text-dim);">Question 1 of 5</span>
+        </div>
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+          <p id="subjectQuizQuestionText" style="font-size:14.5px;color:var(--text);margin:0 0 14px;line-height:1.5;"></p>
+          <div id="subjectQuizOptionsList" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px;">
+          <button id="subjectQuizPrevBtn" class="secondary-btn" style="flex:1;">← Previous</button>
+          <button id="subjectQuizNextBtn" class="secondary-btn" style="flex:1;">Next →</button>
+        </div>
+        <button id="subjectQuizSubmitBtn" class="add-memory-btn" style="margin-top:10px;background:#dc2626;">✔ Submit Quiz</button>
+      </div>
+
+      <div id="subjectQuizResultsView" style="display:none;">
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);text-align:center;">
+          <div style="font-size:13px;color:var(--text-dim);">Your Score</div>
+          <div id="subjectQuizScoreText" style="font-size:32px;font-weight:800;color:var(--accent);margin:6px 0;">0/0</div>
+          <div id="subjectQuizPercentText" style="font-size:13px;color:var(--text-dim);"></div>
+        </div>
+        <div id="subjectQuizReviewList" style="margin-top:16px;"></div>
+        <button id="subjectQuizRetakeBtn" class="secondary-btn" style="margin-top:16px;">↻ Take Another Quiz</button>
+        <button id="subjectQuizBackBtn" class="add-memory-btn" style="margin-top:10px;">💬 Back to Chat</button>
+      </div>
+
     </div>
   </div>
 
