@@ -18,6 +18,7 @@ const User = require("./models/User");
 const Chat = require("./models/Chat");
 const Memory = require("./models/Memory");
 const Notification = require("./models/Notification");
+const SubjectProgress = require("./models/SubjectProgress");
 const authenticate = require("./middleware/auth");
 
 const app = express();
@@ -695,6 +696,144 @@ correctIndex is the 0-based index of the correct option in the "options" array. 
   } catch (err) {
     console.error("Exam generation error:", err);
     res.status(500).json({ error: "Could not generate this exam. Please try again." });
+  }
+});
+
+// ---------- AI TUTOR: SUBJECT PRACTICE QUIZ + REAL PROGRESS TRACKING ----------
+// Same generation pattern as Exam Centre above, but scoped to an AI Tutor
+// subject instead of an exam type, and the result feeds real per-subject
+// percentages on the Progress page (no invented numbers).
+
+app.post("/api/subject-quiz/generate", authenticate, async (req, res) => {
+  try {
+    const { subject, numQuestions } = req.body;
+
+    if (!subject || !ALLOWED_TUTOR_SUBJECTS.includes(subject)) {
+      return res.status(400).json({ error: "Please choose a valid subject." });
+    }
+    const count = Math.min(Math.max(parseInt(numQuestions, 10) || 5, 3), 15);
+
+    if (!API_KEY) {
+      return res.status(500).json({ error: "No API key configured on the server." });
+    }
+
+    const quizPrompt = `Generate ${count} multiple-choice practice questions for the subject "${subject}", suitable for a Nigerian secondary/tertiary student preparing for exams like WAEC/NECO/JAMB.
+
+Reply ONLY with a JSON array, nothing else — no markdown fences, no commentary. Each item must have this exact shape:
+{"question": "the question text", "options": ["option A", "option B", "option C", "option D"], "correctIndex": 0, "explanation": "brief explanation of the correct answer"}
+
+correctIndex is the 0-based index of the correct option in the "options" array. Cover a good spread of topics within ${subject}, not just one topic repeated.`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-5",
+        max_tokens: 3000,
+        messages: [{ role: "user", content: quizPrompt }],
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Subject quiz generation API error:", data);
+      return res.status(response.status).json({ error: "Could not generate quiz questions." });
+    }
+
+    const textBlock = data.content?.find((block) => block.type === "text");
+    if (!textBlock) {
+      return res.status(500).json({ error: "No response received." });
+    }
+
+    let questions;
+    try {
+      const clean = textBlock.text.replace(/```json|```/g, "").trim();
+      questions = JSON.parse(clean);
+    } catch (err) {
+      console.error("Subject quiz parse error:", err, textBlock.text);
+      return res.status(500).json({ error: "Could not read the generated questions. Please try again." });
+    }
+
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(500).json({ error: "No valid questions were generated. Please try again." });
+    }
+
+    questions = questions.filter(
+      (q) =>
+        q &&
+        typeof q.question === "string" &&
+        Array.isArray(q.options) &&
+        q.options.length === 4 &&
+        Number.isInteger(q.correctIndex) &&
+        q.correctIndex >= 0 &&
+        q.correctIndex < 4
+    );
+
+    if (questions.length === 0) {
+      return res.status(500).json({ error: "No valid questions were generated. Please try again." });
+    }
+
+    res.json({ questions, subject });
+  } catch (err) {
+    console.error("Subject quiz generation error:", err);
+    res.status(500).json({ error: "Could not generate this quiz. Please try again." });
+  }
+});
+
+// Save a real quiz result — cumulative per (user, subject)
+app.post("/api/subject-progress/record", authenticate, async (req, res) => {
+  try {
+    const { subject, correct, total } = req.body;
+
+    if (!subject || !ALLOWED_TUTOR_SUBJECTS.includes(subject)) {
+      return res.status(400).json({ error: "Unknown subject." });
+    }
+
+    // Clamp to sane bounds so this endpoint can't be abused to fake a score
+    const totalNum = Math.max(1, Math.min(parseInt(total, 10) || 1, 50));
+    const correctNum = Math.max(0, Math.min(parseInt(correct, 10) || 0, totalNum));
+
+    let record = await SubjectProgress.findOne({ user: req.userId, subject });
+    if (!record) {
+      record = new SubjectProgress({ user: req.userId, subject });
+    }
+    record.questionsAnswered += totalNum;
+    record.questionsCorrect += correctNum;
+    record.lastPracticed = new Date();
+    await record.save();
+
+    res.json({
+      subject,
+      questionsAnswered: record.questionsAnswered,
+      questionsCorrect: record.questionsCorrect,
+      percentage: Math.round((record.questionsCorrect / record.questionsAnswered) * 100),
+    });
+  } catch (err) {
+    console.error("Record subject progress error:", err);
+    res.status(500).json({ error: "Could not save your progress." });
+  }
+});
+
+// Fetch real per-subject percentages for the Progress page
+app.get("/api/subject-progress", authenticate, async (req, res) => {
+  try {
+    const records = await SubjectProgress.find({ user: req.userId });
+    const progress = records.map((r) => ({
+      subject: r.subject,
+      questionsAnswered: r.questionsAnswered,
+      questionsCorrect: r.questionsCorrect,
+      percentage: r.questionsAnswered > 0 ? Math.round((r.questionsCorrect / r.questionsAnswered) * 100) : null,
+      lastPracticed: r.lastPracticed,
+    }));
+    res.json({ progress });
+  } catch (err) {
+    console.error("Load subject progress error:", err);
+    res.status(500).json({ error: "Could not load subject progress." });
   }
 });
 
