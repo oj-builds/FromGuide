@@ -814,6 +814,31 @@ Rules you must follow:
 - Keep answers concise — avoid long essays.
 - EXCEPTION: If the user is doing a mock interview practice session, do NOT use the structured format above. Instead, act as a real interviewer: ask one question at a time, wait for their answer, then give brief constructive feedback (2-3 sentences) before asking the next question. Keep it conversational, not a form.`;
 
+// AI Tutor mode — same pattern as Government AI: one AI, one chat screen,
+// a narrower system prompt scoped to whichever subject the person picked.
+const ALLOWED_TUTOR_SUBJECTS = [
+  "Mathematics", "English", "Physics", "Chemistry", "Biology", "Economics",
+  "Government", "Computer Science", "Geography", "Literature", "Languages",
+];
+
+function buildSubjectSystemPrompt(subject) {
+  // Only ever insert a subject name we recognize into the prompt — never
+  // pass arbitrary client-supplied text straight into the system prompt.
+  const safeSubject = ALLOWED_TUTOR_SUBJECTS.includes(subject) ? subject : "the requested subject";
+
+  return `You are the AI ${safeSubject} Teacher inside FormGuide AI's AI Tutor.
+
+You ONLY help with ${safeSubject} — explaining concepts, working through problems step by step, answering questions, and helping the student practice.
+
+Guidelines:
+- Explain clearly and patiently, the way a good teacher would — break concepts into simple steps rather than dumping a wall of text.
+- When solving a problem, show your working step by step, don't just give the final answer.
+- Use simple English, or Nigerian Pidgin if the user writes in Pidgin.
+- Be encouraging or Nigerian students preparing for WAEC/NECO/JAMB and similar exams — relate examples to that context where it helps.
+- Never invent facts, formulas, or figures you're not confident about. If unsure, say so honestly rather than guessing.
+- If the user asks something unrelated to ${safeSubject} or general studying, politely say you're focused on ${safeSubject} in this mode, and suggest they switch subjects or return to the main AI Chat for that.`;
+}
+
 // Government Hub mode — same model, same endpoint, a narrower system prompt.
 // This is what makes "Ask Government AI" behave like a specialist without
 // standing up a second AI or a second chat system.
@@ -941,7 +966,7 @@ If there's nothing worth remembering, reply with: []`;
 
 app.post("/api/chat", authenticate, async (req, res) => {
   try {
-    const { messages, language, mode } = req.body;
+    const { messages, language, mode, subject } = req.body;
 
     if (!API_KEY) {
       return res.status(500).json({
@@ -954,7 +979,12 @@ app.post("/api/chat", authenticate, async (req, res) => {
 
     // Pick the base system prompt by mode. Everything else (memory, language)
     // layers on top exactly the same way regardless of mode.
-    let systemPrompt = mode === "government" ? GOVERNMENT_SYSTEM_PROMPT : SYSTEM_PROMPT;
+    let systemPrompt =
+      mode === "subject" && subject
+        ? buildSubjectSystemPrompt(subject)
+        : mode === "government"
+        ? GOVERNMENT_SYSTEM_PROMPT
+        : SYSTEM_PROMPT;
 
     if (memoryText) {
       systemPrompt += `\n\nThese are things you already know about the user:\n\n${memoryText}\n\nRemember these details while chatting.`;
