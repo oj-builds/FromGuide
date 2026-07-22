@@ -2139,3 +2139,10 @@ body.accent-orange .accent { color: #e0862f !important; }
 .gov-overview-icon { font-size: 15px; margin-top: 1px; }
 .gov-overview-row strong { display: block; font-size: 12.5px; color: var(--text); }
 .gov-overview-row span { font-size: 12.5px; color: var(--text-dim); }
+
+/* ---------- My Progress: per-subject bars ---------- */
+.subject-progress-row { margin-bottom: 14px; }
+.subject-progress-top { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text); margin-bottom: 5px; }
+.subject-progress-top small { color: var(--text-dim); font-size: 11px; }
+.subject-progress-track { background: var(--panel-light); border-radius: 8px; height: 8px; overflow: hidden; }
+.subject-progress-fill { background: var(--accent); height: 100%; transition: width 0.3s; }
