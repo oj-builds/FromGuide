@@ -328,6 +328,7 @@ async function sendMessage(text) {
         messages: conv.messages,
         language: languagePref,
         mode: typeof currentChatMode !== "undefined" ? currentChatMode : "general",
+        subject: typeof currentSubject !== "undefined" ? currentSubject : null,
       }),
     });
     const data = await res.json();
@@ -1420,22 +1421,27 @@ function updateChatEmptyState() {
   const subtitleEl = document.getElementById("chatEmptySubtitle");
   const chipsEl = document.getElementById("chatEmptyChips");
   const isGov = typeof currentChatMode !== "undefined" && currentChatMode === "government";
+  const isSubject = typeof currentChatMode !== "undefined" && currentChatMode === "subject" && currentSubject;
 
   if (greetingEl) {
     const user = getStoredUser();
-    if (isGov) {
+    if (isSubject) {
+      greetingEl.textContent = user ? `Hello ${user.name}! 📖` : "Hello! 📖";
+    } else if (isGov) {
       greetingEl.textContent = user ? `Hello ${user.name}! 🏛️` : "Hello! 🏛️";
     } else {
       greetingEl.textContent = user ? `Hello ${user.name}! 👋` : "Hello! 👋";
     }
   }
   if (subtitleEl) {
-    subtitleEl.textContent = isGov
+    subtitleEl.textContent = isSubject
+      ? `Ask me anything about ${currentSubject}.`
+      : isGov
       ? "Ask me anything about Nigerian government services."
       : "What can I help you with today?";
   }
   if (chipsEl) {
-    const chips = isGov ? GOVERNMENT_CHAT_CHIPS : GENERAL_CHAT_CHIPS;
+    const chips = isSubject ? [] : isGov ? GOVERNMENT_CHAT_CHIPS : GENERAL_CHAT_CHIPS;
     chipsEl.innerHTML = "";
     if (!hasMessages) {
       chips.forEach((c) => {
@@ -4410,7 +4416,8 @@ function wireEduCard(id, action) {
 
 wireEduCard("eduAiTutorCard", () => {
   educationModal.classList.remove("open");
-  if (typeof openStudyCompanionModal === "function") openStudyCompanionModal();
+  const aiTutorModal = document.getElementById("aiTutorModal");
+  if (aiTutorModal) aiTutorModal.classList.add("open");
 });
 
 wireEduCard("eduDigitalLibraryCard", () => {
@@ -4462,4 +4469,179 @@ wireEduCard("eduScholarshipsCard", () => {
   ["eduVideoLessonsCard", "Video Lessons"],
 ].forEach(([id, label]) => {
   wireEduCard(id, () => alert(`${label} is coming soon!`));
+});
+
+// =====================================================================
+// AI TUTOR — subject-scoped teaching mode (same pattern as Government AI:
+// one AI, one chat screen, a narrower system prompt per subject)
+// =====================================================================
+
+const aiTutorModal = document.getElementById("aiTutorModal");
+const closeAiTutorBtn = document.getElementById("closeAiTutorBtn");
+if (closeAiTutorBtn) {
+  closeAiTutorBtn.addEventListener("click", () => aiTutorModal.classList.remove("open"));
+}
+
+// ---------- Subject mode state ----------
+let currentSubject = null; // e.g. "Mathematics", or null when not in subject mode
+
+function setSubjectMode(subjectName) {
+  currentChatMode = subjectName ? "subject" : "general";
+  currentSubject = subjectName || null;
+
+  const titleEl = document.getElementById("chatModeTitleText");
+  const exitBtn = document.getElementById("exitGovModeBtn");
+  const chatInputEl = document.getElementById("chat-input");
+  const quickActionsRow = document.getElementById("subjectQuickActions");
+
+  if (subjectName) {
+    if (titleEl) titleEl.textContent = `🤖 AI ${subjectName} Teacher`;
+    if (exitBtn) {
+      exitBtn.textContent = "Exit Subject";
+      exitBtn.style.display = "inline-flex";
+    }
+    if (chatInputEl) chatInputEl.placeholder = `Ask anything about ${subjectName}…`;
+    if (quickActionsRow) quickActionsRow.style.display = "flex";
+  } else {
+    if (exitBtn) exitBtn.textContent = "Exit Gov Mode";
+    if (quickActionsRow) quickActionsRow.style.display = "none";
+  }
+  updateChatEmptyState();
+}
+
+// The existing "Exit Gov Mode" pill now doubles as "Exit Subject" — reset
+// whichever mode is active.
+if (exitGovModeBtn) {
+  exitGovModeBtn.addEventListener("click", () => {
+    setGovernmentMode(false);
+    setSubjectMode(null);
+  });
+}
+
+// Reset subject mode whenever we go back to the dashboard, same as Gov mode
+const _originalSwitchToDashboardMode = switchToDashboardMode;
+switchToDashboardMode = function () {
+  _originalSwitchToDashboardMode();
+  setSubjectMode(null);
+};
+
+// Include the subject in every chat request too, so the backend can build a
+// subject-specific teacher system prompt.
+document.querySelectorAll("#aiTutorSubjectGrid .dash-quick-card[data-subject]").forEach((card) => {
+  card.addEventListener("click", () => {
+    const subject = card.dataset.subject;
+    aiTutorModal.classList.remove("open");
+    setGovernmentMode(false);
+    setSubjectMode(subject);
+    if (!currentId || !getCurrentConversation()) {
+      if (conversations.length > 0) {
+        currentId = conversations[0].id;
+      } else {
+        startNewChat();
+      }
+    }
+    renderSidebar();
+    renderActiveConversation();
+    switchToChatMode();
+    inputEl.focus();
+  });
+});
+
+// ---------- Homework Helper (reuses your existing modal — no rebuild needed) ----------
+const tutorHomeworkHelperCard = document.getElementById("tutorHomeworkHelperCard");
+if (tutorHomeworkHelperCard) {
+  tutorHomeworkHelperCard.addEventListener("click", () => {
+    aiTutorModal.classList.remove("open");
+    if (typeof openHomeworkHelperModal === "function") openHomeworkHelperModal();
+  });
+}
+
+// ---------- Solve from Camera (reuses the existing photo -> vision pipeline) ----------
+const tutorCameraCard = document.getElementById("tutorCameraCard");
+if (tutorCameraCard) {
+  tutorCameraCard.addEventListener("click", () => {
+    aiTutorModal.classList.remove("open");
+    if (typeof uploadContext !== "undefined") uploadContext = "homework";
+    if (photoFileInput) photoFileInput.click();
+  });
+}
+
+// ---------- My Progress (real achievements data — no invented per-subject %) ----------
+const progressModal = document.getElementById("progressModal");
+const closeProgressBtn = document.getElementById("closeProgressBtn");
+if (closeProgressBtn) {
+  closeProgressBtn.addEventListener("click", () => progressModal.classList.remove("open"));
+}
+
+async function openProgressModal() {
+  const guestNotice = document.getElementById("progressGuestNotice");
+  const content = document.getElementById("progressContent");
+  progressModal.classList.add("open");
+
+  if (!getToken()) {
+    guestNotice.style.display = "block";
+    content.style.display = "none";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/achievements", {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!res.ok) {
+      guestNotice.style.display = "block";
+      content.style.display = "none";
+      return;
+    }
+    const data = await res.json();
+    guestNotice.style.display = "none";
+    content.style.display = "block";
+
+    document.getElementById("progressLevel").textContent = data.level;
+    document.getElementById("progressXpText").textContent = `${data.xp} XP`;
+    document.getElementById("progressXpBar").style.width = `${(data.xp % 50) / 50 * 100}%`;
+    document.getElementById("progressExamsTaken").textContent = data.examsTaken ?? "—";
+    document.getElementById("progressBadgeCount").textContent = (data.badges || []).length;
+  } catch (err) {
+    guestNotice.style.display = "block";
+    content.style.display = "none";
+  }
+}
+
+const tutorProgressCard = document.getElementById("tutorProgressCard");
+if (tutorProgressCard) {
+  tutorProgressCard.addEventListener("click", () => {
+    aiTutorModal.classList.remove("open");
+    openProgressModal();
+  });
+}
+
+// ---------- Set Up My Learning Profile (reuses existing Study Companion) ----------
+const tutorSetupProfileBtn = document.getElementById("tutorSetupProfileBtn");
+if (tutorSetupProfileBtn) {
+  tutorSetupProfileBtn.addEventListener("click", () => {
+    aiTutorModal.classList.remove("open");
+    if (typeof openStudyCompanionModal === "function") openStudyCompanionModal();
+  });
+}
+
+// ---------- Quick Actions row (only visible while in Subject mode) ----------
+document.getElementById("qaScanQuestion")?.addEventListener("click", () => {
+  if (typeof uploadContext !== "undefined") uploadContext = "homework";
+  if (photoFileInput) photoFileInput.click();
+});
+document.getElementById("qaVoiceQuestion")?.addEventListener("click", () => {
+  alert("Hold the 🎙️ icon in the message box to ask your question by voice.");
+});
+document.getElementById("qaPracticeQuiz")?.addEventListener("click", () => {
+  if (currentSubject) sendMessage(`Quiz me on ${currentSubject} to test my knowledge.`);
+});
+document.getElementById("qaNotes")?.addEventListener("click", () => {
+  if (typeof openNotesFlashcardsModal === "function") openNotesFlashcardsModal();
+});
+document.getElementById("qaCheatSheet")?.addEventListener("click", () => {
+  if (currentSubject) sendMessage(`Give me a quick reference/cheat sheet covering the key things I should know for ${currentSubject}.`);
+});
+document.getElementById("qaVideoLesson")?.addEventListener("click", () => {
+  alert("Video Lessons are coming soon!");
 });
