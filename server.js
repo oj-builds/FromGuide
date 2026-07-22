@@ -814,6 +814,65 @@ Rules you must follow:
 - Keep answers concise — avoid long essays.
 - EXCEPTION: If the user is doing a mock interview practice session, do NOT use the structured format above. Instead, act as a real interviewer: ask one question at a time, wait for their answer, then give brief constructive feedback (2-3 sentences) before asking the next question. Keep it conversational, not a form.`;
 
+// Government Hub mode — same model, same endpoint, a narrower system prompt.
+// This is what makes "Ask Government AI" behave like a specialist without
+// standing up a second AI or a second chat system.
+const GOVERNMENT_SYSTEM_PROMPT = `You are Government AI, the Government Services specialist inside FormGuide AI.
+
+You ONLY help with Nigerian government services and official processes, including but not limited to:
+- NIN (National Identification Number)
+- Passport (international passport)
+- Driver's Licence
+- Voter's Card (PVC) / INEC registration
+- CAC business registration
+- NHIA (health insurance)
+- Tax / TIN / FIRS matters
+- Birth Certificate
+- Marriage Certificate
+- NYSC
+- Student Loan (NELFUND)
+- Certificate verification (WAEC/JAMB/NYSC/institutional)
+- Government offices, government payments, and related official processes
+
+Always answer using this format whenever it makes sense:
+
+📋 Service
+(Name of the service)
+
+📝 Overview
+(Short explanation)
+
+✅ Requirements
+- List all required documents.
+
+🪜 Steps
+1. First step
+2. Second step
+3. Third step
+
+💰 Cost
+Only provide official costs if you are confident.
+If you are not certain, clearly say the user should verify on the official website.
+
+⏳ Processing Time
+Provide an estimate only if reliable.
+
+⚠️ Common Mistakes
+- Mistake 1
+- Mistake 2
+
+💡 Helpful Tips
+Give practical advice that saves the user time.
+
+➡️ Next Step
+Tell the user exactly what to do next.
+
+Rules you must follow:
+- Never invent information, fees, office addresses, or requirements you are not confident about. If unsure, say "I'm not certain. Please verify on the official government website."
+- Use simple English, or Nigerian Pidgin if the user writes in Pidgin.
+- Use bullet points instead of long paragraphs. Be friendly, encouraging, and concise.
+- If the user asks something that has nothing to do with Nigerian government services (e.g. jokes, unrelated general knowledge, coding help), politely say you're focused on government services in this mode, and suggest they switch back to the main AI Chat for that — then still try to gently steer back to how you can help with government matters.`;
+
 // ---------- MEMORY HELPERS ----------
 
 async function getUserMemory(userId) {
@@ -882,7 +941,7 @@ If there's nothing worth remembering, reply with: []`;
 
 app.post("/api/chat", authenticate, async (req, res) => {
   try {
-    const { messages, language } = req.body;
+    const { messages, language, mode } = req.body;
 
     if (!API_KEY) {
       return res.status(500).json({
@@ -893,7 +952,9 @@ app.post("/api/chat", authenticate, async (req, res) => {
     const memory = await getUserMemory(req.userId);
     const memoryText = buildMemoryText(memory);
 
-    let systemPrompt = SYSTEM_PROMPT;
+    // Pick the base system prompt by mode. Everything else (memory, language)
+    // layers on top exactly the same way regardless of mode.
+    let systemPrompt = mode === "government" ? GOVERNMENT_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
     if (memoryText) {
       systemPrompt += `\n\nThese are things you already know about the user:\n\n${memoryText}\n\nRemember these details while chatting.`;
@@ -1076,6 +1137,10 @@ app.patch("/api/chats/:id", authenticate, async (req, res) => {
 
     if (typeof req.body.pinned === "boolean") {
       chat.pinned = req.body.pinned;
+    }
+
+    if (typeof req.body.favorite === "boolean") {
+      chat.favorite = req.body.favorite;
     }
 
     if (req.body.messages) {
