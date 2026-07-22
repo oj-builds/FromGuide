@@ -4393,3 +4393,73 @@ if (askGovernmentAiCard) {
     inputEl.focus();
   });
 }
+
+// =====================================================================
+// EDUCATION HUB — landing page card wiring
+// Reuses existing modals/functions wherever they already exist (AI Tutor,
+// Digital Library, Exam Centre, Study Planner, Flashcards/Notes,
+// Achievements). Everything not built yet is an honest "Coming Soon"
+// alert, same pattern used elsewhere in the app (Wallet, Payments, etc.)
+// rather than a fake working button.
+// =====================================================================
+
+function wireEduCard(id, action) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("click", action);
+}
+
+wireEduCard("eduAiTutorCard", () => {
+  educationModal.classList.remove("open");
+  if (typeof openStudyCompanionModal === "function") openStudyCompanionModal();
+});
+
+wireEduCard("eduDigitalLibraryCard", () => {
+  educationModal.classList.remove("open");
+  if (typeof openDigitalLibraryModal === "function") openDigitalLibraryModal();
+});
+
+wireEduCard("eduExamCentreCard", () => {
+  educationModal.classList.remove("open");
+  if (typeof openExamCentreModal === "function") openExamCentreModal();
+});
+
+wireEduCard("eduStudyPlannerCard", () => {
+  educationModal.classList.remove("open");
+  if (typeof openStudyPlannerModal === "function") openStudyPlannerModal();
+});
+
+wireEduCard("eduFlashcardsCard", () => {
+  educationModal.classList.remove("open");
+  if (typeof openNotesFlashcardsModal === "function") openNotesFlashcardsModal();
+});
+
+wireEduCard("eduNotesCard", () => {
+  educationModal.classList.remove("open");
+  if (typeof openNotesFlashcardsModal === "function") openNotesFlashcardsModal();
+});
+
+wireEduCard("eduAchievementsCard", () => {
+  educationModal.classList.remove("open");
+  if (typeof openAchievementsModal === "function") openAchievementsModal();
+});
+
+wireEduCard("eduScholarshipsCard", () => {
+  educationModal.classList.remove("open");
+  sendMessage("Find scholarships I can apply for.");
+});
+
+// Not built yet — honest placeholders, not fake working features
+[
+  ["eduAiClassroomCard", "AI Classroom"],
+  ["eduSchoolDirectoryCard", "School Directory"],
+  ["eduSubjectsCard", "Subjects"],
+  ["eduStudentProgressCard", "Student Progress"],
+  ["eduParentDashboardCard", "Parent Dashboard"],
+  ["eduTeacherDashboardCard", "Teacher Dashboard"],
+  ["eduScienceLabCard", "Virtual Science Lab"],
+  ["eduLanguageLearningCard", "Language Learning"],
+  ["eduVoiceTeacherCard", "Voice Teacher"],
+  ["eduVideoLessonsCard", "Video Lessons"],
+].forEach(([id, label]) => {
+  wireEduCard(id, () => alert(`${label} is coming soon!`));
+});
