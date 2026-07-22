@@ -187,6 +187,15 @@
       </div>
 
       <div id="chatComposerArea" style="display:none;">
+        <div id="subjectQuickActions" class="action-buttons-row" style="display:none;">
+          <button class="action-pill" id="qaScanQuestion"><span>📷</span> Scan Question</button>
+          <button class="action-pill" id="qaVoiceQuestion"><span>🎤</span> Voice Question</button>
+          <button class="action-pill" id="qaPracticeQuiz"><span>📝</span> Practice Quiz</button>
+          <button class="action-pill" id="qaNotes"><span>📚</span> Notes</button>
+          <button class="action-pill" id="qaCheatSheet"><span>📄</span> Cheat Sheet</button>
+          <button class="action-pill" id="qaVideoLesson"><span>🎥</span> Video Lesson</button>
+        </div>
+
         <form id="chat-form" class="input-bar">
           <button type="button" id="inlineAttachBtn" class="input-icon-btn" title="Attach photo">📎</button>
           <input id="chat-input" type="text" placeholder="Ask FormGuide AI…" autocomplete="off" />
@@ -384,7 +393,6 @@
         <button class="dash-quick-card" id="eduStudyPlannerCard"><span class="dash-quick-icon green">📅</span><strong>Study Planner</strong><small>Build a timetable</small></button>
         <button class="dash-quick-card" id="eduFlashcardsCard"><span class="dash-quick-icon orange">🧠</span><strong>Flashcards</strong><small>Smart Flashcards</small></button>
         <button class="dash-quick-card" id="eduNotesCard"><span class="dash-quick-icon teal">📓</span><strong>Notes</strong><small>Scan, upload & summarize</small></button>
-        <button class="dash-quick-card" id="eduStudentProgressCard"><span class="dash-quick-icon purple">📊</span><strong>Student Progress</strong><small>Coming Soon</small></button>
         <button class="dash-quick-card" id="eduAchievementsCard"><span class="dash-quick-icon blue">🏆</span><strong>Achievements</strong><small>Level, XP & badges</small></button>
         <button class="dash-quick-card" id="eduParentDashboardCard"><span class="dash-quick-icon green">👨‍👩‍👧</span><strong>Parent Dashboard</strong><small>Coming Soon</small></button>
         <button class="dash-quick-card" id="eduTeacherDashboardCard"><span class="dash-quick-icon orange">👨‍🏫</span><strong>Teacher Dashboard</strong><small>Coming Soon</small></button>
@@ -704,6 +712,77 @@
         <button id="companionEditBtn" class="secondary-btn" style="margin-top:10px;">✎ Edit My Profile</button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- AI Tutor: Education Hub -> AI Tutor -> Subject (same nav pattern as Government Hub) -->
+  <div id="aiTutorModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeAiTutorBtn" class="dark-back-btn">←</button>
+      <h2>📖 AI Tutor</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Choose a subject and FormGuide AI becomes your dedicated teacher for it.</p>
+
+      <div class="dash-quick-grid" id="aiTutorSubjectGrid">
+        <button class="dash-quick-card" data-subject="Mathematics"><span class="dash-quick-icon purple">📐</span><strong>Mathematics</strong></button>
+        <button class="dash-quick-card" data-subject="English"><span class="dash-quick-icon blue">📖</span><strong>English</strong></button>
+        <button class="dash-quick-card" data-subject="Physics"><span class="dash-quick-icon orange">⚛️</span><strong>Physics</strong></button>
+        <button class="dash-quick-card" data-subject="Chemistry"><span class="dash-quick-icon green">🧪</span><strong>Chemistry</strong></button>
+        <button class="dash-quick-card" data-subject="Biology"><span class="dash-quick-icon teal">🌱</span><strong>Biology</strong></button>
+        <button class="dash-quick-card" data-subject="Economics"><span class="dash-quick-icon purple">📊</span><strong>Economics</strong></button>
+        <button class="dash-quick-card" data-subject="Government"><span class="dash-quick-icon blue">🏛️</span><strong>Government</strong></button>
+        <button class="dash-quick-card" data-subject="Computer Science"><span class="dash-quick-icon orange">💻</span><strong>Computer Science</strong></button>
+        <button class="dash-quick-card" data-subject="Geography"><span class="dash-quick-icon green">🌍</span><strong>Geography</strong></button>
+        <button class="dash-quick-card" data-subject="Literature"><span class="dash-quick-icon teal">📚</span><strong>Literature</strong></button>
+        <button class="dash-quick-card" data-subject="Languages"><span class="dash-quick-icon purple">🗣️</span><strong>Languages</strong></button>
+      </div>
+
+      <div class="dash-section-header" style="margin-top:22px;">
+        <h3>More</h3>
+      </div>
+      <div class="dash-quick-grid">
+        <button class="dash-quick-card" id="tutorHomeworkHelperCard"><span class="dash-quick-icon blue">📝</span><strong>Homework Helper</strong></button>
+        <button class="dash-quick-card" id="tutorCameraCard"><span class="dash-quick-icon orange">📸</span><strong>Solve from Camera</strong></button>
+        <button class="dash-quick-card" id="tutorProgressCard"><span class="dash-quick-icon green">📈</span><strong>Progress</strong></button>
+      </div>
+
+      <button id="tutorSetupProfileBtn" class="secondary-btn" style="margin-top:20px;">📋 Set Up My Learning Profile</button>
+    </div>
+  </div>
+
+  <!-- My Progress — built from your real achievements data, not invented per-subject percentages -->
+  <div id="progressModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeProgressBtn" class="dark-back-btn">←</button>
+      <h2>📈 My Progress</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div id="progressGuestNotice" style="display:none;">
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+          <h3 style="color:var(--text);">Log in to track your progress</h3>
+          <p class="about-text">Your level, XP, exams taken, and badges are saved to your account.</p>
+        </div>
+      </div>
+      <div id="progressContent" style="display:none;">
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);text-align:center;">
+          <div style="font-size:13px;color:var(--text-dim);">Level</div>
+          <div id="progressLevel" style="font-size:32px;font-weight:800;color:var(--accent);margin:4px 0;">1</div>
+          <div id="progressXpText" style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">0 XP</div>
+          <div style="background:var(--panel-light);border-radius:8px;height:10px;overflow:hidden;">
+            <div id="progressXpBar" style="background:var(--accent);height:100%;width:0%;transition:width 0.3s;"></div>
+          </div>
+        </div>
+        <div class="dash-stats-row" style="margin-top:14px;">
+          <div class="dash-stat"><span>🎯</span><strong id="progressExamsTaken">—</strong><small>Exams Taken</small></div>
+          <div class="dash-stat"><span>🏆</span><strong id="progressBadgeCount">—</strong><small>Badges Earned</small></div>
+        </div>
+        <p style="font-size:11px;color:var(--text-dim);margin-top:14px;line-height:1.6;">
+          Per-subject progress percentages aren't tracked yet — this shows your real overall activity (level, XP, exams, badges) from Achievements. Ask if you'd like per-subject tracking added.
+        </p>
+      </div>
     </div>
   </div>
 
