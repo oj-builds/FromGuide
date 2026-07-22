@@ -4602,9 +4602,55 @@ async function openProgressModal() {
     document.getElementById("progressXpBar").style.width = `${(data.xp % 50) / 50 * 100}%`;
     document.getElementById("progressExamsTaken").textContent = data.examsTaken ?? "—";
     document.getElementById("progressBadgeCount").textContent = (data.badges || []).length;
+
+    await renderSubjectProgressList();
   } catch (err) {
     guestNotice.style.display = "block";
     content.style.display = "none";
+  }
+}
+
+async function renderSubjectProgressList() {
+  const list = document.getElementById("progressSubjectsList");
+  const empty = document.getElementById("progressSubjectsEmpty");
+  if (!list || !empty) return;
+  list.innerHTML = "";
+
+  try {
+    const res = await fetch("/api/subject-progress", {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!res.ok) {
+      empty.style.display = "block";
+      return;
+    }
+    const data = await res.json();
+    const progress = (data.progress || []).filter((p) => p.percentage !== null);
+
+    if (progress.length === 0) {
+      empty.style.display = "block";
+      return;
+    }
+    empty.style.display = "none";
+
+    progress
+      .sort((a, b) => b.percentage - a.percentage)
+      .forEach((p) => {
+        const row = document.createElement("div");
+        row.className = "subject-progress-row";
+        row.innerHTML = `
+          <div class="subject-progress-top">
+            <span>${p.subject}</span>
+            <small>${p.percentage}% (${p.questionsCorrect}/${p.questionsAnswered})</small>
+          </div>
+          <div class="subject-progress-track">
+            <div class="subject-progress-fill" style="width:${p.percentage}%;"></div>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+  } catch (err) {
+    empty.style.display = "block";
   }
 }
 
@@ -4625,6 +4671,169 @@ if (tutorSetupProfileBtn) {
   });
 }
 
+// ---------- Subject Practice Quiz (real, scored, feeds Progress data) ----------
+const subjectQuizModal = document.getElementById("subjectQuizModal");
+const subjectQuizSetupView = document.getElementById("subjectQuizSetupView");
+const subjectQuizLoadingView = document.getElementById("subjectQuizLoadingView");
+const subjectQuizTakingView = document.getElementById("subjectQuizTakingView");
+const subjectQuizResultsView = document.getElementById("subjectQuizResultsView");
+
+let subjectQuizQuestions = [];
+let subjectQuizAnswers = [];
+let subjectQuizCurrentIndex = 0;
+let subjectQuizSubjectName = "";
+
+function showSubjectQuizView(view) {
+  [subjectQuizSetupView, subjectQuizLoadingView, subjectQuizTakingView, subjectQuizResultsView].forEach((v) => {
+    v.style.display = v === view ? "block" : "none";
+  });
+}
+
+function openSubjectQuizModal() {
+  if (!currentSubject) return;
+  subjectQuizSubjectName = currentSubject;
+  document.getElementById("subjectQuizTitle").textContent = `${currentSubject} Practice Quiz`;
+  document.getElementById("subjectQuizSetupText").textContent = `FormGuide AI will generate a fresh 5-question practice quiz for ${currentSubject}.`;
+  showSubjectQuizView(subjectQuizSetupView);
+  subjectQuizModal.classList.add("open");
+}
+
+const closeSubjectQuizBtn = document.getElementById("closeSubjectQuizBtn");
+if (closeSubjectQuizBtn) {
+  closeSubjectQuizBtn.addEventListener("click", () => subjectQuizModal.classList.remove("open"));
+}
+
+const subjectQuizStartBtn = document.getElementById("subjectQuizStartBtn");
+if (subjectQuizStartBtn) {
+  subjectQuizStartBtn.addEventListener("click", async () => {
+    if (!getToken()) {
+      alert("Please log in to take a practice quiz.");
+      return;
+    }
+    showSubjectQuizView(subjectQuizLoadingView);
+    try {
+      const res = await fetch("/api/subject-quiz/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ subject: subjectQuizSubjectName, numQuestions: 5 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Could not generate this quiz. Please try again.");
+        showSubjectQuizView(subjectQuizSetupView);
+        return;
+      }
+      subjectQuizQuestions = data.questions;
+      subjectQuizAnswers = new Array(subjectQuizQuestions.length).fill(null);
+      subjectQuizCurrentIndex = 0;
+      renderSubjectQuizQuestion();
+      showSubjectQuizView(subjectQuizTakingView);
+    } catch (err) {
+      alert("Could not reach the server. Please try again.");
+      showSubjectQuizView(subjectQuizSetupView);
+    }
+  });
+}
+
+function renderSubjectQuizQuestion() {
+  const q = subjectQuizQuestions[subjectQuizCurrentIndex];
+  document.getElementById("subjectQuizProgressText").textContent = `Question ${subjectQuizCurrentIndex + 1} of ${subjectQuizQuestions.length}`;
+  document.getElementById("subjectQuizQuestionText").textContent = q.question;
+
+  const optionsList = document.getElementById("subjectQuizOptionsList");
+  optionsList.innerHTML = "";
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement("button");
+    btn.className = "exam-option-btn" + (subjectQuizAnswers[subjectQuizCurrentIndex] === i ? " selected" : "");
+    btn.textContent = `${String.fromCharCode(65 + i)}. ${opt}`;
+    btn.addEventListener("click", () => {
+      subjectQuizAnswers[subjectQuizCurrentIndex] = i;
+      renderSubjectQuizQuestion();
+    });
+    optionsList.appendChild(btn);
+  });
+
+  document.getElementById("subjectQuizPrevBtn").disabled = subjectQuizCurrentIndex === 0;
+  document.getElementById("subjectQuizNextBtn").disabled = subjectQuizCurrentIndex === subjectQuizQuestions.length - 1;
+}
+
+document.getElementById("subjectQuizPrevBtn")?.addEventListener("click", () => {
+  if (subjectQuizCurrentIndex > 0) {
+    subjectQuizCurrentIndex -= 1;
+    renderSubjectQuizQuestion();
+  }
+});
+document.getElementById("subjectQuizNextBtn")?.addEventListener("click", () => {
+  if (subjectQuizCurrentIndex < subjectQuizQuestions.length - 1) {
+    subjectQuizCurrentIndex += 1;
+    renderSubjectQuizQuestion();
+  }
+});
+
+document.getElementById("subjectQuizSubmitBtn")?.addEventListener("click", async () => {
+  const unanswered = subjectQuizAnswers.filter((a) => a === null).length;
+  if (unanswered > 0) {
+    const confirmed = confirm(`You have ${unanswered} unanswered question${unanswered === 1 ? "" : "s"}. Submit anyway?`);
+    if (!confirmed) return;
+  }
+
+  let correctCount = 0;
+  subjectQuizQuestions.forEach((q, i) => {
+    if (subjectQuizAnswers[i] === q.correctIndex) correctCount += 1;
+  });
+  const total = subjectQuizQuestions.length;
+  const percent = Math.round((correctCount / total) * 100);
+
+  document.getElementById("subjectQuizScoreText").textContent = `${correctCount}/${total}`;
+  document.getElementById("subjectQuizPercentText").textContent = `${percent}% — ${subjectQuizSubjectName}`;
+
+  const reviewList = document.getElementById("subjectQuizReviewList");
+  reviewList.innerHTML = "";
+  subjectQuizQuestions.forEach((q, i) => {
+    const userAnswerIndex = subjectQuizAnswers[i];
+    const isCorrect = userAnswerIndex === q.correctIndex;
+    const item = document.createElement("div");
+    item.className = "exam-review-item " + (isCorrect ? "correct" : "incorrect");
+    const userAnswerText = userAnswerIndex === null ? "No answer" : q.options[userAnswerIndex];
+    item.innerHTML = `
+      <div class="exam-review-q">${i + 1}. ${q.question}</div>
+      <div class="exam-review-answer ${isCorrect ? "correct-text" : "incorrect-text"}">Your answer: ${userAnswerText}</div>
+      ${!isCorrect ? `<div class="exam-review-answer correct-text">Correct answer: ${q.options[q.correctIndex]}</div>` : ""}
+      <div class="exam-review-explanation">${q.explanation || ""}</div>
+    `;
+    reviewList.appendChild(item);
+  });
+
+  showSubjectQuizView(subjectQuizResultsView);
+
+  // Save the real result so Progress reflects it, and award a little XP
+  try {
+    await fetch("/api/subject-progress/record", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ subject: subjectQuizSubjectName, correct: correctCount, total }),
+    });
+  } catch (err) {
+    console.error("Could not save subject progress:", err);
+  }
+  if (typeof awardXP === "function") {
+    awardXP(Math.round((percent / 100) * 10), `Completed ${subjectQuizSubjectName} practice quiz`);
+  }
+});
+
+document.getElementById("subjectQuizRetakeBtn")?.addEventListener("click", () => {
+  showSubjectQuizView(subjectQuizSetupView);
+});
+document.getElementById("subjectQuizBackBtn")?.addEventListener("click", () => {
+  subjectQuizModal.classList.remove("open");
+});
+
 // ---------- Quick Actions row (only visible while in Subject mode) ----------
 document.getElementById("qaScanQuestion")?.addEventListener("click", () => {
   if (typeof uploadContext !== "undefined") uploadContext = "homework";
@@ -4634,7 +4843,7 @@ document.getElementById("qaVoiceQuestion")?.addEventListener("click", () => {
   alert("Hold the 🎙️ icon in the message box to ask your question by voice.");
 });
 document.getElementById("qaPracticeQuiz")?.addEventListener("click", () => {
-  if (currentSubject) sendMessage(`Quiz me on ${currentSubject} to test my knowledge.`);
+  openSubjectQuizModal();
 });
 document.getElementById("qaNotes")?.addEventListener("click", () => {
   if (typeof openNotesFlashcardsModal === "function") openNotesFlashcardsModal();
