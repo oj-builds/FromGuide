@@ -19,6 +19,7 @@ const Chat = require("./models/Chat");
 const Memory = require("./models/Memory");
 const Notification = require("./models/Notification");
 const SubjectProgress = require("./models/SubjectProgress");
+const StudyLog = require("./models/StudyLog");
 const authenticate = require("./middleware/auth");
 
 const app = express();
@@ -807,6 +808,11 @@ app.post("/api/subject-progress/record", authenticate, async (req, res) => {
     record.lastPracticed = new Date();
     await record.save();
 
+    // Also log this as a real, dated event — this is what powers the
+    // Study Calendar's real day-by-day activity (SubjectProgress above only
+    // keeps a running total + the single latest date).
+    await StudyLog.create({ user: req.userId, subject, correct: correctNum, total: totalNum });
+
     res.json({
       subject,
       questionsAnswered: record.questionsAnswered,
@@ -834,6 +840,43 @@ app.get("/api/subject-progress", authenticate, async (req, res) => {
   } catch (err) {
     console.error("Load subject progress error:", err);
     res.status(500).json({ error: "Could not load subject progress." });
+  }
+});
+
+// Fetch a real month of study activity for the Study Calendar page.
+// month is "YYYY-MM"; defaults to the current month if omitted.
+app.get("/api/study-log", authenticate, async (req, res) => {
+  try {
+    const monthParam = typeof req.query.month === "string" ? req.query.month : "";
+    const now = new Date();
+    const [year, month] = /^\d{4}-\d{2}$/.test(monthParam)
+      ? monthParam.split("-").map(Number)
+      : [now.getFullYear(), now.getMonth() + 1];
+
+    const startOfMonth = new Date(year, month - 1, 1);
+    const startOfNextMonth = new Date(year, month, 1);
+
+    const logs = await StudyLog.find({
+      user: req.userId,
+      createdAt: { $gte: startOfMonth, $lt: startOfNextMonth },
+    }).sort({ createdAt: 1 });
+
+    // Group into real days, each with the real subjects studied that day
+    const byDay = {};
+    logs.forEach((log) => {
+      const dayKey = log.createdAt.toISOString().slice(0, 10); // "YYYY-MM-DD"
+      if (!byDay[dayKey]) byDay[dayKey] = [];
+      byDay[dayKey].push({
+        subject: log.subject,
+        correct: log.correct,
+        total: log.total,
+      });
+    });
+
+    res.json({ year, month, days: byDay });
+  } catch (err) {
+    console.error("Load study log error:", err);
+    res.status(500).json({ error: "Could not load your study calendar." });
   }
 });
 
