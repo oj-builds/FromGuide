@@ -370,7 +370,7 @@ const suggestSearchBtn = document.getElementById("suggestSearch");
 
 if (suggestGovernmentBtn) {
   suggestGovernmentBtn.addEventListener("click", () => {
-    document.getElementById("governmentModal").classList.add("open");
+    openScreen(governmentModal);
   });
 }
 if (suggestImageBtn) {
@@ -393,29 +393,64 @@ formEl.addEventListener("submit", (e) => {
 // Feature cards on the welcome screen
 const governmentModal = document.getElementById("governmentModal");
 const closeGovernmentBtn = document.getElementById("closeGovernmentBtn");
+
+// ---------- Universal page-navigation stack ----------
+// Every full-screen "page" (Government Hub, AI Tutor, Service Detail, Exam
+// Centre, etc.) is opened via openScreen() instead of touching classList
+// directly. That means the shared back/close button on every page can just
+// call goBackScreen() and it will always reveal whatever page was open
+// before it — not jump straight to Home — no matter how deep the user has
+// drilled down. Home is simply what's left once the stack is empty.
+let pageStack = [];
+// Where the chat's own back arrow should return to, when the user entered
+// chat mode from inside a hub (e.g. "Ask Government AI", a subject in AI
+// Tutor). null means chat was entered from Home, so back goes Home.
+let chatEntryScreen = null;
+
+function openScreen(modalEl) {
+  if (!modalEl) return;
+  const currentTop = pageStack[pageStack.length - 1];
+  if (currentTop === modalEl) return;
+  if (currentTop) currentTop.classList.remove("open");
+  pageStack.push(modalEl);
+  modalEl.classList.add("open");
+}
+
+function goBackScreen() {
+  const current = pageStack.pop();
+  if (current) current.classList.remove("open");
+  const previous = pageStack[pageStack.length - 1];
+  if (previous) {
+    previous.classList.add("open");
+  } else if (typeof switchToDashboardMode === "function") {
+    switchToDashboardMode();
+  }
+}
+
+function closeAllScreens() {
+  pageStack.forEach((el) => el.classList.remove("open"));
+  pageStack = [];
+}
+
 if (closeGovernmentBtn) {
-  closeGovernmentBtn.addEventListener("click", () => governmentModal.classList.remove("open"));
+  closeGovernmentBtn.addEventListener("click", () => goBackScreen());
 }
 
 const educationModal = document.getElementById("educationModal");
 const closeEducationBtn = document.getElementById("closeEducationBtn");
 if (closeEducationBtn) {
-  closeEducationBtn.addEventListener("click", () => educationModal.classList.remove("open"));
+  closeEducationBtn.addEventListener("click", () => goBackScreen());
 }
 
 const careerModal = document.getElementById("careerModal");
 const closeCareerBtn = document.getElementById("closeCareerBtn");
 if (closeCareerBtn) {
-  closeCareerBtn.addEventListener("click", () => careerModal.classList.remove("open"));
+  closeCareerBtn.addEventListener("click", () => goBackScreen());
 }
 
 // The tool cards inside these category pages (NIN, Passport, CV Builder, etc.)
 document.querySelectorAll(".hub-card").forEach((card) => {
   card.addEventListener("click", () => {
-    governmentModal.classList.remove("open");
-    educationModal.classList.remove("open");
-    careerModal.classList.remove("open");
-
     if (card.dataset.openCv === "true") {
       openCvModal();
       return;
@@ -428,21 +463,23 @@ document.querySelectorAll(".hub-card").forEach((card) => {
       openHomeworkHelperModal();
       return;
     }
+    chatEntryScreen = careerModal;
+    closeAllScreens();
     sendMessage(card.dataset.text);
   });
 });
 
 // Sidebar: Government / Career / Education each open their own dedicated page
 document.getElementById("navGovernment").addEventListener("click", () => {
-  governmentModal.classList.add("open");
+  openScreen(governmentModal);
   sidebarEl.classList.remove("open");
 });
 document.getElementById("navCareer").addEventListener("click", () => {
-  careerModal.classList.add("open");
+  openScreen(careerModal);
   sidebarEl.classList.remove("open");
 });
 document.getElementById("navEducation").addEventListener("click", () => {
-  educationModal.classList.add("open");
+  openScreen(educationModal);
   sidebarEl.classList.remove("open");
 });
 const navInterviewBtn = document.getElementById("navInterview");
@@ -1505,7 +1542,15 @@ if (navChatLinkBtn) {
 const chatBackBtn = document.getElementById("chatBackBtn");
 if (chatBackBtn) {
   chatBackBtn.addEventListener("click", () => {
-    if (navHomeBtn) navHomeBtn.click();
+    const returnTo = typeof chatEntryScreen !== "undefined" ? chatEntryScreen : null;
+    if (typeof setGovernmentMode === "function") setGovernmentMode(false);
+    if (typeof setSubjectMode === "function") setSubjectMode(null);
+    chatEntryScreen = null;
+    if (returnTo) {
+      openScreen(returnTo);
+    } else if (navHomeBtn) {
+      navHomeBtn.click();
+    }
   });
 }
 const chatSettingsBtn = document.getElementById("chatSettingsBtn");
@@ -1772,7 +1817,7 @@ async function openStudyCompanionModal() {
   guestNotice.style.display = "none";
   onboarding.style.display = "none";
   dashboard.style.display = "none";
-  studyCompanionModal.classList.add("open");
+  openScreen(studyCompanionModal);
 
   if (!getToken()) {
     guestNotice.style.display = "block";
@@ -1801,7 +1846,7 @@ if (navAiTutorBtn) {
   });
 }
 if (closeStudyCompanionBtn) {
-  closeStudyCompanionBtn.addEventListener("click", () => studyCompanionModal.classList.remove("open"));
+  closeStudyCompanionBtn.addEventListener("click", () => goBackScreen());
 }
 
 const companionSaveBtn = document.getElementById("companionSaveBtn");
@@ -1831,7 +1876,8 @@ if (companionSaveBtn) {
         saveCompanionField(COMPANION_KEYS.careerGoal, careerGoal || "Not specified"),
       ]);
 
-      studyCompanionModal.classList.remove("open");
+      closeAllScreens();
+      chatEntryScreen = educationModal;
       awardXP(20, "Set up Study Companion");
       sendMessage(
         `Here's my learning profile — Class: ${classLevel}. Curriculum: ${curriculum || "Not specified"}. Subjects: ${subjects}. Next exam: ${examDate || "Not specified"}. Career goal: ${careerGoal || "Not specified"}. Please create a focused, personalized study plan for today based on this, and briefly tell me how you'll help me as my study companion going forward.`
@@ -1857,7 +1903,8 @@ if (companionPlanBtn) {
     const examDate = getMemoryValue(memories, COMPANION_KEYS.examDate);
     const careerGoal = getMemoryValue(memories, COMPANION_KEYS.careerGoal);
 
-    studyCompanionModal.classList.remove("open");
+    closeAllScreens();
+    chatEntryScreen = educationModal;
     sendMessage(
       `Based on my learning profile — Class: ${classLevel}. Curriculum: ${curriculum}. Subjects: ${subjects}. Next exam: ${examDate}. Career goal: ${careerGoal} — please build me a focused study plan for today. Prioritize weaker topics if you already know them from our past conversations, and keep it practical and specific to today.`
     );
@@ -1900,7 +1947,7 @@ async function openStudyPlannerModal() {
     }
   }
 
-  studyPlannerModal.classList.add("open");
+  openScreen(studyPlannerModal);
 }
 
 if (navStudyPlannerBtn) {
@@ -1910,7 +1957,7 @@ if (navStudyPlannerBtn) {
   });
 }
 if (closeStudyPlannerBtn) {
-  closeStudyPlannerBtn.addEventListener("click", () => studyPlannerModal.classList.remove("open"));
+  closeStudyPlannerBtn.addEventListener("click", () => goBackScreen());
 }
 
 const plannerGenerateBtn = document.getElementById("plannerGenerateBtn");
@@ -1925,7 +1972,8 @@ if (plannerGenerateBtn) {
       return;
     }
 
-    studyPlannerModal.classList.remove("open");
+    closeAllScreens();
+    chatEntryScreen = educationModal;
     awardXP(10, "Generated a study plan");
     sendMessage(
       `Please create a detailed study timetable for me. Subjects: ${subjects}. I have ${days} day${days === "1" ? "" : "s"} until my exam${hours ? `, and I can study about ${hours} hours per day` : ""}. Break it down day by day (or week by week if the timeframe is long), cover all subjects with a good balance, prioritize weaker topics if you already know them from our past conversations, and include short breaks. Keep it practical and easy to follow.`
@@ -1943,7 +1991,7 @@ const notesTextarea = document.getElementById("notesTextarea");
 
 function openNotesFlashcardsModal() {
   notesTextarea.value = "";
-  notesFlashcardsModal.classList.add("open");
+  openScreen(notesFlashcardsModal);
 }
 
 if (navNotesFlashcardsBtn) {
@@ -1953,7 +2001,7 @@ if (navNotesFlashcardsBtn) {
   });
 }
 if (closeNotesFlashcardsBtn) {
-  closeNotesFlashcardsBtn.addEventListener("click", () => notesFlashcardsModal.classList.remove("open"));
+  closeNotesFlashcardsBtn.addEventListener("click", () => goBackScreen());
 }
 
 const notesScanBtn = document.getElementById("notesScanBtn");
@@ -2048,7 +2096,8 @@ if (notesSummarizeBtn) {
       alert("Please scan, upload, or type some notes first.");
       return;
     }
-    notesFlashcardsModal.classList.remove("open");
+    closeAllScreens();
+    chatEntryScreen = educationModal;
     awardXP(5, "Summarized notes");
     sendMessage(
       `Please summarize the following notes clearly, breaking them into key points I can revise from quickly:\n\n${notes}`
@@ -2064,7 +2113,8 @@ if (notesFlashcardsBtn) {
       alert("Please scan, upload, or type some notes first.");
       return;
     }
-    notesFlashcardsModal.classList.remove("open");
+    closeAllScreens();
+    chatEntryScreen = educationModal;
     awardXP(5, "Created flashcards");
     sendMessage(
       `Please turn the following notes into a set of flashcards. Format each one clearly as "Q:" and "A:", covering the most important facts and concepts:\n\n${notes}`
@@ -2098,7 +2148,7 @@ function showExamView(view) {
 
 function openExamCentreModal() {
   showExamView(examSetupView);
-  examCentreModal.classList.add("open");
+  openScreen(examCentreModal);
 }
 
 if (navExamCentreBtn) {
@@ -2114,7 +2164,7 @@ if (closeExamCentreBtn) {
       if (!confirmed) return;
       clearInterval(examTimerInterval);
     }
-    examCentreModal.classList.remove("open");
+    goBackScreen();
   });
 }
 
@@ -2340,7 +2390,7 @@ let librarySelectedCategory = "notes";
 
 function openDigitalLibraryModal() {
   document.getElementById("libraryQueryInput").value = "";
-  digitalLibraryModal.classList.add("open");
+  openScreen(digitalLibraryModal);
 }
 
 if (navDigitalLibraryBtn) {
@@ -2350,7 +2400,7 @@ if (navDigitalLibraryBtn) {
   });
 }
 if (closeDigitalLibraryBtn) {
-  closeDigitalLibraryBtn.addEventListener("click", () => digitalLibraryModal.classList.remove("open"));
+  closeDigitalLibraryBtn.addEventListener("click", () => goBackScreen());
 }
 
 document.querySelectorAll(".library-cat-btn").forEach((btn) => {
@@ -2377,7 +2427,8 @@ if (librarySearchBtn) {
       curriculum: `Summarize what is typically covered under "${query}" in the Nigerian school curriculum, including the main topics a student should know.`,
     };
 
-    digitalLibraryModal.classList.remove("open");
+    closeAllScreens();
+    chatEntryScreen = educationModal;
     sendMessage(prompts[librarySelectedCategory] || prompts.notes);
   });
 }
@@ -2498,11 +2549,11 @@ if (dashQuickChat) {
 }
 const dashQuickGov = document.getElementById("dashQuickGov");
 if (dashQuickGov) {
-  dashQuickGov.addEventListener("click", () => governmentModal.classList.add("open"));
+  dashQuickGov.addEventListener("click", () => openScreen(governmentModal));
 }
 const dashQuickEdu = document.getElementById("dashQuickEdu");
 if (dashQuickEdu) {
-  dashQuickEdu.addEventListener("click", () => educationModal.classList.add("open"));
+  dashQuickEdu.addEventListener("click", () => openScreen(educationModal));
 }
 const dashQuickCareer = document.getElementById("dashQuickCareer");
 if (dashQuickCareer) {
@@ -2576,7 +2627,7 @@ const ALL_POSSIBLE_BADGES = [
 async function openAchievementsModal() {
   const guestNotice = document.getElementById("achievementsGuestNotice");
   const content = document.getElementById("achievementsContent");
-  achievementsModal.classList.add("open");
+  openScreen(achievementsModal);
 
   if (!getToken()) {
     guestNotice.style.display = "block";
@@ -2634,7 +2685,7 @@ if (navAchievementsBtn) {
   });
 }
 if (closeAchievementsBtn) {
-  closeAchievementsBtn.addEventListener("click", () => achievementsModal.classList.remove("open"));
+  closeAchievementsBtn.addEventListener("click", () => goBackScreen());
 }
 
 // ---------- AI Homework Helper ----------
@@ -2648,7 +2699,7 @@ function openHomeworkHelperModal() {
   document.getElementById("homeworkActionCards").style.display = "grid";
   document.getElementById("homeworkTypeBox").style.display = "none";
   document.getElementById("homeworkTypeInput").value = "";
-  homeworkHelperModal.classList.add("open");
+  openScreen(homeworkHelperModal);
 }
 
 if (navHomeworkHelperBtn) {
@@ -2658,7 +2709,7 @@ if (navHomeworkHelperBtn) {
   });
 }
 if (closeHomeworkHelperBtn) {
-  closeHomeworkHelperBtn.addEventListener("click", () => homeworkHelperModal.classList.remove("open"));
+  closeHomeworkHelperBtn.addEventListener("click", () => goBackScreen());
 }
 
 const homeworkPhotoBtn = document.getElementById("homeworkPhotoBtn");
@@ -4295,8 +4346,7 @@ function openServiceDetail(id) {
   document.querySelectorAll(".service-detail-tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === "overview"));
   renderServiceDetailTab();
 
-  governmentModal.classList.remove("open");
-  document.getElementById("serviceDetailModal").classList.add("open");
+  openScreen(document.getElementById("serviceDetailModal"));
 }
 
 document.querySelectorAll("#govHubGrid .dash-quick-card[data-service]").forEach((card) => {
@@ -4314,9 +4364,7 @@ document.querySelectorAll(".service-detail-tab").forEach((tab) => {
 
 const closeServiceDetailBtn = document.getElementById("closeServiceDetailBtn");
 if (closeServiceDetailBtn) {
-  closeServiceDetailBtn.addEventListener("click", () => {
-    document.getElementById("serviceDetailModal").classList.remove("open");
-  });
+  closeServiceDetailBtn.addEventListener("click", () => goBackScreen());
 }
 
 const serviceDetailAskBtn = document.getElementById("serviceDetailAskBtn");
@@ -4324,7 +4372,8 @@ if (serviceDetailAskBtn) {
   serviceDetailAskBtn.addEventListener("click", () => {
     const svc = GOV_SERVICES[currentServiceId];
     if (!svc) return;
-    document.getElementById("serviceDetailModal").classList.remove("open");
+    chatEntryScreen = governmentModal;
+    closeAllScreens();
     setGovernmentMode(true);
     sendMessage(`I have more questions about ${svc.name} (${svc.subtitle}). Can you help?`);
   });
@@ -4334,14 +4383,11 @@ if (serviceDetailAskBtn) {
 const govOfficesModal = document.getElementById("govOfficesModal");
 const govOfficesCard = document.getElementById("govOfficesCard");
 if (govOfficesCard) {
-  govOfficesCard.addEventListener("click", () => {
-    governmentModal.classList.remove("open");
-    govOfficesModal.classList.add("open");
-  });
+  govOfficesCard.addEventListener("click", () => openScreen(govOfficesModal));
 }
 const closeGovOfficesBtn = document.getElementById("closeGovOfficesBtn");
 if (closeGovOfficesBtn) {
-  closeGovOfficesBtn.addEventListener("click", () => govOfficesModal.classList.remove("open"));
+  closeGovOfficesBtn.addEventListener("click", () => goBackScreen());
 }
 const govOfficeFindBtn = document.getElementById("govOfficeFindBtn");
 if (govOfficeFindBtn) {
@@ -4352,7 +4398,8 @@ if (govOfficeFindBtn) {
       alert("Please enter your state or city first.");
       return;
     }
-    govOfficesModal.classList.remove("open");
+    chatEntryScreen = governmentModal;
+    closeAllScreens();
     setGovernmentMode(true);
     sendMessage(
       `I need to find the right government office for ${service} near ${location}, Nigeria. Please tell me which agency/office handles this, roughly where their offices tend to be in that area, and how I can confirm the exact nearest address (e.g. official portal or office locator).`
@@ -4372,7 +4419,8 @@ if (govPaymentsCard) {
 const govNewsCard = document.getElementById("govNewsCard");
 if (govNewsCard) {
   govNewsCard.addEventListener("click", () => {
-    governmentModal.classList.remove("open");
+    chatEntryScreen = governmentModal;
+    closeAllScreens();
     setGovernmentMode(true);
     sendMessage(
       "Please share a summary of major recent Nigerian government/education announcements you're aware of (e.g. NIN, JAMB, WAEC, NYSC, passport, or tax updates). Clearly note that I should verify anything time-sensitive on the relevant official website, since your information may not be fully up to date."
@@ -4384,7 +4432,8 @@ if (govNewsCard) {
 const askGovernmentAiCard = document.getElementById("askGovernmentAiCard");
 if (askGovernmentAiCard) {
   askGovernmentAiCard.addEventListener("click", () => {
-    governmentModal.classList.remove("open");
+    chatEntryScreen = governmentModal;
+    closeAllScreens();
     setGovernmentMode(true);
     if (!currentId || !getCurrentConversation()) {
       if (conversations.length > 0) {
@@ -4415,52 +4464,44 @@ function wireEduCard(id, action) {
 }
 
 wireEduCard("eduAiTutorCard", () => {
-  educationModal.classList.remove("open");
   const aiTutorModal = document.getElementById("aiTutorModal");
-  if (aiTutorModal) aiTutorModal.classList.add("open");
+  openScreen(aiTutorModal);
 });
 
 wireEduCard("eduDigitalLibraryCard", () => {
-  educationModal.classList.remove("open");
   if (typeof openDigitalLibraryModal === "function") openDigitalLibraryModal();
 });
 
 wireEduCard("eduExamCentreCard", () => {
-  educationModal.classList.remove("open");
   if (typeof openExamCentreModal === "function") openExamCentreModal();
 });
 
 wireEduCard("eduStudyPlannerCard", () => {
-  educationModal.classList.remove("open");
   if (typeof openStudyPlannerModal === "function") openStudyPlannerModal();
 });
 
 wireEduCard("eduFlashcardsCard", () => {
-  educationModal.classList.remove("open");
   if (typeof openNotesFlashcardsModal === "function") openNotesFlashcardsModal();
 });
 
 wireEduCard("eduNotesCard", () => {
-  educationModal.classList.remove("open");
   if (typeof openNotesFlashcardsModal === "function") openNotesFlashcardsModal();
 });
 
 wireEduCard("eduAchievementsCard", () => {
-  educationModal.classList.remove("open");
   if (typeof openAchievementsModal === "function") openAchievementsModal();
 });
 
 wireEduCard("eduScholarshipsCard", () => {
-  educationModal.classList.remove("open");
+  chatEntryScreen = educationModal;
+  closeAllScreens();
   sendMessage("Find scholarships I can apply for.");
 });
 
 // Not built yet — honest placeholders, not fake working features
 [
-  ["eduAiClassroomCard", "AI Classroom"],
   ["eduSchoolDirectoryCard", "School Directory"],
   ["eduSubjectsCard", "Subjects"],
-  ["eduStudentProgressCard", "Student Progress"],
   ["eduParentDashboardCard", "Parent Dashboard"],
   ["eduTeacherDashboardCard", "Teacher Dashboard"],
   ["eduScienceLabCard", "Virtual Science Lab"],
@@ -4479,7 +4520,7 @@ wireEduCard("eduScholarshipsCard", () => {
 const aiTutorModal = document.getElementById("aiTutorModal");
 const closeAiTutorBtn = document.getElementById("closeAiTutorBtn");
 if (closeAiTutorBtn) {
-  closeAiTutorBtn.addEventListener("click", () => aiTutorModal.classList.remove("open"));
+  closeAiTutorBtn.addEventListener("click", () => goBackScreen());
 }
 
 // ---------- Subject mode state ----------
@@ -4530,7 +4571,8 @@ switchToDashboardMode = function () {
 document.querySelectorAll("#aiTutorSubjectGrid .dash-quick-card[data-subject]").forEach((card) => {
   card.addEventListener("click", () => {
     const subject = card.dataset.subject;
-    aiTutorModal.classList.remove("open");
+    chatEntryScreen = aiTutorModal;
+    closeAllScreens();
     setGovernmentMode(false);
     setSubjectMode(subject);
     if (!currentId || !getCurrentConversation()) {
@@ -4551,7 +4593,6 @@ document.querySelectorAll("#aiTutorSubjectGrid .dash-quick-card[data-subject]").
 const tutorHomeworkHelperCard = document.getElementById("tutorHomeworkHelperCard");
 if (tutorHomeworkHelperCard) {
   tutorHomeworkHelperCard.addEventListener("click", () => {
-    aiTutorModal.classList.remove("open");
     if (typeof openHomeworkHelperModal === "function") openHomeworkHelperModal();
   });
 }
@@ -4560,7 +4601,8 @@ if (tutorHomeworkHelperCard) {
 const tutorCameraCard = document.getElementById("tutorCameraCard");
 if (tutorCameraCard) {
   tutorCameraCard.addEventListener("click", () => {
-    aiTutorModal.classList.remove("open");
+    chatEntryScreen = aiTutorModal;
+    closeAllScreens();
     if (typeof uploadContext !== "undefined") uploadContext = "homework";
     if (photoFileInput) photoFileInput.click();
   });
@@ -4570,13 +4612,13 @@ if (tutorCameraCard) {
 const progressModal = document.getElementById("progressModal");
 const closeProgressBtn = document.getElementById("closeProgressBtn");
 if (closeProgressBtn) {
-  closeProgressBtn.addEventListener("click", () => progressModal.classList.remove("open"));
+  closeProgressBtn.addEventListener("click", () => goBackScreen());
 }
 
 async function openProgressModal() {
   const guestNotice = document.getElementById("progressGuestNotice");
   const content = document.getElementById("progressContent");
-  progressModal.classList.add("open");
+  openScreen(progressModal);
 
   if (!getToken()) {
     guestNotice.style.display = "block";
@@ -4657,7 +4699,6 @@ async function renderSubjectProgressList() {
 const tutorProgressCard = document.getElementById("tutorProgressCard");
 if (tutorProgressCard) {
   tutorProgressCard.addEventListener("click", () => {
-    aiTutorModal.classList.remove("open");
     openProgressModal();
   });
 }
@@ -4666,7 +4707,6 @@ if (tutorProgressCard) {
 const tutorSetupProfileBtn = document.getElementById("tutorSetupProfileBtn");
 if (tutorSetupProfileBtn) {
   tutorSetupProfileBtn.addEventListener("click", () => {
-    aiTutorModal.classList.remove("open");
     if (typeof openStudyCompanionModal === "function") openStudyCompanionModal();
   });
 }
@@ -4852,5 +4892,597 @@ document.getElementById("qaCheatSheet")?.addEventListener("click", () => {
   if (currentSubject) sendMessage(`Give me a quick reference/cheat sheet covering the key things I should know for ${currentSubject}.`);
 });
 document.getElementById("qaVideoLesson")?.addEventListener("click", () => {
-  alert("Video Lessons are coming soon!");
+  if (!currentSubject) return;
+  const query = encodeURIComponent(`${currentSubject} lesson WAEC JAMB`);
+  window.open(`https://www.youtube.com/results?search_query=${query}`, "_blank");
 });
+
+// =====================================================================
+// AI CLASSROOM — Education Hub -> AI Classroom -> feature (same
+// page-stack pattern as AI Tutor). Every card here either reuses a real
+// feature you already built, shows real data, or is an honest "Coming
+// Soon" — nothing here is invented numbers or fake scheduling.
+// =====================================================================
+
+const aiClassroomModal = document.getElementById("aiClassroomModal");
+wireEduCard("eduAiClassroomCard", () => openScreen(aiClassroomModal));
+
+const closeAiClassroomBtn = document.getElementById("closeAiClassroomBtn");
+if (closeAiClassroomBtn) {
+  closeAiClassroomBtn.addEventListener("click", () => goBackScreen());
+}
+
+// Reads the same 11 subjects already defined once in AI Tutor's grid,
+// so the list only has to be maintained in one place.
+function getTutorSubjectsList() {
+  return Array.from(document.querySelectorAll("#aiTutorSubjectGrid .dash-quick-card[data-subject]")).map((card) => ({
+    subject: card.dataset.subject,
+    icon: card.querySelector(".dash-quick-icon")?.textContent || "📖",
+    colorClass: card.querySelector(".dash-quick-icon")?.classList[1] || "purple",
+  }));
+}
+
+// ---------- Today's Lesson (reuses your real Study Companion profile + plan) ----------
+const classroomTodaysLessonCard = document.getElementById("classroomTodaysLessonCard");
+if (classroomTodaysLessonCard) {
+  classroomTodaysLessonCard.addEventListener("click", async () => {
+    if (!getToken()) {
+      alert("Please log in to get your lesson for today.");
+      return;
+    }
+    const memories = await fetchCompanionProfile();
+    const classLevel = memories ? getMemoryValue(memories, COMPANION_KEYS.classLevel) : "";
+
+    if (!classLevel) {
+      // No learning profile yet — send them to set one up first, same as AI Tutor does
+      openScreen(studyCompanionModal);
+      return;
+    }
+
+    const curriculum = getMemoryValue(memories, COMPANION_KEYS.curriculum);
+    const subjects = getMemoryValue(memories, COMPANION_KEYS.subjects);
+    const examDate = getMemoryValue(memories, COMPANION_KEYS.examDate);
+    const careerGoal = getMemoryValue(memories, COMPANION_KEYS.careerGoal);
+
+    chatEntryScreen = educationModal;
+    closeAllScreens();
+    sendMessage(
+      `Based on my learning profile — Class: ${classLevel}. Curriculum: ${curriculum}. Subjects: ${subjects}. Next exam: ${examDate}. Career goal: ${careerGoal} — please give me today's lesson: pick the single most important subject/topic for me to focus on today and explain it, prioritizing weaker topics if you already know them from our past conversations.`
+    );
+  });
+}
+
+// ---------- My Courses (reuses the exact same subject list/flow as AI Tutor) ----------
+const classroomMyCoursesCard = document.getElementById("classroomMyCoursesCard");
+if (classroomMyCoursesCard) {
+  classroomMyCoursesCard.addEventListener("click", () => {
+    openScreen(document.getElementById("aiTutorModal"));
+  });
+}
+
+// ---------- Homework (reuses your existing Homework Helper — no rebuild) ----------
+const classroomHomeworkCard = document.getElementById("classroomHomeworkCard");
+if (classroomHomeworkCard) {
+  classroomHomeworkCard.addEventListener("click", () => {
+    if (typeof openHomeworkHelperModal === "function") openHomeworkHelperModal();
+  });
+}
+
+// ---------- Practical (real WAEC/JAMB topics, AI-guided walkthrough) ----------
+// A genuine, curated list of standard practicals covered in Nigerian
+// secondary school science — not a graphical simulation (that would need a
+// separate physics/chemistry engine), but a real structured AI walkthrough:
+// Aim, Apparatus, Procedure, Precautions, and what to expect.
+const PRACTICAL_TOPICS = {
+  Physics: [
+    "Simple Pendulum (measuring acceleration due to gravity)",
+    "Ohm's Law and a Simple Circuit",
+    "Determining the Focal Length of a Convex Lens",
+    "Density of a Solid and a Liquid",
+    "Hooke's Law (Springs and Extension)",
+  ],
+  Chemistry: [
+    "Acid-Base Titration",
+    "Qualitative Analysis (Testing for Cations and Anions)",
+    "Separation Techniques (Filtration, Distillation, Chromatography)",
+    "Rate of Reaction (Effect of Concentration/Temperature)",
+    "Preparation of Salts",
+  ],
+  Biology: [
+    "Osmosis in Plant Tissue (e.g. Potato/Irish Potato Experiment)",
+    "Testing Food Substances (Starch, Reducing Sugars, Proteins, Fats)",
+    "Enzyme Activity (Effect of Temperature/pH on Catalase or Amylase)",
+    "Transpiration in Plants",
+    "Dissection and Study of a Flower/Seed Structure",
+  ],
+};
+
+const classroomPracticalModal = document.getElementById("classroomPracticalModal");
+const classroomPracticalCard = document.getElementById("classroomPracticalCard");
+let practicalSelectedSubject = null;
+
+function showPracticalSubjectView() {
+  document.getElementById("classroomPracticalTitle").textContent = "🧪 Practical";
+  document.getElementById("practicalSubjectView").style.display = "block";
+  document.getElementById("practicalTopicView").style.display = "none";
+}
+
+function showPracticalTopicView(subject) {
+  practicalSelectedSubject = subject;
+  document.getElementById("classroomPracticalTitle").textContent = `🧪 ${subject} Practical`;
+  document.getElementById("practicalSubjectView").style.display = "none";
+  document.getElementById("practicalTopicView").style.display = "block";
+
+  const list = document.getElementById("practicalTopicList");
+  list.innerHTML = "";
+  (PRACTICAL_TOPICS[subject] || []).forEach((topic) => {
+    const item = document.createElement("button");
+    item.className = "template-card";
+    item.style.width = "100%";
+    item.style.marginBottom = "8px";
+    item.innerHTML = `<span class="template-title">${topic}</span>`;
+    item.addEventListener("click", () => {
+      chatEntryScreen = aiClassroomModal;
+      closeAllScreens();
+      setGovernmentMode(false);
+      setSubjectMode(subject);
+      sendMessage(
+        `Please guide me through the practical: "${topic}". Give me the Aim, Apparatus/Materials needed, step-by-step Procedure, safety Precautions, and what results/observations I should expect. If calculations are involved, show a sample calculation.`
+      );
+    });
+    list.appendChild(item);
+  });
+}
+
+if (classroomPracticalCard) {
+  classroomPracticalCard.addEventListener("click", () => {
+    const grid = document.getElementById("classroomPracticalSubjectGrid");
+    grid.innerHTML = "";
+    Object.keys(PRACTICAL_TOPICS).forEach((subject) => {
+      const subjectData = getTutorSubjectsList().find((s) => s.subject === subject);
+      const btn = document.createElement("button");
+      btn.className = "dash-quick-card";
+      btn.innerHTML = `<span class="dash-quick-icon ${subjectData?.colorClass || "green"}">${subjectData?.icon || "🧪"}</span><strong>${subject}</strong>`;
+      btn.addEventListener("click", () => showPracticalTopicView(subject));
+      grid.appendChild(btn);
+    });
+    showPracticalSubjectView();
+    openScreen(classroomPracticalModal);
+  });
+}
+const closeClassroomPracticalBtn = document.getElementById("closeClassroomPracticalBtn");
+if (closeClassroomPracticalBtn) {
+  closeClassroomPracticalBtn.addEventListener("click", () => {
+    if (document.getElementById("practicalTopicView").style.display !== "none") {
+      showPracticalSubjectView();
+    } else {
+      goBackScreen();
+    }
+  });
+}
+
+// ---------- Live Voice Lesson (real, on-demand — starts your existing Voice
+// Chat immediately, already scoped to the chosen subject teacher) ----------
+const classroomVoiceLessonModal = document.getElementById("classroomVoiceLessonModal");
+const classroomVoiceLessonCard = document.getElementById("classroomVoiceLessonCard");
+if (classroomVoiceLessonCard) {
+  classroomVoiceLessonCard.addEventListener("click", () => {
+    const grid = document.getElementById("classroomVoiceSubjectGrid");
+    grid.innerHTML = "";
+    getTutorSubjectsList().forEach(({ subject, icon, colorClass }) => {
+      const btn = document.createElement("button");
+      btn.className = "dash-quick-card";
+      btn.innerHTML = `<span class="dash-quick-icon ${colorClass}">${icon}</span><strong>${subject}</strong>`;
+      btn.addEventListener("click", () => {
+        chatEntryScreen = aiClassroomModal;
+        closeAllScreens();
+        setGovernmentMode(false);
+        setSubjectMode(subject);
+        if (!currentId || !getCurrentConversation()) {
+          if (conversations.length > 0) {
+            currentId = conversations[0].id;
+          } else {
+            startNewChat();
+          }
+        }
+        renderSidebar();
+        renderActiveConversation();
+        switchToChatMode();
+        const voiceTitle = document.querySelector("#voiceChatModal h2");
+        if (voiceTitle) voiceTitle.textContent = `🎤 ${subject} Voice Lesson`;
+        if (typeof openVoiceChatModal === "function") openVoiceChatModal();
+      });
+      grid.appendChild(btn);
+    });
+    openScreen(classroomVoiceLessonModal);
+  });
+}
+const closeClassroomVoiceLessonBtn = document.getElementById("closeClassroomVoiceLessonBtn");
+if (closeClassroomVoiceLessonBtn) {
+  closeClassroomVoiceLessonBtn.addEventListener("click", () => goBackScreen());
+}
+
+// ---------- Video Lesson (real YouTube search per subject) ----------
+const classroomVideoModal = document.getElementById("classroomVideoModal");
+const classroomVideoLessonCard = document.getElementById("classroomVideoLessonCard");
+if (classroomVideoLessonCard) {
+  classroomVideoLessonCard.addEventListener("click", () => {
+    const grid = document.getElementById("classroomVideoSubjectGrid");
+    grid.innerHTML = "";
+    getTutorSubjectsList().forEach(({ subject, icon, colorClass }) => {
+      const btn = document.createElement("button");
+      btn.className = "dash-quick-card";
+      btn.innerHTML = `<span class="dash-quick-icon ${colorClass}">${icon}</span><strong>${subject}</strong>`;
+      btn.addEventListener("click", () => {
+        const query = encodeURIComponent(`${subject} lesson WAEC JAMB`);
+        window.open(`https://www.youtube.com/results?search_query=${query}`, "_blank");
+      });
+      grid.appendChild(btn);
+    });
+    openScreen(classroomVideoModal);
+  });
+}
+const closeClassroomVideoBtn = document.getElementById("closeClassroomVideoBtn");
+if (closeClassroomVideoBtn) {
+  closeClassroomVideoBtn.addEventListener("click", () => goBackScreen());
+}
+
+// ---------- Quiz (pick a subject, launches your real scored practice quiz) ----------
+const classroomQuizModal = document.getElementById("classroomQuizModal");
+const classroomQuizCard = document.getElementById("classroomQuizCard");
+if (classroomQuizCard) {
+  classroomQuizCard.addEventListener("click", () => {
+    const grid = document.getElementById("classroomQuizSubjectGrid");
+    grid.innerHTML = "";
+    getTutorSubjectsList().forEach(({ subject, icon, colorClass }) => {
+      const btn = document.createElement("button");
+      btn.className = "dash-quick-card";
+      btn.innerHTML = `<span class="dash-quick-icon ${colorClass}">${icon}</span><strong>${subject}</strong>`;
+      btn.addEventListener("click", () => {
+        openSubjectQuizModalFor(subject);
+      });
+      grid.appendChild(btn);
+    });
+    openScreen(classroomQuizModal);
+  });
+}
+const closeClassroomQuizBtn = document.getElementById("closeClassroomQuizBtn");
+if (closeClassroomQuizBtn) {
+  closeClassroomQuizBtn.addEventListener("click", () => goBackScreen());
+}
+
+// Lets Quiz be launched directly for a subject, without needing to already
+// be inside that subject's chat (openSubjectQuizModal() only worked from
+// within an active Subject chat, since it read currentSubject).
+function openSubjectQuizModalFor(subjectName) {
+  subjectQuizSubjectName = subjectName;
+  document.getElementById("subjectQuizTitle").textContent = `${subjectName} Practice Quiz`;
+  document.getElementById("subjectQuizSetupText").textContent = `FormGuide AI will generate a fresh 5-question practice quiz for ${subjectName}.`;
+  showSubjectQuizView(subjectQuizSetupView);
+  subjectQuizModal.classList.add("open");
+}
+
+// ---------- Weekly Progress (real data — last 7 days only, no invented hours/attendance) ----------
+const classroomWeeklyProgressModal = document.getElementById("classroomWeeklyProgressModal");
+const classroomWeeklyProgressCard = document.getElementById("classroomWeeklyProgressCard");
+if (classroomWeeklyProgressCard) {
+  classroomWeeklyProgressCard.addEventListener("click", async () => {
+    openScreen(classroomWeeklyProgressModal);
+    await loadClassroomWeeklyProgress();
+  });
+}
+const closeClassroomWeeklyBtn = document.getElementById("closeClassroomWeeklyBtn");
+if (closeClassroomWeeklyBtn) {
+  closeClassroomWeeklyBtn.addEventListener("click", () => goBackScreen());
+}
+
+async function loadClassroomWeeklyProgress() {
+  const guestNotice = document.getElementById("classroomWeeklyGuestNotice");
+  const content = document.getElementById("classroomWeeklyContent");
+  const list = document.getElementById("classroomWeeklyList");
+  const empty = document.getElementById("classroomWeeklyEmpty");
+
+  if (!getToken()) {
+    guestNotice.style.display = "block";
+    content.style.display = "none";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/subject-progress", {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    guestNotice.style.display = "none";
+    content.style.display = "block";
+    list.innerHTML = "";
+
+    if (!res.ok) {
+      empty.style.display = "block";
+      return;
+    }
+    const data = await res.json();
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const recent = (data.progress || []).filter(
+      (p) => p.percentage !== null && new Date(p.lastPracticed).getTime() >= sevenDaysAgo
+    );
+
+    if (recent.length === 0) {
+      empty.style.display = "block";
+      return;
+    }
+    empty.style.display = "none";
+
+    recent
+      .sort((a, b) => b.percentage - a.percentage)
+      .forEach((p) => {
+        const row = document.createElement("div");
+        row.className = "subject-progress-row";
+        row.innerHTML = `
+          <div class="subject-progress-top">
+            <span>${p.subject}</span>
+            <small>${p.percentage}% (${p.questionsCorrect}/${p.questionsAnswered})</small>
+          </div>
+          <div class="subject-progress-track">
+            <div class="subject-progress-fill" style="width:${p.percentage}%;"></div>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+  } catch (err) {
+    empty.style.display = "block";
+  }
+}
+
+// ---------- Certificates (real, threshold-based on actual quiz performance) ----------
+const CERTIFICATE_THRESHOLD_PERCENT = 70;
+const CERTIFICATE_MIN_QUESTIONS = 10;
+
+const classroomCertificatesModal = document.getElementById("classroomCertificatesModal");
+const classroomCertificatesCard = document.getElementById("classroomCertificatesCard");
+if (classroomCertificatesCard) {
+  classroomCertificatesCard.addEventListener("click", async () => {
+    openScreen(classroomCertificatesModal);
+    await loadClassroomCertificates();
+  });
+}
+const closeClassroomCertificatesBtn = document.getElementById("closeClassroomCertificatesBtn");
+if (closeClassroomCertificatesBtn) {
+  closeClassroomCertificatesBtn.addEventListener("click", () => goBackScreen());
+}
+
+async function loadClassroomCertificates() {
+  const guestNotice = document.getElementById("classroomCertificatesGuestNotice");
+  const list = document.getElementById("classroomCertificatesList");
+  const empty = document.getElementById("classroomCertificatesEmpty");
+  list.innerHTML = "";
+
+  if (!getToken()) {
+    guestNotice.style.display = "block";
+    empty.style.display = "none";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/subject-progress", {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    guestNotice.style.display = "none";
+    if (!res.ok) {
+      empty.style.display = "block";
+      return;
+    }
+    const data = await res.json();
+    const earned = (data.progress || []).filter(
+      (p) => p.percentage !== null && p.percentage >= CERTIFICATE_THRESHOLD_PERCENT && p.questionsAnswered >= CERTIFICATE_MIN_QUESTIONS
+    );
+
+    if (earned.length === 0) {
+      empty.style.display = "block";
+      return;
+    }
+    empty.style.display = "none";
+
+    earned.forEach((p) => {
+      const item = document.createElement("div");
+      item.className = "notif-item";
+      item.innerHTML = `
+        <div class="notif-icon">🏅</div>
+        <div class="notif-content">
+          <div class="notif-title">AI ${p.subject} Certificate</div>
+          <div class="notif-message">Scored ${p.percentage}% across ${p.questionsAnswered} practice questions</div>
+        </div>
+      `;
+      const btn = document.createElement("button");
+      btn.className = "settings-tab-inline";
+      btn.textContent = "Download";
+      btn.style.flexShrink = "0";
+      btn.addEventListener("click", () => downloadSubjectCertificate(p.subject, p.percentage));
+      item.appendChild(btn);
+      list.appendChild(item);
+    });
+  } catch (err) {
+    empty.style.display = "block";
+  }
+}
+
+function downloadSubjectCertificate(subject, percentage) {
+  const user = getStoredUser();
+  const name = user ? user.name : "FormGuide AI Learner";
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  doc.setDrawColor(124, 58, 237);
+  doc.setLineWidth(4);
+  doc.rect(24, 24, pageWidth - 48, pageHeight - 48);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(28);
+  doc.setTextColor(90, 40, 180);
+  doc.text("Certificate of Achievement", pageWidth / 2, 130, { align: "center" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(14);
+  doc.setTextColor(60, 60, 60);
+  doc.text("This certifies that", pageWidth / 2, 175, { align: "center" });
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.setTextColor(20, 20, 20);
+  doc.text(name, pageWidth / 2, 210, { align: "center" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(14);
+  doc.setTextColor(60, 60, 60);
+  doc.text(
+    `has demonstrated strong understanding of ${subject}, scoring ${percentage}% on FormGuide AI practice quizzes.`,
+    pageWidth / 2,
+    240,
+    { align: "center", maxWidth: pageWidth - 160 }
+  );
+
+  doc.setFontSize(11);
+  doc.setTextColor(120, 120, 120);
+  doc.text(`Issued by FormGuide AI — ${new Date().toLocaleDateString()}`, pageWidth / 2, pageHeight - 60, { align: "center" });
+
+  doc.save(`${subject.replace(/\s+/g, "_")}_Certificate.pdf`);
+}
+
+// ---------- Study Calendar (real month grid, backed by real StudyLog data) ----------
+const classroomCalendarModal = document.getElementById("classroomCalendarModal");
+const classroomCalendarCard = document.getElementById("classroomCalendarCard");
+
+const today = new Date();
+let calendarViewYear = today.getFullYear();
+let calendarViewMonth = today.getMonth() + 1; // 1-indexed to match the API
+let calendarDaysData = {};
+
+if (classroomCalendarCard) {
+  classroomCalendarCard.addEventListener("click", async () => {
+    calendarViewYear = today.getFullYear();
+    calendarViewMonth = today.getMonth() + 1;
+    openScreen(classroomCalendarModal);
+    await loadClassroomCalendar();
+  });
+}
+const closeClassroomCalendarBtn = document.getElementById("closeClassroomCalendarBtn");
+if (closeClassroomCalendarBtn) {
+  closeClassroomCalendarBtn.addEventListener("click", () => goBackScreen());
+}
+
+document.getElementById("calendarPrevMonthBtn")?.addEventListener("click", () => {
+  calendarViewMonth -= 1;
+  if (calendarViewMonth < 1) {
+    calendarViewMonth = 12;
+    calendarViewYear -= 1;
+  }
+  loadClassroomCalendar();
+});
+document.getElementById("calendarNextMonthBtn")?.addEventListener("click", () => {
+  calendarViewMonth += 1;
+  if (calendarViewMonth > 12) {
+    calendarViewMonth = 1;
+    calendarViewYear += 1;
+  }
+  loadClassroomCalendar();
+});
+
+async function loadClassroomCalendar() {
+  const guestNotice = document.getElementById("classroomCalendarGuestNotice");
+  const content = document.getElementById("classroomCalendarContent");
+
+  if (!getToken()) {
+    guestNotice.style.display = "block";
+    content.style.display = "none";
+    return;
+  }
+
+  try {
+    const monthStr = `${calendarViewYear}-${String(calendarViewMonth).padStart(2, "0")}`;
+    const res = await fetch(`/api/study-log?month=${monthStr}`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    guestNotice.style.display = "none";
+    content.style.display = "block";
+
+    if (!res.ok) {
+      calendarDaysData = {};
+    } else {
+      const data = await res.json();
+      calendarDaysData = data.days || {};
+    }
+    renderCalendarGrid();
+  } catch (err) {
+    calendarDaysData = {};
+    renderCalendarGrid();
+  }
+}
+
+function renderCalendarGrid() {
+  const monthLabel = document.getElementById("calendarMonthLabel");
+  const grid = document.getElementById("calendarGrid");
+  const detail = document.getElementById("calendarDayDetail");
+  if (!grid) return;
+
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  monthLabel.textContent = `${monthNames[calendarViewMonth - 1]} ${calendarViewYear}`;
+  detail.innerHTML = "";
+
+  const firstDayOfWeek = new Date(calendarViewYear, calendarViewMonth - 1, 1).getDay();
+  const daysInMonth = new Date(calendarViewYear, calendarViewMonth, 0).getDate();
+  const todayKey = new Date().toISOString().slice(0, 10);
+
+  grid.innerHTML = "";
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    const empty = document.createElement("div");
+    empty.className = "calendar-day empty";
+    grid.appendChild(empty);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dayKey = `${calendarViewYear}-${String(calendarViewMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const hasActivity = !!calendarDaysData[dayKey];
+
+    const cell = document.createElement("button");
+    cell.className = "calendar-day" + (dayKey === todayKey ? " today" : "");
+    cell.innerHTML = `<span>${day}</span>${hasActivity ? '<span class="calendar-day-dot"></span>' : ""}`;
+    cell.addEventListener("click", () => {
+      document.querySelectorAll(".calendar-day.selected").forEach((el) => el.classList.remove("selected"));
+      cell.classList.add("selected");
+      renderCalendarDayDetail(dayKey);
+    });
+    grid.appendChild(cell);
+  }
+}
+
+function renderCalendarDayDetail(dayKey) {
+  const detail = document.getElementById("calendarDayDetail");
+  const entries = calendarDaysData[dayKey];
+
+  if (!entries || entries.length === 0) {
+    detail.innerHTML = `<p style="font-size:12px;color:var(--text-dim);">No study activity on ${dayKey}.</p>`;
+    return;
+  }
+
+  detail.innerHTML = "";
+  const heading = document.createElement("div");
+  heading.style.cssText = "font-size:12.5px;color:var(--text);font-weight:600;margin-bottom:8px;";
+  heading.textContent = `Studied on ${dayKey}:`;
+  detail.appendChild(heading);
+
+  entries.forEach((e) => {
+    const percent = Math.round((e.correct / e.total) * 100);
+    const item = document.createElement("div");
+    item.className = "notif-item";
+    item.innerHTML = `
+      <div class="notif-icon">✔</div>
+      <div class="notif-content">
+        <div class="notif-title">${e.subject}</div>
+        <div class="notif-message">Quiz result: ${percent}% (${e.correct}/${e.total})</div>
+      </div>
+    `;
+    detail.appendChild(item);
+  });
+}
