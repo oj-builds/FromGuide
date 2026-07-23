@@ -5532,6 +5532,16 @@ const TEXTBOOK_CATALOG = [
   { subject: "English", title: "About Writing Guide with Handbook", publisher: "OpenStax (Rice University)", url: "https://openstax.org/details/books/writing-guide" },
 ];
 
+// Real Amazon Associate ID — earns a real commission if someone buys the
+// physical print copy. Uses a search link (not a hardcoded product page),
+// since exact Amazon listings/ASINs can go out of stock or change, while a
+// search for the book title stays reliable indefinitely.
+const AMAZON_ASSOCIATE_TAG = "formguideai-20";
+function buildAmazonBuyLink(bookTitle) {
+  const query = encodeURIComponent(`${bookTitle} OpenStax`);
+  return `https://www.amazon.com/s?k=${query}&tag=${AMAZON_ASSOCIATE_TAG}`;
+}
+
 function renderLibraryTextbooksList() {
   const list = document.getElementById("libraryTextbooksList");
   list.innerHTML = "";
@@ -5546,19 +5556,40 @@ function renderLibraryTextbooksList() {
         <div class="recent-file-meta">${book.subject} · ${book.publisher} · Free, CC-licensed</div>
       </div>
     `;
-    const btn = document.createElement("a");
-    btn.href = book.url;
-    btn.target = "_blank";
-    btn.rel = "noopener";
-    btn.className = "settings-tab-inline";
-    btn.style.cssText = "flex-shrink:0;text-decoration:none;";
-    btn.textContent = "Download";
-    btn.addEventListener("click", () => {
+
+    const actions = document.createElement("div");
+    actions.style.cssText = "display:flex;gap:6px;flex-shrink:0;";
+
+    const downloadBtn = document.createElement("a");
+    downloadBtn.href = book.url;
+    downloadBtn.target = "_blank";
+    downloadBtn.rel = "noopener";
+    downloadBtn.className = "settings-tab-inline";
+    downloadBtn.style.cssText = "text-decoration:none;white-space:nowrap;";
+    downloadBtn.textContent = "Download";
+    downloadBtn.addEventListener("click", () => {
       if (typeof logLibraryRequest === "function") {
         logLibraryRequest("textbook-download", `${book.title} (${book.subject})`);
       }
     });
-    item.appendChild(btn);
+
+    const buyBtn = document.createElement("a");
+    buyBtn.href = buildAmazonBuyLink(book.title);
+    buyBtn.target = "_blank";
+    buyBtn.rel = "noopener sponsored";
+    buyBtn.className = "settings-tab-inline";
+    buyBtn.style.cssText = "text-decoration:none;white-space:nowrap;border-color:#e0862f;color:#e0862f;";
+    buyBtn.textContent = "🛒 Buy Print";
+    buyBtn.title = "Opens Amazon — FormGuide AI may earn a commission from this purchase";
+    buyBtn.addEventListener("click", () => {
+      if (typeof logLibraryRequest === "function") {
+        logLibraryRequest("textbook-buy", `${book.title} (${book.subject})`);
+      }
+    });
+
+    actions.appendChild(downloadBtn);
+    actions.appendChild(buyBtn);
+    item.appendChild(actions);
     list.appendChild(item);
   });
 }
@@ -5632,6 +5663,7 @@ const CATEGORY_LABELS = {
   explain: "Explain Topic",
   textbook: "Textbook Chapter",
   "textbook-download": "Textbook Download",
+  "textbook-buy": "Print Copy Purchase Link",
   pastquestions: "Practice Questions",
   research: "Research Overview",
   curriculum: "Curriculum Guide",
@@ -5669,7 +5701,7 @@ function renderLibraryDownloadsList() {
       </div>
     `;
 
-    if (entry.category === "textbook-download") {
+    if (entry.category === "textbook-download" || entry.category === "textbook-buy") {
       // Real book — re-open the real catalog, not an AI regeneration.
       const btn = document.createElement("button");
       btn.className = "settings-tab-inline";
