@@ -2146,3 +2146,45 @@ body.accent-orange .accent { color: #e0862f !important; }
 .subject-progress-top small { color: var(--text-dim); font-size: 11px; }
 .subject-progress-track { background: var(--panel-light); border-radius: 8px; height: 8px; overflow: hidden; }
 .subject-progress-fill { background: var(--accent); height: 100%; transition: width 0.3s; }
+
+/* ---------- Study Calendar (real month grid) ---------- */
+.calendar-weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  margin-bottom: 6px;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.calendar-day {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: inherit;
+  position: relative;
+}
+.calendar-day:hover { border-color: var(--accent); }
+.calendar-day.empty { visibility: hidden; cursor: default; }
+.calendar-day.today { border-color: var(--accent); font-weight: 700; }
+.calendar-day.selected { background: rgba(124,58,237,0.2); border-color: var(--accent); }
+.calendar-day-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #4ade80;
+  margin-top: 2px;
+}
