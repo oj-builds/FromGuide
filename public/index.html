@@ -384,7 +384,7 @@
       </div>
       <div class="dash-quick-grid" id="eduHubGrid">
         <button class="dash-quick-card" id="eduAiTutorCard"><span class="dash-quick-icon purple">📖</span><strong>AI Tutor</strong><small>Your study companion</small></button>
-        <button class="dash-quick-card" id="eduAiClassroomCard"><span class="dash-quick-icon blue">🏫</span><strong>AI Classroom</strong><small>Coming Soon</small></button>
+        <button class="dash-quick-card" id="eduAiClassroomCard"><span class="dash-quick-icon blue">🏫</span><strong>AI Classroom</strong><small>Courses, quizzes & more</small></button>
         <button class="dash-quick-card" id="eduDigitalLibraryCard"><span class="dash-quick-icon green">📚</span><strong>Digital Library</strong><small>Notes & topics</small></button>
         <button class="dash-quick-card" id="eduExamCentreCard"><span class="dash-quick-icon orange">📝</span><strong>Exam Centre</strong><small>Mock exams</small></button>
         <button class="dash-quick-card" id="eduSchoolDirectoryCard"><span class="dash-quick-icon teal">🏫</span><strong>School Directory</strong><small>Coming Soon</small></button>
@@ -836,6 +836,167 @@
         <button id="subjectQuizBackBtn" class="add-memory-btn" style="margin-top:10px;">💬 Back to Chat</button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- AI Classroom: Education Hub -> AI Classroom -> feature (same page-stack pattern as AI Tutor) -->
+  <div id="aiClassroomModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeAiClassroomBtn" class="dark-back-btn">←</button>
+      <h2>🏫 AI Classroom</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div class="settings-card" style="background:linear-gradient(135deg,#1a1440,#2d1b69);border-color:#4527a0;">
+        <h3 style="color:#fff;margin:0 0 4px;">Welcome back 👋</h3>
+        <p class="about-text" style="color:rgba(255,255,255,0.75);">Continue your learning journey.</p>
+      </div>
+
+      <div class="dash-quick-grid" style="margin-top:18px;">
+        <button class="dash-quick-card" id="classroomTodaysLessonCard"><span class="dash-quick-icon purple">👨‍🏫</span><strong>Today's Lesson</strong></button>
+        <button class="dash-quick-card" id="classroomMyCoursesCard"><span class="dash-quick-icon blue">📚</span><strong>My Courses</strong></button>
+        <button class="dash-quick-card" id="classroomHomeworkCard"><span class="dash-quick-icon orange">📝</span><strong>Homework</strong></button>
+        <button class="dash-quick-card" id="classroomPracticalCard"><span class="dash-quick-icon green">🧪</span><strong>Practical</strong></button>
+        <button class="dash-quick-card" id="classroomVoiceLessonCard"><span class="dash-quick-icon teal">🎤</span><strong>Live Voice Lesson</strong></button>
+        <button class="dash-quick-card" id="classroomVideoLessonCard"><span class="dash-quick-icon purple">📹</span><strong>Video Lesson</strong></button>
+        <button class="dash-quick-card" id="classroomQuizCard"><span class="dash-quick-icon blue">📊</span><strong>Quiz</strong></button>
+        <button class="dash-quick-card" id="classroomWeeklyProgressCard"><span class="dash-quick-icon orange">📈</span><strong>Weekly Progress</strong></button>
+        <button class="dash-quick-card" id="classroomCertificatesCard"><span class="dash-quick-icon green">🏆</span><strong>Certificates</strong></button>
+        <button class="dash-quick-card" id="classroomCalendarCard"><span class="dash-quick-icon teal">📅</span><strong>Study Calendar</strong></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Lesson (Classroom) — real YouTube search per subject, no invented content -->
+  <div id="classroomVideoModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeClassroomVideoBtn" class="dark-back-btn">←</button>
+      <h2>📹 Video Lessons</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Pick a subject — opens a real YouTube search for lesson videos on that topic.</p>
+      <div class="dash-quick-grid" id="classroomVideoSubjectGrid"></div>
+    </div>
+  </div>
+
+  <!-- Quiz (Classroom) — pick a subject, launches your real scored practice quiz -->
+  <div id="classroomQuizModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeClassroomQuizBtn" class="dark-back-btn">←</button>
+      <h2>📊 Quiz</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Choose a subject for a fresh 5-question practice quiz.</p>
+      <div class="dash-quick-grid" id="classroomQuizSubjectGrid"></div>
+    </div>
+  </div>
+
+  <!-- Weekly Progress — real data from the last 7 days, no invented hours/percentages -->
+  <div id="classroomWeeklyProgressModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeClassroomWeeklyBtn" class="dark-back-btn">←</button>
+      <h2>📈 Weekly Progress</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div id="classroomWeeklyGuestNotice" style="display:none;">
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+          <h3 style="color:var(--text);">Log in to see your weekly progress</h3>
+        </div>
+      </div>
+      <div id="classroomWeeklyContent" style="display:none;">
+        <div id="classroomWeeklyList"></div>
+        <p id="classroomWeeklyEmpty" style="display:none;font-size:11.5px;color:var(--text-dim);line-height:1.6;">
+          No practice quizzes taken in the last 7 days. Take a Quiz above to start showing up here.
+        </p>
+        <p style="font-size:11px;color:var(--text-dim);margin-top:14px;line-height:1.6;">
+          This shows real quiz results from the last 7 days only. Study-time hours and attendance aren't tracked yet, so they're left out rather than shown as invented numbers.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Certificates — real, threshold-based on your actual quiz performance -->
+  <div id="classroomCertificatesModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeClassroomCertificatesBtn" class="dark-back-btn">←</button>
+      <h2>🏆 Certificates</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Earned automatically once you score 70%+ over at least 10 practice questions in a subject.</p>
+      <div id="classroomCertificatesGuestNotice" style="display:none;">
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+          <h3 style="color:var(--text);">Log in to earn certificates</h3>
+        </div>
+      </div>
+      <div id="classroomCertificatesList"></div>
+      <p id="classroomCertificatesEmpty" style="display:none;font-size:11.5px;color:var(--text-dim);line-height:1.6;">
+        No certificates yet — score 70%+ across at least 10 practice quiz questions in a subject to earn one.
+      </p>
+    </div>
+  </div>
+
+  <!-- Study Calendar — real recent activity from your actual quiz dates, not an invented fixed schedule -->
+  <div id="classroomCalendarModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeClassroomCalendarBtn" class="dark-back-btn">←</button>
+      <h2>📅 Study Calendar</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div id="classroomCalendarGuestNotice" style="display:none;">
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+          <h3 style="color:var(--text);">Log in to see your study activity</h3>
+        </div>
+      </div>
+      <div id="classroomCalendarContent" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <button id="calendarPrevMonthBtn" class="icon-btn" style="font-size:16px;">‹</button>
+          <strong id="calendarMonthLabel" style="color:var(--text);font-size:15px;">Month</strong>
+          <button id="calendarNextMonthBtn" class="icon-btn" style="font-size:16px;">›</button>
+        </div>
+        <div class="calendar-weekday-row">
+          <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+        <p class="about-text" style="margin-top:10px;">Days with a dot had at least one real practice quiz. Tap a day to see what you studied.</p>
+        <div id="calendarDayDetail" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Voice Lesson — pick a subject, starts your real Voice Chat immediately, no fake countdown -->
+  <div id="classroomVoiceLessonModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeClassroomVoiceLessonBtn" class="dark-back-btn">←</button>
+      <h2>🎤 Live Voice Lesson</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Pick a subject — starts a real voice conversation with your AI teacher for it right now.</p>
+      <div class="dash-quick-grid" id="classroomVoiceSubjectGrid"></div>
+    </div>
+  </div>
+
+  <!-- Practical — real WAEC/JAMB practical topics, AI-guided walkthrough (not a graphical simulation) -->
+  <div id="classroomPracticalModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeClassroomPracticalBtn" class="dark-back-btn">←</button>
+      <h2 id="classroomPracticalTitle">🧪 Practical</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div id="practicalSubjectView">
+        <p class="templates-sub">Choose a subject.</p>
+        <div class="dash-quick-grid" id="classroomPracticalSubjectGrid"></div>
+      </div>
+      <div id="practicalTopicView" style="display:none;">
+        <p class="templates-sub">Choose a practical topic — FormGuide AI will guide you through it step by step: aim, apparatus, procedure, and precautions.</p>
+        <div id="practicalTopicList"></div>
+      </div>
     </div>
   </div>
 
