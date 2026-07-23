@@ -501,7 +501,9 @@
       <div class="templates-tabs" style="margin-top:12px;">
         <button class="templates-tab library-cat-btn active" data-cat="notes">Study Notes</button>
         <button class="templates-tab library-cat-btn" data-cat="explain">Explain Topic</button>
+        <button class="templates-tab library-cat-btn" data-cat="textbook">Textbook Chapter</button>
         <button class="templates-tab library-cat-btn" data-cat="pastquestions">Practice Questions</button>
+        <button class="templates-tab library-cat-btn" data-cat="research">Research Overview</button>
         <button class="templates-tab library-cat-btn" data-cat="curriculum">Curriculum Guide</button>
       </div>
 
@@ -997,6 +999,68 @@
         <p class="templates-sub">Choose a practical topic — FormGuide AI will guide you through it step by step: aim, apparatus, procedure, and precautions.</p>
         <div id="practicalTopicList"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Digital Library Hub: Education Hub -> Digital Library -> section (same page-stack pattern as AI Tutor/AI Classroom) -->
+  <div id="digitalLibraryHubModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeDigitalLibraryHubBtn" class="dark-back-btn">←</button>
+      <h2>📚 Digital Library</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Find learning materials — AI-generated on demand, plus your saved chats and real research links. Not a scanned archive of real textbooks or official past papers.</p>
+
+      <div class="dash-quick-grid">
+        <button class="dash-quick-card" id="libHubTextbooksCard"><span class="dash-quick-icon blue">📖</span><strong>Textbooks</strong></button>
+        <button class="dash-quick-card" id="libHubNotesCard"><span class="dash-quick-icon green">📄</span><strong>Notes</strong></button>
+        <button class="dash-quick-card" id="libHubPastQuestionsCard"><span class="dash-quick-icon purple">📚</span><strong>Past Questions</strong></button>
+        <button class="dash-quick-card" id="libHubResearchCard"><span class="dash-quick-icon orange">🎓</span><strong>Research Papers</strong></button>
+        <button class="dash-quick-card" id="libHubCurriculumCard"><span class="dash-quick-icon teal">📑</span><strong>Curriculum</strong></button>
+        <button class="dash-quick-card" id="libHubSavedCard"><span class="dash-quick-icon purple">🔖</span><strong>Saved Books</strong></button>
+        <button class="dash-quick-card" id="libHubDownloadsCard"><span class="dash-quick-icon blue">⬇️</span><strong>Downloads</strong></button>
+        <button class="dash-quick-card" id="libHubSearchCard"><span class="dash-quick-icon green">🔍</span><strong>Search</strong></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Downloads — real history of what you've actually generated in the Library, not fake file entries -->
+  <div id="libraryDownloadsModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeLibraryDownloadsBtn" class="dark-back-btn">←</button>
+      <h2>⬇️ Downloads</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Your real Library requests, most recent first. Nothing here is stored as a file on our server — tap "View Again" to have the AI generate it fresh.</p>
+      <div id="libraryDownloadsList"></div>
+      <p id="libraryDownloadsEmpty" style="display:none;font-size:11.5px;color:var(--text-dim);line-height:1.6;">
+        Nothing here yet — generate a Textbook, Notes, Past Questions, Research Overview, or Curriculum guide and it'll show up here.
+      </p>
+    </div>
+  </div>
+
+  <!-- Textbooks — a real, small, curated catalog of free open-licensed books (OpenStax),
+       not a fabricated "2,458 books" count. Grows as more real, legal sources are added. -->
+  <div id="libraryTextbooksModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeLibraryTextbooksBtn" class="dark-back-btn">←</button>
+      <h2>📖 Textbooks</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Free, legally open-licensed textbooks from OpenStax (Rice University) — real books, real downloads, no copyright risk. Every one also has an official low-cost print copy for sale, if you'd rather have a physical book.</p>
+      <div id="libraryTextbooksList"></div>
+      <a href="https://openstax.org/subjects" target="_blank" rel="noopener" class="secondary-btn" style="display:block;text-align:center;text-decoration:none;margin-top:14px;">
+        🔎 Browse all free OpenStax textbooks
+      </a>
+      <a href="https://www.gutenberg.org/" target="_blank" rel="noopener" class="secondary-btn" style="display:block;text-align:center;text-decoration:none;margin-top:10px;">
+        📚 Classic Literature (public domain — Project Gutenberg)
+      </a>
+      <p style="font-size:11px;color:var(--text-dim);margin-top:14px;line-height:1.6;">
+        Note: current WAEC/NECO Literature-in-English set texts are still under copyright and not available here — Project Gutenberg only covers older public-domain classics.
+      </p>
     </div>
   </div>
 
