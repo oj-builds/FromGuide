@@ -2388,8 +2388,12 @@ const navDigitalLibraryBtn = document.getElementById("navDigitalLibrary");
 
 let librarySelectedCategory = "notes";
 
-function openDigitalLibraryModal() {
+function openDigitalLibraryModal(presetCategory) {
   document.getElementById("libraryQueryInput").value = "";
+  if (presetCategory) {
+    librarySelectedCategory = presetCategory;
+    document.querySelectorAll(".library-cat-btn").forEach((b) => b.classList.toggle("active", b.dataset.cat === presetCategory));
+  }
   openScreen(digitalLibraryModal);
 }
 
@@ -2423,9 +2427,19 @@ if (librarySearchBtn) {
     const prompts = {
       notes: `Give me clear, well-organized study notes on "${query}" suitable for a Nigerian student, with headings and key points.`,
       explain: `Please explain "${query}" the way a good textbook chapter would — clear, step-by-step, with examples, suitable for someone learning it for the first time.`,
+      textbook: `Write a textbook-style chapter on "${query}" for a Nigerian secondary school student — include an introduction, clearly numbered sections, worked examples, and a short summary at the end, the way a real textbook chapter would be structured.`,
       pastquestions: `Generate a set of original practice questions in the style of "${query}", with answers and brief explanations. Make clear these are AI-generated practice questions, not real past exam questions.`,
+      research: `Write a clear academic-style overview of "${query}" — background, key concepts, and current understanding — suitable as a starting point for a student researching this topic. Make clear this is an AI-written overview, not a substitute for real peer-reviewed sources.`,
       curriculum: `Summarize what is typically covered under "${query}" in the Nigerian school curriculum, including the main topics a student should know.`,
     };
+
+    // Research gets a real external link too, since an AI overview is never
+    // a substitute for actually finding real published papers.
+    if (librarySelectedCategory === "research") {
+      window.open(`https://scholar.google.com/scholar?q=${encodeURIComponent(query)}`, "_blank");
+    }
+
+    if (typeof logLibraryRequest === "function") logLibraryRequest(librarySelectedCategory, query);
 
     closeAllScreens();
     chatEntryScreen = educationModal;
@@ -3720,8 +3734,8 @@ function renderPinnedChatsList() {
       currentId = conv.id;
       renderSidebar();
       renderActiveConversation();
+      closeAllScreens();
       switchToChatMode();
-      pinnedChatsModal.classList.remove("open");
     });
     list.appendChild(item);
   });
@@ -3730,11 +3744,11 @@ if (toolPinnedChats) {
   toolPinnedChats.addEventListener("click", () => {
     closeMoreToolsSheet();
     renderPinnedChatsList();
-    pinnedChatsModal.classList.add("open");
+    openScreen(pinnedChatsModal);
   });
 }
 if (closePinnedChatsBtn) {
-  closePinnedChatsBtn.addEventListener("click", () => pinnedChatsModal.classList.remove("open"));
+  closePinnedChatsBtn.addEventListener("click", () => goBackScreen());
 }
 
 // Favorite Chats — same pattern as Pinned, using the "favorite" flag saved to the backend
@@ -3759,8 +3773,8 @@ function renderFavoriteChatsList() {
       currentId = conv.id;
       renderSidebar();
       renderActiveConversation();
+      closeAllScreens();
       switchToChatMode();
-      favoriteChatsModal.classList.remove("open");
     });
     list.appendChild(item);
   });
@@ -3769,11 +3783,11 @@ if (toolFavoriteChats) {
   toolFavoriteChats.addEventListener("click", () => {
     closeMoreToolsSheet();
     renderFavoriteChatsList();
-    favoriteChatsModal.classList.add("open");
+    openScreen(favoriteChatsModal);
   });
 }
 if (closeFavoriteChatsBtn) {
-  closeFavoriteChatsBtn.addEventListener("click", () => favoriteChatsModal.classList.remove("open"));
+  closeFavoriteChatsBtn.addEventListener("click", () => goBackScreen());
 }
 
 // AI Memory — opens Settings straight to the Memory panel
@@ -4469,7 +4483,8 @@ wireEduCard("eduAiTutorCard", () => {
 });
 
 wireEduCard("eduDigitalLibraryCard", () => {
-  if (typeof openDigitalLibraryModal === "function") openDigitalLibraryModal();
+  const digitalLibraryHubModal = document.getElementById("digitalLibraryHubModal");
+  openScreen(digitalLibraryHubModal);
 });
 
 wireEduCard("eduExamCentreCard", () => {
@@ -4935,7 +4950,7 @@ if (classroomTodaysLessonCard) {
 
     if (!classLevel) {
       // No learning profile yet — send them to set one up first, same as AI Tutor does
-      openScreen(studyCompanionModal);
+      openStudyCompanionModal();
       return;
     }
 
@@ -5486,3 +5501,203 @@ function renderCalendarDayDetail(dayKey) {
     detail.appendChild(item);
   });
 }
+
+// =====================================================================
+// DIGITAL LIBRARY HUB — Education Hub -> Digital Library -> section
+// (same page-stack pattern as AI Tutor/AI Classroom). Textbooks/Notes/
+// Past Questions/Research/Curriculum reuse real, already-built generation
+// and study tools. Saved Books reuses your real Favorite Chats. Downloads
+// is a real log of what you've actually generated — not fake files.
+// =====================================================================
+
+const digitalLibraryHubModal = document.getElementById("digitalLibraryHubModal");
+const closeDigitalLibraryHubBtn = document.getElementById("closeDigitalLibraryHubBtn");
+if (closeDigitalLibraryHubBtn) {
+  closeDigitalLibraryHubBtn.addEventListener("click", () => goBackScreen());
+}
+
+// ---------- Textbooks: a real, curated catalog of free, open-licensed
+// books (OpenStax / Rice University) — every URL below was individually
+// verified, not invented. Still doesn't cover Geography, Literature (WAEC/NECO
+// set texts are copyrighted, so no fake entries here — see the Project
+// Gutenberg link for public-domain classics instead), or non-English languages.
+const TEXTBOOK_CATALOG = [
+  { subject: "Biology", title: "Biology 2e", publisher: "OpenStax (Rice University)", url: "https://openstax.org/details/books/biology-2e" },
+  { subject: "Chemistry", title: "Chemistry 2e", publisher: "OpenStax (Rice University)", url: "https://openstax.org/details/books/chemistry-2e" },
+  { subject: "Physics", title: "College Physics", publisher: "OpenStax (Rice University)", url: "https://openstax.org/details/books/college-physics" },
+  { subject: "Mathematics", title: "Precalculus", publisher: "OpenStax (Rice University)", url: "https://openstax.org/details/books/precalculus" },
+  { subject: "Economics", title: "Principles of Economics 2e", publisher: "OpenStax (Rice University)", url: "https://openstax.org/details/books/principles-economics-2e" },
+  { subject: "Government", title: "American Government 4e", publisher: "OpenStax (Rice University)", url: "https://openstax.org/details/books/american-government-4e" },
+  { subject: "Computer Science", title: "Introduction to Computer Science", publisher: "OpenStax (Rice University)", url: "https://openstax.org/details/books/introduction-computer-science" },
+  { subject: "English", title: "About Writing Guide with Handbook", publisher: "OpenStax (Rice University)", url: "https://openstax.org/details/books/writing-guide" },
+];
+
+function renderLibraryTextbooksList() {
+  const list = document.getElementById("libraryTextbooksList");
+  list.innerHTML = "";
+  TEXTBOOK_CATALOG.forEach((book) => {
+    const item = document.createElement("div");
+    item.className = "recent-file-item";
+    item.style.cursor = "default";
+    item.innerHTML = `
+      <div class="recent-file-icon">📘</div>
+      <div class="recent-file-info">
+        <div class="recent-file-name">${book.title}</div>
+        <div class="recent-file-meta">${book.subject} · ${book.publisher} · Free, CC-licensed</div>
+      </div>
+    `;
+    const btn = document.createElement("a");
+    btn.href = book.url;
+    btn.target = "_blank";
+    btn.rel = "noopener";
+    btn.className = "settings-tab-inline";
+    btn.style.cssText = "flex-shrink:0;text-decoration:none;";
+    btn.textContent = "Download";
+    btn.addEventListener("click", () => {
+      if (typeof logLibraryRequest === "function") {
+        logLibraryRequest("textbook-download", `${book.title} (${book.subject})`);
+      }
+    });
+    item.appendChild(btn);
+    list.appendChild(item);
+  });
+}
+
+const libraryTextbooksModal = document.getElementById("libraryTextbooksModal");
+const closeLibraryTextbooksBtn = document.getElementById("closeLibraryTextbooksBtn");
+if (closeLibraryTextbooksBtn) {
+  closeLibraryTextbooksBtn.addEventListener("click", () => goBackScreen());
+}
+
+document.getElementById("libHubTextbooksCard")?.addEventListener("click", () => {
+  renderLibraryTextbooksList();
+  openScreen(libraryTextbooksModal);
+});
+document.getElementById("libHubResearchCard")?.addEventListener("click", () => {
+  openDigitalLibraryModal("research");
+});
+document.getElementById("libHubCurriculumCard")?.addEventListener("click", () => {
+  openDigitalLibraryModal("curriculum");
+});
+document.getElementById("libHubSearchCard")?.addEventListener("click", () => {
+  openDigitalLibraryModal("notes");
+});
+
+// ---------- Notes (reuses your existing real Notes & Flashcards tool) ----------
+document.getElementById("libHubNotesCard")?.addEventListener("click", () => {
+  if (typeof openNotesFlashcardsModal === "function") openNotesFlashcardsModal();
+});
+
+// ---------- Past Questions (reuses your existing real Exam Centre — read,
+// practice CBT, and AI explanations are already exactly what it does) ----------
+document.getElementById("libHubPastQuestionsCard")?.addEventListener("click", () => {
+  if (typeof openExamCentreModal === "function") openExamCentreModal();
+});
+
+// ---------- Saved Books (reuses your real Favorite Chats — ⭐ any library
+// chat and it shows up here, same as the rest of the app) ----------
+document.getElementById("libHubSavedCard")?.addEventListener("click", () => {
+  renderFavoriteChatsList();
+  openScreen(favoriteChatsModal);
+});
+
+// ---------- Downloads (real history of what you've generated — logged
+// locally on this device, not fake files on a server) ----------
+const LIBRARY_HISTORY_KEY = "formguide_library_history";
+
+function loadLibraryHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(LIBRARY_HISTORY_KEY)) || [];
+  } catch (e) {
+    return [];
+  }
+}
+function saveLibraryHistory(list) {
+  localStorage.setItem(LIBRARY_HISTORY_KEY, JSON.stringify(list.slice(0, 50)));
+}
+function logLibraryRequest(category, query) {
+  const history = loadLibraryHistory();
+  history.unshift({ category, query, date: new Date().toISOString() });
+  saveLibraryHistory(history);
+}
+
+const libraryDownloadsModal = document.getElementById("libraryDownloadsModal");
+const closeLibraryDownloadsBtn = document.getElementById("closeLibraryDownloadsBtn");
+if (closeLibraryDownloadsBtn) {
+  closeLibraryDownloadsBtn.addEventListener("click", () => goBackScreen());
+}
+
+const CATEGORY_LABELS = {
+  notes: "Study Notes",
+  explain: "Explain Topic",
+  textbook: "Textbook Chapter",
+  "textbook-download": "Textbook Download",
+  pastquestions: "Practice Questions",
+  research: "Research Overview",
+  curriculum: "Curriculum Guide",
+};
+const CATEGORY_PROMPT_BUILDERS = {
+  notes: (q) => `Give me clear, well-organized study notes on "${q}" suitable for a Nigerian student, with headings and key points.`,
+  explain: (q) => `Please explain "${q}" the way a good textbook chapter would — clear, step-by-step, with examples, suitable for someone learning it for the first time.`,
+  textbook: (q) => `Write a textbook-style chapter on "${q}" for a Nigerian secondary school student — include an introduction, clearly numbered sections, worked examples, and a short summary at the end, the way a real textbook chapter would be structured.`,
+  pastquestions: (q) => `Generate a set of original practice questions in the style of "${q}", with answers and brief explanations. Make clear these are AI-generated practice questions, not real past exam questions.`,
+  research: (q) => `Write a clear academic-style overview of "${q}" — background, key concepts, and current understanding — suitable as a starting point for a student researching this topic. Make clear this is an AI-written overview, not a substitute for real peer-reviewed sources.`,
+  curriculum: (q) => `Summarize what is typically covered under "${q}" in the Nigerian school curriculum, including the main topics a student should know.`,
+};
+
+function renderLibraryDownloadsList() {
+  const list = document.getElementById("libraryDownloadsList");
+  const empty = document.getElementById("libraryDownloadsEmpty");
+  const history = loadLibraryHistory();
+  list.innerHTML = "";
+
+  if (history.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  history.forEach((entry, index) => {
+    const item = document.createElement("div");
+    item.className = "notif-item";
+    const dateLabel = new Date(entry.date).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    item.innerHTML = `
+      <div class="notif-icon">📄</div>
+      <div class="notif-content">
+        <div class="notif-title">${entry.query}</div>
+        <div class="notif-message">${CATEGORY_LABELS[entry.category] || entry.category} — ${dateLabel}</div>
+      </div>
+    `;
+
+    if (entry.category === "textbook-download") {
+      // Real book — re-open the real catalog, not an AI regeneration.
+      const btn = document.createElement("button");
+      btn.className = "settings-tab-inline";
+      btn.textContent = "Open Library";
+      btn.style.flexShrink = "0";
+      btn.addEventListener("click", () => {
+        renderLibraryTextbooksList();
+        openScreen(libraryTextbooksModal);
+      });
+      item.appendChild(btn);
+    } else {
+      const viewBtn = document.createElement("button");
+      viewBtn.className = "settings-tab-inline";
+      viewBtn.textContent = "View Again";
+      viewBtn.style.flexShrink = "0";
+      viewBtn.addEventListener("click", () => {
+        const builder = CATEGORY_PROMPT_BUILDERS[entry.category] || CATEGORY_PROMPT_BUILDERS.notes;
+        closeAllScreens();
+        chatEntryScreen = educationModal;
+        sendMessage(builder(entry.query));
+      });
+      item.appendChild(viewBtn);
+    }
+    list.appendChild(item);
+  });
+}
+
+document.getElementById("libHubDownloadsCard")?.addEventListener("click", () => {
+  renderLibraryDownloadsList();
+  openScreen(libraryDownloadsModal);
+});
