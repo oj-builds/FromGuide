@@ -543,7 +543,7 @@ function todayString() {
 
 // ---------- EXAM CENTRE (mock exam question generation) ----------
 
-const EXAM_TYPES = ["WAEC", "NECO", "JAMB", "Post-UTME", "BECE"];
+const EXAM_TYPES = ["WAEC", "NECO", "JAMB", "Post-UTME", "BECE", "NABTEB"];
 
 // ---------- ACHIEVEMENTS / GAMIFICATION ----------
 // XP is only ever awarded from specific real actions in the app (completing an
