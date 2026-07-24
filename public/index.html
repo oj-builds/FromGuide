@@ -536,6 +536,7 @@
             <button class="templates-tab exam-type-btn" data-exam="JAMB">JAMB</button>
             <button class="templates-tab exam-type-btn" data-exam="Post-UTME">Post-UTME</button>
             <button class="templates-tab exam-type-btn" data-exam="BECE">BECE</button>
+            <button class="templates-tab exam-type-btn" data-exam="NABTEB">NABTEB</button>
           </div>
 
           <label class="field-label">Subject</label>
@@ -1061,6 +1062,142 @@
       <p style="font-size:11px;color:var(--text-dim);margin-top:14px;line-height:1.6;">
         Note: current WAEC/NECO Literature-in-English set texts are still under copyright and not available here — Project Gutenberg only covers older public-domain classics.
       </p>
+    </div>
+  </div>
+
+  <!-- Exam Centre Hub: Education Hub -> Exam Centre -> section (same page-stack pattern as AI Tutor/Digital Library) -->
+  <div id="examCentreHubModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeExamCentreHubBtn" class="dark-back-btn">←</button>
+      <h2>📝 Exam Centre</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Practice for real exams, check your results on official portals, and track your genuine progress.</p>
+
+      <div class="dash-section-header">
+        <h3>Choose an Exam</h3>
+      </div>
+      <div class="dash-quick-grid" id="examHubTypeGrid">
+        <button class="dash-quick-card" data-exam="WAEC"><span class="dash-quick-icon green">📖</span><strong>WAEC</strong></button>
+        <button class="dash-quick-card" data-exam="JAMB"><span class="dash-quick-icon blue">🎓</span><strong>JAMB</strong></button>
+        <button class="dash-quick-card" data-exam="NECO"><span class="dash-quick-icon orange">📝</span><strong>NECO</strong></button>
+        <button class="dash-quick-card" data-exam="NABTEB"><span class="dash-quick-icon teal">🏫</span><strong>NABTEB</strong></button>
+        <button class="dash-quick-card" data-exam="BECE"><span class="dash-quick-icon purple">📄</span><strong>BECE</strong></button>
+        <button class="dash-quick-card" data-exam="Post-UTME"><span class="dash-quick-icon blue">🎯</span><strong>Post UTME</strong></button>
+      </div>
+
+      <div class="dash-section-header" style="margin-top:20px;">
+        <h3>Tools</h3>
+      </div>
+      <div class="dash-quick-grid">
+        <button class="dash-quick-card" id="examHubMockCard"><span class="dash-quick-icon green">🧪</span><strong>Mock Exams</strong></button>
+        <button class="dash-quick-card" id="examHubResultsCard"><span class="dash-quick-icon orange">📊</span><strong>Results Checker</strong></button>
+        <button class="dash-quick-card" id="examHubPastQuestionsCard"><span class="dash-quick-icon purple">📚</span><strong>Past Questions</strong></button>
+        <button class="dash-quick-card" id="examHubScoreAnalysisCard"><span class="dash-quick-icon teal">📈</span><strong>Score Analysis</strong></button>
+        <button class="dash-quick-card" id="examHubCalendarCard"><span class="dash-quick-icon blue">📅</span><strong>Exam Calendar</strong></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Checker — real official portals only. No in-app checker, since that
+       requires each candidate's real scratch-card PIN, which only the official
+       boards can verify. -->
+  <div id="examResultsCheckerModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeExamResultsCheckerBtn" class="dark-back-btn">←</button>
+      <h2>📊 Results Checker</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Real official result portals — you'll need your exam number and scratch-card PIN (bought from the board or an authorized vendor). We can't check results inside the app since only the official boards can verify your PIN.</p>
+      <div class="recent-file-item" style="cursor:default;">
+        <div class="recent-file-icon">📖</div>
+        <div class="recent-file-info"><div class="recent-file-name">WAEC (WASSCE)</div><div class="recent-file-meta">Official result checker</div></div>
+        <a href="https://www.waecdirect.org" target="_blank" rel="noopener" class="settings-tab-inline" style="text-decoration:none;flex-shrink:0;">Open</a>
+      </div>
+      <div class="recent-file-item" style="cursor:default;">
+        <div class="recent-file-icon">📝</div>
+        <div class="recent-file-info"><div class="recent-file-name">NECO</div><div class="recent-file-meta">Official result portal</div></div>
+        <a href="https://results.neco.gov.ng" target="_blank" rel="noopener" class="settings-tab-inline" style="text-decoration:none;flex-shrink:0;">Open</a>
+      </div>
+      <div class="recent-file-item" style="cursor:default;">
+        <div class="recent-file-icon">🎓</div>
+        <div class="recent-file-info"><div class="recent-file-name">JAMB (UTME)</div><div class="recent-file-meta">Official JAMB portal</div></div>
+        <a href="https://www.jamb.org.ng" target="_blank" rel="noopener" class="settings-tab-inline" style="text-decoration:none;flex-shrink:0;">Open</a>
+      </div>
+      <div class="recent-file-item" style="cursor:default;">
+        <div class="recent-file-icon">🏫</div>
+        <div class="recent-file-info"><div class="recent-file-name">NABTEB</div><div class="recent-file-meta">Official NABTEB e-World portal</div></div>
+        <a href="https://eworld.nabteb.gov.ng" target="_blank" rel="noopener" class="settings-tab-inline" style="text-decoration:none;flex-shrink:0;">Open</a>
+      </div>
+      <p style="font-size:11px;color:var(--text-dim);margin-top:14px;line-height:1.6;">
+        ⚠️ Only ever pay for scratch cards through these official sites or authorized vendors — third-party "result checker" sites are a common scam target.
+      </p>
+    </div>
+  </div>
+
+  <!-- Exam Calendar — real official links only, no hardcoded dates. WAEC/JAMB/NECO
+       dates change every year (and are announced only months ahead), so any date
+       we bake into the app today would go stale — we verified this ourselves:
+       2026 WAEC/JAMB exams already finished by the time this was built. -->
+  <div id="examCalendarModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeExamCalendarBtn" class="dark-back-btn">←</button>
+      <h2>📅 Exam Calendar</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <p class="templates-sub">Exam dates change every year and are only announced a few months ahead — we deliberately don't hardcode dates here, since a wrong date is worse than no date. Use these official sources for the current year's real schedule:</p>
+      <div class="recent-file-item" style="cursor:default;">
+        <div class="recent-file-icon">📖</div>
+        <div class="recent-file-info"><div class="recent-file-name">WAEC Nigeria</div><div class="recent-file-meta">Timetable & announcements</div></div>
+        <a href="https://www.waecnigeria.org" target="_blank" rel="noopener" class="settings-tab-inline" style="text-decoration:none;flex-shrink:0;">Open</a>
+      </div>
+      <div class="recent-file-item" style="cursor:default;">
+        <div class="recent-file-icon">🎓</div>
+        <div class="recent-file-info"><div class="recent-file-name">JAMB</div><div class="recent-file-meta">Registration & exam dates</div></div>
+        <a href="https://www.jamb.org.ng" target="_blank" rel="noopener" class="settings-tab-inline" style="text-decoration:none;flex-shrink:0;">Open</a>
+      </div>
+      <div class="recent-file-item" style="cursor:default;">
+        <div class="recent-file-icon">📝</div>
+        <div class="recent-file-info"><div class="recent-file-name">NECO</div><div class="recent-file-meta">Official announcements</div></div>
+        <a href="https://neco.gov.ng" target="_blank" rel="noopener" class="settings-tab-inline" style="text-decoration:none;flex-shrink:0;">Open</a>
+      </div>
+      <div class="recent-file-item" style="cursor:default;">
+        <div class="recent-file-icon">🏫</div>
+        <div class="recent-file-info"><div class="recent-file-name">NABTEB</div><div class="recent-file-meta">Official announcements</div></div>
+        <a href="https://nabteb.gov.ng" target="_blank" rel="noopener" class="settings-tab-inline" style="text-decoration:none;flex-shrink:0;">Open</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Score Analysis — real data (Level/XP/Exams Taken + real subject percentages) -->
+  <div id="examScoreAnalysisModal" class="dark-fullscreen">
+    <div class="dark-fs-header">
+      <button id="closeExamScoreAnalysisBtn" class="dark-back-btn">←</button>
+      <h2>📈 Score Analysis</h2>
+      <span style="width:28px;"></span>
+    </div>
+    <div class="dark-fs-body">
+      <div id="examScoreGuestNotice" style="display:none;">
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);">
+          <h3 style="color:var(--text);">Log in to see your score analysis</h3>
+        </div>
+      </div>
+      <div id="examScoreContent" style="display:none;">
+        <div class="settings-card" style="background:var(--panel);border-color:var(--border);text-align:center;">
+          <div style="font-size:13px;color:var(--text-dim);">Total Mock Exams Taken</div>
+          <div id="examScoreExamsTaken" style="font-size:32px;font-weight:800;color:var(--accent);margin:4px 0;">0</div>
+        </div>
+        <div class="dash-section-header" style="margin-top:16px;">
+          <h3>By Subject</h3>
+        </div>
+        <div id="examScoreSubjectList"></div>
+        <p id="examScoreEmpty" style="display:none;font-size:11.5px;color:var(--text-dim);line-height:1.6;">
+          No subject-level results yet — practice questions taken through AI Tutor or here feed real percentages into this page.
+        </p>
+      </div>
     </div>
   </div>
 
