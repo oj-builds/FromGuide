@@ -2139,6 +2139,7 @@ let examCurrentIndex = 0;
 let examTimerInterval = null;
 let examSecondsLeft = 0;
 let examSubjectLabel = "";
+let examRawSubject = "";
 
 function showExamView(view) {
   [examSetupView, examLoadingView, examTakingView, examResultsView].forEach((v) => {
@@ -2212,6 +2213,7 @@ if (examStartBtn) {
 
       examQuestions = data.questions;
       examSubjectLabel = `${data.examType} ${data.subject}`;
+      examRawSubject = data.subject;
       examAnswers = new Array(examQuestions.length).fill(null);
       examCurrentIndex = 0;
       examSecondsLeft = examQuestions.length * 72; // ~1.2 min per question
@@ -2318,6 +2320,20 @@ function submitExam() {
 
   // Award XP scaled by performance (up to 20 XP), and count this as a completed exam
   awardXP(Math.round((percent / 100) * 20), `Completed ${examSubjectLabel} mock exam`, true);
+
+  // Also feed this real result into the same subject-progress tracking used by
+  // AI Tutor's Practice Quiz, so Score Analysis shows genuine data — only when
+  // the typed subject matches one we recognize, rather than guessing.
+  const matchedSubject = (typeof getTutorSubjectsList === "function" ? getTutorSubjectsList() : [])
+    .map((s) => s.subject)
+    .find((s) => s.toLowerCase() === examRawSubject.toLowerCase());
+  if (matchedSubject && getToken()) {
+    fetch("/api/subject-progress/record", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ subject: matchedSubject, correct: correctCount, total }),
+    }).catch((err) => console.error("Could not record exam score for analysis:", err));
+  }
 
   document.getElementById("examScoreText").textContent = `${correctCount}/${total}`;
   document.getElementById("examPercentText").textContent = `${percent}% — ${examSubjectLabel}`;
@@ -4488,7 +4504,8 @@ wireEduCard("eduDigitalLibraryCard", () => {
 });
 
 wireEduCard("eduExamCentreCard", () => {
-  if (typeof openExamCentreModal === "function") openExamCentreModal();
+  const examCentreHubModal = document.getElementById("examCentreHubModal");
+  openScreen(examCentreHubModal);
 });
 
 wireEduCard("eduStudyPlannerCard", () => {
@@ -5733,3 +5750,115 @@ document.getElementById("libHubDownloadsCard")?.addEventListener("click", () => 
   renderLibraryDownloadsList();
   openScreen(libraryDownloadsModal);
 });
+
+// =====================================================================
+// EXAM CENTRE HUB — Education Hub -> Exam Centre -> section (same
+// page-stack pattern as AI Tutor/AI Classroom/Digital Library).
+// =====================================================================
+
+const examCentreHubModal = document.getElementById("examCentreHubModal");
+const closeExamCentreHubBtn = document.getElementById("closeExamCentreHubBtn");
+if (closeExamCentreHubBtn) {
+  closeExamCentreHubBtn.addEventListener("click", () => goBackScreen());
+}
+
+// Choosing an exam type opens your real Mock Exam generator, pre-selected
+function selectExamTypeAndOpen(examType) {
+  document.querySelectorAll(".exam-type-btn").forEach((b) => b.classList.toggle("active", b.dataset.exam === examType));
+  examSelectedType = examType;
+  if (typeof openExamCentreModal === "function") openExamCentreModal();
+}
+document.querySelectorAll("#examHubTypeGrid .dash-quick-card[data-exam]").forEach((card) => {
+  card.addEventListener("click", () => selectExamTypeAndOpen(card.dataset.exam));
+});
+
+// Mock Exams / Past Questions / Practice Tests all reuse the same real,
+// working generator — no need for three separate builds of the same thing.
+document.getElementById("examHubMockCard")?.addEventListener("click", () => {
+  if (typeof openExamCentreModal === "function") openExamCentreModal();
+});
+document.getElementById("examHubPastQuestionsCard")?.addEventListener("click", () => {
+  if (typeof openExamCentreModal === "function") openExamCentreModal();
+});
+
+// ---------- Results Checker (real official portals only) ----------
+const examResultsCheckerModal = document.getElementById("examResultsCheckerModal");
+document.getElementById("examHubResultsCard")?.addEventListener("click", () => {
+  openScreen(examResultsCheckerModal);
+});
+document.getElementById("closeExamResultsCheckerBtn")?.addEventListener("click", () => goBackScreen());
+
+// ---------- Exam Calendar (real official links only, no stale dates) ----------
+const examCalendarModal = document.getElementById("examCalendarModal");
+document.getElementById("examHubCalendarCard")?.addEventListener("click", () => {
+  openScreen(examCalendarModal);
+});
+document.getElementById("closeExamCalendarBtn")?.addEventListener("click", () => goBackScreen());
+
+// ---------- Score Analysis (real achievements + real per-subject data) ----------
+const examScoreAnalysisModal = document.getElementById("examScoreAnalysisModal");
+document.getElementById("examHubScoreAnalysisCard")?.addEventListener("click", async () => {
+  openScreen(examScoreAnalysisModal);
+  await loadExamScoreAnalysis();
+});
+document.getElementById("closeExamScoreAnalysisBtn")?.addEventListener("click", () => goBackScreen());
+
+async function loadExamScoreAnalysis() {
+  const guestNotice = document.getElementById("examScoreGuestNotice");
+  const content = document.getElementById("examScoreContent");
+
+  if (!getToken()) {
+    guestNotice.style.display = "block";
+    content.style.display = "none";
+    return;
+  }
+
+  try {
+    const achRes = await fetch("/api/achievements", { headers: { Authorization: `Bearer ${getToken()}` } });
+    guestNotice.style.display = "none";
+    content.style.display = "block";
+
+    if (achRes.ok) {
+      const achData = await achRes.json();
+      document.getElementById("examScoreExamsTaken").textContent = achData.examsTaken ?? 0;
+    }
+
+    const progRes = await fetch("/api/subject-progress", { headers: { Authorization: `Bearer ${getToken()}` } });
+    const list = document.getElementById("examScoreSubjectList");
+    const empty = document.getElementById("examScoreEmpty");
+    list.innerHTML = "";
+
+    if (!progRes.ok) {
+      empty.style.display = "block";
+      return;
+    }
+    const progData = await progRes.json();
+    const withScores = (progData.progress || []).filter((p) => p.percentage !== null);
+
+    if (withScores.length === 0) {
+      empty.style.display = "block";
+      return;
+    }
+    empty.style.display = "none";
+
+    withScores
+      .sort((a, b) => b.percentage - a.percentage)
+      .forEach((p) => {
+        const row = document.createElement("div");
+        row.className = "subject-progress-row";
+        row.innerHTML = `
+          <div class="subject-progress-top">
+            <span>${p.subject}</span>
+            <small>${p.percentage}% (${p.questionsCorrect}/${p.questionsAnswered})</small>
+          </div>
+          <div class="subject-progress-track">
+            <div class="subject-progress-fill" style="width:${p.percentage}%;"></div>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+  } catch (err) {
+    guestNotice.style.display = "block";
+    content.style.display = "none";
+  }
+}
